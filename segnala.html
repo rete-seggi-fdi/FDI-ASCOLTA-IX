@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Invia segnalazione — FDI Ascolta IX</title>
+  <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+<header class="site-header compact">
+  <a class="brand" href="index.html"><img src="assets/logo/logo.svg" alt="Logo" /><span><strong>FDI Ascolta IX</strong><small>Municipio IX Roma</small></span></a>
+  <nav class="main-nav"><a href="tracking.html">Segui pratica</a><a href="login.html">Area riservata</a></nav>
+</header>
+<main class="page container narrow">
+  <section class="card form-card">
+    <p class="eyebrow dark">Nuova pratica</p>
+    <h1>Invia una segnalazione</h1>
+    <p class="muted">La segnalazione non è anonima. I dati servono solo per gestire la pratica e ricontattarti se necessario.</p>
+
+    <form id="reportForm">
+      <div class="form-grid two">
+        <label>Nome e cognome *<input required name="nome" type="text" /></label>
+        <label>Email *<input required name="email" type="email" /></label>
+      </div>
+      <label>Telefono<input name="telefono" type="tel" /></label>
+      <div class="form-grid two">
+        <label>Quartiere *
+          <select required name="quartiere">
+            <option value="">Seleziona</option><option>EUR</option><option>Torrino</option><option>Mostacciano</option><option>Spinaceto</option><option>Laurentino</option><option>Fonte Ostiense</option><option>Vitinia</option><option>Trigoria</option><option>Mezzocammino</option><option>Vallerano</option><option>Cecchignola</option><option>Fonte Meravigliosa</option><option>Altro Municipio IX</option>
+          </select>
+        </label>
+        <label>Categoria *
+          <select required name="categoria">
+            <option value="">Seleziona</option><option>Buche / strade</option><option>Illuminazione</option><option>Rifiuti</option><option>Verde pubblico</option><option>Sicurezza</option><option>Degrado</option><option>Barriere architettoniche</option><option>Altro</option>
+          </select>
+        </label>
+      </div>
+      <label>Titolo *<input required name="titolo" type="text" placeholder="Es. Buca pericolosa in via..." /></label>
+      <label>Descrizione *<textarea required name="descrizione" placeholder="Descrivi il problema"></textarea></label>
+      <label>Indirizzo *<input required name="indirizzo" type="text" /></label>
+      <div class="form-grid three">
+        <label>Latitudine *<input required name="latitudine" id="latitudine" type="text" /></label>
+        <label>Longitudine *<input required name="longitudine" id="longitudine" type="text" /></label>
+        <button class="btn btn-secondary align-end" type="button" id="gpsBtn">Usa GPS</button>
+      </div>
+      <label>Foto<input name="foto" id="foto" type="file" accept="image/*" /></label>
+      <label class="check"><input required type="checkbox" /> Confermo che i dati inseriti sono corretti e autorizzo l’uso per la gestione della segnalazione.</label>
+      <button class="btn btn-primary full" type="submit">Invia segnalazione</button>
+    </form>
+    <div id="formMessage" class="notice hidden"></div>
+  </section>
+</main>
+<script src="assets/js/config.js"></script><script src="assets/js/api.js"></script><script src="assets/js/segnala.js"></script>
+</body>
+</html>

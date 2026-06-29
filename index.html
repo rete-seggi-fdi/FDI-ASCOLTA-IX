@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FDI Ascolta IX</title>
+  <meta name="description" content="Piattaforma per la raccolta e gestione delle segnalazioni territoriali del Municipio IX di Roma." />
+  <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html" aria-label="FDI Ascolta IX home">
+      <img src="assets/logo/logo.svg" alt="Logo FDI Ascolta IX" />
+      <span><strong>FDI Ascolta IX</strong><small>Municipio IX Roma</small></span>
+    </a>
+    <nav class="main-nav">
+      <a href="segnala.html">Invia segnalazione</a>
+      <a href="tracking.html">Segui pratica</a>
+      <a class="nav-pill" href="login.html">Area riservata</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-overlay"></div>
+      <div class="hero-content">
+        <p class="eyebrow">Gruppo Consiliare Fratelli d’Italia — Municipio IX</p>
+        <h1>Ascoltiamo il territorio. Seguiamo le segnalazioni.</h1>
+        <p class="lead">Una piattaforma per raccogliere, organizzare e monitorare le criticità segnalate dai cittadini del Municipio IX di Roma.</p>
+        <p>Buche, rifiuti, illuminazione, degrado, sicurezza, verde urbano e barriere architettoniche: ogni segnalazione diventa una pratica tracciabile.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="segnala.html">Invia una segnalazione</a>
+          <a class="btn btn-light" href="tracking.html">Segui una pratica</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="stats-strip" id="homeStats">
+      <div><strong id="statReceived">—</strong><span>Segnalazioni ricevute</span></div>
+      <div><strong id="statForwarded">—</strong><span>Inoltrate</span></div>
+      <div><strong id="statClosed">—</strong><span>Risolte</span></div>
+      <div><strong id="statDistricts">—</strong><span>Quartieri monitorati</span></div>
+    </section>
+
+    <section class="section container">
+      <div class="section-heading">
+        <p class="eyebrow dark">Come funziona</p>
+        <h2>Dal problema alla pratica monitorata</h2>
+      </div>
+      <div class="cards three">
+        <article class="card step-card"><span>1</span><h3>Segnala</h3><p>Inserisci una segnalazione non anonima con descrizione, foto, indirizzo e posizione GPS.</p></article>
+        <article class="card step-card"><span>2</span><h3>Verifichiamo</h3><p>Il gruppo consiliare analizza, classifica e organizza le segnalazioni ricevute.</p></article>
+        <article class="card step-card"><span>3</span><h3>Inoltriamo</h3><p>La pratica viene inviata ai referenti competenti e monitorata fino alla risposta.</p></article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">FDI Ascolta IX — Sistema di gestione delle segnalazioni territoriali</footer>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/home.js"></script>
+</body>
+</html>

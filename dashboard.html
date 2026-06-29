@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — FDI Ascolta IX</title>
+  <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body class="dashboard-body">
+  <aside class="sidebar">
+    <a class="brand side-brand" href="index.html">
+      <img src="assets/logo/logo.svg" alt="Logo" />
+      <span><strong>FDI Ascolta IX</strong><small>Area riservata</small></span>
+    </a>
+    <nav>
+      <a class="active" href="dashboard.html">Dashboard</a>
+      <a href="#reportsPanel">Segnalazioni</a>
+      <a href="#detailMap">Mappa pratica</a>
+      <a href="#referentePanel">Referente</a>
+    </nav>
+    <button id="logoutBtn" class="btn btn-light full">Logout</button>
+  </aside>
+
+  <main class="dashboard-main crm-main">
+    <header class="dash-header">
+      <div>
+        <p class="eyebrow dark">Gestione pratiche</p>
+        <h1>Dashboard segnalazioni</h1>
+        <p class="muted">Seleziona una pratica a sinistra, assegna un referente e invia la richiesta.</p>
+      </div>
+      <div id="userBox" class="user-box"></div>
+    </header>
+
+    <section class="dash-stats">
+      <div><strong id="dNuove">0</strong><span>Nuove</span></div>
+      <div><strong id="dInviate">0</strong><span>Inviate</span></div>
+      <div><strong id="dRisolte">0</strong><span>Risolte</span></div>
+      <div><strong id="dTotali">0</strong><span>Totali</span></div>
+    </section>
+
+    <section class="crm-layout">
+      <aside class="card reports-panel" id="reportsPanel">
+        <div class="panel-header">
+          <div>
+            <h2>Pratiche</h2>
+            <p class="muted small">Ultime segnalazioni ricevute</p>
+          </div>
+        </div>
+
+        <div class="filters-row">
+          <input id="searchInput" type="search" placeholder="Cerca codice, via, quartiere..." />
+          <select id="statusFilter">
+            <option value="">Tutti gli stati</option>
+            <option value="nuova">Nuove</option>
+            <option value="inviata">Inviate</option>
+            <option value="risolta">Risolte/Chiuse</option>
+          </select>
+        </div>
+
+        <div id="reportsList" class="reports-list crm-list"></div>
+      </aside>
+
+      <section class="card practice-panel" id="practicePanel">
+        <div id="emptyPractice" class="empty-state">
+          <h2>Seleziona una pratica</h2>
+          <p>Scegli una segnalazione dall’elenco per vedere dettagli, posizione e referente.</p>
+        </div>
+
+        <div id="practiceContent" class="hidden">
+          <div class="practice-top">
+            <div>
+              <span id="pStatus" class="badge">Nuova</span>
+              <h2 id="pTitle">Titolo pratica</h2>
+              <p id="pMeta" class="meta"></p>
+            </div>
+          </div>
+
+          <div class="practice-grid">
+            <div>
+              <h3>Dettagli segnalazione</h3>
+              <p id="pDescription" class="practice-description"></p>
+              <dl class="details-list">
+                <div><dt>Quartiere</dt><dd id="pQuartiere"></dd></div>
+                <div><dt>Categoria</dt><dd id="pCategoria"></dd></div>
+                <div><dt>Indirizzo</dt><dd id="pIndirizzo"></dd></div>
+                <div><dt>Priorità</dt><dd id="pPriorita"></dd></div>
+                <div><dt>Cittadino</dt><dd id="pCittadino"></dd></div>
+                <div><dt>Email</dt><dd id="pEmail"></dd></div>
+                <div><dt>Telefono</dt><dd id="pTelefono"></dd></div>
+                <div><dt>Referente attuale</dt><dd id="pReferente"></dd></div>
+              </dl>
+            </div>
+            <div id="pPhotoBox" class="photo-box hidden">
+              <img id="pPhoto" alt="Foto segnalazione" />
+            </div>
+          </div>
+
+          <section class="practice-section" id="referentePanel">
+            <h3>Assegna e inoltra al referente</h3>
+            <div class="form-grid two">
+              <label>Referente
+                <select id="referenteSelect"></select>
+              </label>
+              <label>Stato pratica
+                <input id="currentStatus" type="text" disabled />
+              </label>
+            </div>
+            <label>Messaggio email
+              <textarea id="referenteMessage" rows="8"></textarea>
+            </label>
+            <div class="actions-row">
+              <button id="sendReferenteBtn" class="btn btn-primary">Invia al referente</button>
+              <button id="refreshBtn" class="btn btn-secondary">Aggiorna dati</button>
+            </div>
+            <div id="sendMessageBox" class="notice hidden"></div>
+          </section>
+
+          <section class="practice-section">
+            <h3>Mappa della pratica</h3>
+            <div id="mapNotice" class="notice hidden"></div>
+            <div id="detailMap" class="detail-map"></div>
+          </section>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/dashboard.js"></script>
+</body>
+</html>
