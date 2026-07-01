@@ -1,8 +1,237 @@
 <!DOCTYPE html>
 <html lang="it">
-<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Segui pratica — FDI Ascolta IX</title><link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml" /><link rel="stylesheet" href="assets/css/style.css" /></head>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Segui pratica — FDI Ascolta IX</title>
+
+  <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+
+  <style>
+    .timeline-box {
+      margin-top: 28px;
+      border-left: 4px solid #103A71;
+      padding-left: 22px;
+    }
+
+    .timeline-item {
+      position: relative;
+      margin-bottom: 24px;
+      padding: 18px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 18px;
+      box-shadow: 0 10px 28px rgba(16, 58, 113, 0.08);
+    }
+
+    .timeline-item::before {
+      content: "";
+      position: absolute;
+      left: -34px;
+      top: 22px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #103A71;
+      border: 4px solid #ffffff;
+      box-shadow: 0 0 0 2px #103A71;
+    }
+
+    .timeline-date {
+      font-size: 0.9rem;
+      color: #64748b;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .timeline-title {
+      color: #103A71;
+      font-weight: 900;
+      font-size: 1.05rem;
+      margin-bottom: 6px;
+    }
+
+    .timeline-desc {
+      color: #334155;
+      line-height: 1.6;
+    }
+
+    .practice-summary {
+      margin-top: 24px;
+      padding: 22px;
+      border-radius: 20px;
+      background: #f8fbff;
+      border: 1px solid #dfe7f1;
+    }
+
+    .practice-summary h2 {
+      color: #103A71;
+      margin-top: 0;
+    }
+
+    .empty-timeline {
+      margin-top: 22px;
+      padding: 18px;
+      border-radius: 16px;
+      background: #fff7ed;
+      color: #9a3412;
+      font-weight: 700;
+    }
+  </style>
+</head>
+
 <body>
-<header class="site-header compact"><a class="brand" href="index.html"><img src="assets/logo/logo.svg" alt="Logo" /><span><strong>FDI Ascolta IX</strong><small>Municipio IX Roma</small></span></a><nav class="main-nav"><a href="segnala.html">Invia segnalazione</a><a href="login.html">Area riservata</a></nav></header>
-<main class="page container narrow"><section class="card form-card"><p class="eyebrow dark">Tracking cittadino</p><h1>Segui la tua pratica</h1><p class="muted">Inserisci il codice ricevuto dopo l’invio della segnalazione.</p><form id="trackingForm" class="inline-form"><input required id="trackingCode" placeholder="Es. IX-2026..." /><button class="btn btn-primary" type="submit">Cerca</button></form><div id="trackingResult" class="tracking-result"></div></section></main>
-<script src="assets/js/config.js"></script><script src="assets/js/api.js"></script><script src="assets/js/tracking.js"></script>
-</body></html>
+
+<header class="site-header compact">
+  <a class="brand" href="index.html">
+    <img src="assets/logo/logo.svg" alt="Logo" />
+    <span>
+      <strong>FDI Ascolta IX</strong>
+      <small>Municipio IX Roma</small>
+    </span>
+  </a>
+
+  <nav class="main-nav">
+    <a href="segnala.html">Invia segnalazione</a>
+    <a href="login.html">Area riservata</a>
+  </nav>
+</header>
+
+<main class="page container narrow">
+  <section class="card form-card">
+    <p class="eyebrow dark">Tracking cittadino</p>
+
+    <h1>Segui la tua pratica</h1>
+
+    <p class="muted">
+      Inserisci il codice ricevuto via email dopo l’invio della segnalazione.
+    </p>
+
+    <form id="trackingForm" class="inline-form">
+      <input required id="trackingCode" placeholder="Es. IX-20260630-154224-37" />
+      <button class="btn btn-primary" type="submit">Cerca</button>
+    </form>
+
+    <div id="trackingResult" class="tracking-result"></div>
+  </section>
+</main>
+
+<script src="assets/js/config.js"></script>
+<script src="assets/js/api.js"></script>
+
+<script>
+  const form = document.getElementById("trackingForm");
+  const codeInput = document.getElementById("trackingCode");
+  const resultBox = document.getElementById("trackingResult");
+
+  function getApiUrl() {
+    if (typeof CONFIG !== "undefined" && CONFIG.API_URL) return CONFIG.API_URL;
+    if (window.CONFIG && window.CONFIG.API_URL) return window.CONFIG.API_URL;
+    throw new Error("API_URL non configurato");
+  }
+
+  async function apiGet(action, params = {}) {
+    const url = new URL(getApiUrl());
+    url.searchParams.set("action", action);
+
+    Object.keys(params).forEach(function (key) {
+      url.searchParams.set(key, params[key]);
+    });
+
+    const response = await fetch(url.toString());
+    return await response.json();
+  }
+
+  function statusLabel(report) {
+    return report.stato || "Segnalazione ricevuta";
+  }
+
+  function renderTimeline(timeline) {
+    if (!timeline || timeline.length === 0) {
+      return `
+        <div class="empty-timeline">
+          Timeline non ancora disponibile per questa pratica.
+        </div>
+      `;
+    }
+
+    return `
+      <div class="timeline-box">
+        ${timeline.map(item => `
+          <div class="timeline-item">
+            <div class="timeline-date">${item.data || ""}</div>
+            <div class="timeline-title">${item.titolo || item.fase || "Aggiornamento pratica"}</div>
+            <div class="timeline-desc">${item.descrizione || ""}</div>
+          </div>
+        `).join("")}
+      </div>
+    `;
+  }
+
+  function renderReport(report, timeline) {
+    resultBox.innerHTML = `
+      <div class="practice-summary">
+        <h2>${report.titolo || "Segnalazione"}</h2>
+        <p><strong>Codice pratica:</strong> ${report.id}</p>
+        <p><strong>Stato attuale:</strong> ${statusLabel(report)}</p>
+        <p><strong>Quartiere:</strong> ${report.quartiere || "-"}</p>
+        <p><strong>Categoria:</strong> ${report.categoria || "-"}</p>
+        <p><strong>Indirizzo:</strong> ${report.indirizzo || "-"}</p>
+        <p><strong>Referente:</strong> ${report.referenteNome || "Non ancora assegnato"}</p>
+      </div>
+
+      <h2 style="margin-top:30px;color:#103A71;">Percorso della segnalazione</h2>
+
+      ${renderTimeline(timeline)}
+    `;
+  }
+
+  form.addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    const code = codeInput.value.trim();
+
+    if (!code) return;
+
+    resultBox.innerHTML = `<p class="muted">Ricerca pratica in corso...</p>`;
+
+    try {
+      const reportsResponse = await apiGet("listReports");
+
+      if (!reportsResponse.ok) {
+        throw new Error(reportsResponse.error || "Errore nel recupero delle pratiche.");
+      }
+
+      const report = (reportsResponse.reports || []).find(r => r.id === code);
+
+      if (!report) {
+        resultBox.innerHTML = `
+          <div class="empty-timeline">
+            Nessuna pratica trovata con questo codice.
+          </div>
+        `;
+        return;
+      }
+
+      const timelineResponse = await apiGet("getTimeline", {
+        reportId: code
+      });
+
+      const timeline = timelineResponse.ok ? timelineResponse.timeline : [];
+
+      renderReport(report, timeline);
+
+    } catch (error) {
+      resultBox.innerHTML = `
+        <div class="empty-timeline">
+          ${error.message}
+        </div>
+      `;
+    }
+  });
+</script>
+
+</body>
+</html>
