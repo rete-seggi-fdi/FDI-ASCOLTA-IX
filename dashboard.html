@@ -3,133 +3,64 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard — FDI Ascolta IX</title>
+  <title>Dashboard CRM v2.1 — FDI Ascolta IX</title>
   <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="assets/css/style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root{--blue:#103A71;--blue2:#0b2b55;--bg:#f4f7fb;--card:#fff;--text:#172033;--muted:#64748b;--border:#e2e8f0;--shadow:0 24px 70px rgba(16,58,113,.12)}
+    body{margin:0;background:var(--bg);color:var(--text)}
+    .crm-topbar{height:76px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;background:rgba(255,255,255,.94);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1000;backdrop-filter:blur(14px)}
+    .crm-brand{display:flex;gap:12px;align-items:center;text-decoration:none;color:var(--text)}.crm-brand img{width:42px;height:42px}.crm-brand strong{display:block;color:var(--blue);font-size:1.1rem}.crm-brand small{color:var(--muted);font-weight:700}.crm-user{display:flex;align-items:center;gap:12px;color:var(--muted);font-weight:800}.crm-logout{border:0;border-radius:999px;padding:10px 14px;background:#eef4fb;color:var(--blue);font-weight:900;cursor:pointer}
+    .crm-main{padding:22px;display:flex;flex-direction:column;gap:18px}.stats-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}.stat-card{background:#fff;border:1px solid var(--border);border-radius:22px;padding:18px;box-shadow:0 12px 30px rgba(16,58,113,.08)}.stat-card span{display:block;color:var(--muted);font-weight:900;font-size:.82rem;text-transform:uppercase}.stat-card strong{display:block;font-size:2rem;color:var(--blue);margin-top:6px}
+    .filters-card{background:#fff;border:1px solid var(--border);border-radius:22px;padding:16px;box-shadow:0 12px 30px rgba(16,58,113,.07);display:grid;grid-template-columns:2fr repeat(4,1fr);gap:12px}.filters-card input,.filters-card select{width:100%;border:1px solid #dbe3ef;border-radius:14px;padding:12px 14px;font-size:15px;background:#fff}
+    .crm-grid{display:grid;grid-template-columns:390px minmax(0,1fr);gap:18px;align-items:start}.practice-list,.case-file{background:#fff;border:1px solid var(--border);border-radius:26px;box-shadow:var(--shadow);min-height:calc(100vh - 260px);overflow:hidden}.panel-head{padding:18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}.panel-head h2{margin:0;color:var(--blue);font-size:1.1rem}.list-scroll{max-height:calc(100vh - 330px);overflow:auto;padding:10px}
+    .practice-item{border:1px solid var(--border);border-radius:18px;padding:14px;margin-bottom:10px;cursor:pointer;transition:.18s;background:#fff}.practice-item:hover,.practice-item.active{border-color:rgba(16,58,113,.35);box-shadow:0 10px 26px rgba(16,58,113,.10);transform:translateY(-1px)}.practice-item-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.practice-code{color:var(--blue);font-weight:950;font-size:.9rem;word-break:break-word}.practice-title{margin:8px 0 4px;font-weight:900;color:var(--text);line-height:1.25}.practice-meta{color:var(--muted);font-size:.9rem;line-height:1.5}
+    .badge{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;font-size:.75rem;font-weight:950;white-space:nowrap}.badge.ricevuta{background:#fee2e2;color:#991b1b}.badge.carico{background:#ffedd5;color:#9a3412}.badge.attesa{background:#fef3c7;color:#854d0e}.badge.risolta{background:#dcfce7;color:#166534}.badge.archiviata{background:#e2e8f0;color:#334155}.badge.default{background:#eef4fb;color:var(--blue)}
+    .case-empty{padding:50px 28px;text-align:center;color:var(--muted)}.case-empty h2{color:var(--blue);margin-bottom:8px}.case-content{display:none}.case-content.visible{display:block}.case-hero{padding:24px;background:linear-gradient(135deg,#103A71,#0b2b55);color:white}.case-hero-top{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.case-hero h1{margin:10px 0 8px;font-size:clamp(1.6rem,3vw,2.4rem);letter-spacing:-.04em;line-height:1.05}.case-hero p{margin:0;opacity:.88;line-height:1.55}
+    .case-body{padding:22px;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(310px,.8fr);gap:18px}.case-section{border:1px solid var(--border);border-radius:22px;padding:18px;background:#fff;margin-bottom:16px}.case-section h3{margin:0 0 14px;color:var(--blue);font-size:1rem}.info-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.info{padding:12px;border-radius:14px;background:#f8fbff;border:1px solid #e7eef7}.info span{display:block;color:var(--muted);font-weight:900;font-size:.78rem;margin-bottom:4px;text-transform:uppercase}.info strong,.info a{color:var(--text);font-weight:850;text-decoration:none;word-break:break-word}
+    #caseMap{height:340px;border-radius:18px;overflow:hidden;border:1px solid var(--border);background:#eef4fb}.map-warning{padding:18px;border-radius:16px;background:#fff7ed;color:#9a3412;font-weight:800}.case-photo{width:100%;border-radius:18px;border:1px solid var(--border);display:block;max-height:380px;object-fit:cover}.workflow{display:grid;gap:10px}.workflow button{width:100%;text-align:left;border:1px solid var(--border);border-radius:14px;padding:12px 14px;background:#fff;color:var(--text);font-weight:850;cursor:pointer}.workflow button:hover,.workflow button.current{border-color:var(--blue);background:#f8fbff;color:var(--blue)}
+    .action-stack{display:grid;gap:12px}.action-stack select,.action-stack textarea{width:100%;border:1px solid #dbe3ef;border-radius:14px;padding:12px 14px;font-size:15px;background:#fff}.action-stack textarea{min-height:120px;resize:vertical}.btn-crm{border:0;border-radius:14px;padding:13px 16px;font-weight:950;cursor:pointer;background:var(--blue);color:#fff}.btn-crm.secondary{background:#eef4fb;color:var(--blue);border:1px solid #d9e7f6}.btn-crm:disabled{opacity:.55;cursor:not-allowed}
+    .timeline{display:grid;gap:12px}.timeline-item{border-left:4px solid var(--blue);padding:10px 0 10px 14px}.timeline-date{color:var(--muted);font-weight:800;font-size:.84rem}.timeline-title{font-weight:950;color:var(--blue);margin:3px 0}.timeline-desc{color:var(--text);line-height:1.5}.toast{position:fixed;right:20px;bottom:20px;padding:14px 16px;border-radius:16px;box-shadow:0 18px 50px rgba(15,23,42,.18);background:#fff;border:1px solid var(--border);color:var(--text);font-weight:850;display:none;z-index:2000;max-width:420px}.toast.ok{border-color:#bbf7d0;background:#f0fdf4;color:#166534}.toast.err{border-color:#fecaca;background:#fef2f2;color:#991b1b}
+    
+    .comm-log{display:grid;gap:10px}.comm-item{padding:12px;border:1px solid var(--border);border-radius:14px;background:#f8fbff}.comm-item strong{display:block;color:var(--blue);margin-bottom:4px}.comm-item span{color:var(--muted);font-size:.9rem;line-height:1.5}.workflow button{position:relative;padding-left:38px}.workflow button::before{content:attr(data-fase);position:absolute;left:12px;top:50%;transform:translateY(-50%);width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem;background:#eef4fb;color:var(--blue);font-weight:950}.workflow button.current::before{background:var(--blue);color:white}.case-section.emphasis{background:linear-gradient(135deg,#f8fbff,#ffffff)}
+
+    @media(max-width:1100px){.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.filters-card{grid-template-columns:1fr 1fr}.crm-grid{grid-template-columns:1fr}.list-scroll{max-height:420px}.case-body{grid-template-columns:1fr}}@media(max-width:680px){.crm-main{padding:14px}.crm-topbar{height:auto;padding:14px;flex-wrap:wrap}.crm-user{width:100%;justify-content:space-between}.stats-grid,.filters-card{grid-template-columns:1fr}.case-hero-top{flex-direction:column}.info-grid{grid-template-columns:1fr}}
+  </style>
 </head>
-<body class="dashboard-body">
-  <aside class="sidebar">
-    <a class="brand side-brand" href="index.html">
-      <img src="assets/logo/logo.svg" alt="Logo" />
-      <span><strong>FDI Ascolta IX</strong><small>Area riservata</small></span>
-    </a>
-    <nav>
-      <a class="active" href="dashboard.html">Dashboard</a>
-      <a href="#reportsPanel">Segnalazioni</a>
-      <a href="#detailMap">Mappa pratica</a>
-      <a href="#referentePanel">Referente</a>
-    </nav>
-    <button id="logoutBtn" class="btn btn-light full">Logout</button>
-  </aside>
+<body>
+<div class="crm-shell">
+<header class="crm-topbar"><a class="crm-brand" href="index.html"><img src="assets/logo/logo.svg" alt="Logo FDI Ascolta IX" /><span><strong>FDI Ascolta IX CRM</strong><small>Sistema di gestione delle pratiche territoriali</small></span></a><div class="crm-user"><span id="userName">Area riservata</span><button class="crm-logout" id="logoutBtn">Logout</button></div></header>
+<main class="crm-main">
+<section class="stats-grid"><div class="stat-card"><span>Nuove</span><strong id="statNew">0</strong></div><div class="stat-card"><span>In carico</span><strong id="statAssigned">0</strong></div><div class="stat-card"><span>Attesa uffici</span><strong id="statWaiting">0</strong></div><div class="stat-card"><span>Risolte</span><strong id="statDone">0</strong></div><div class="stat-card"><span>Archiviate</span><strong id="statArchived">0</strong></div></section>
+<section class="filters-card"><input id="searchInput" type="search" placeholder="Cerca pratica, titolo, quartiere..." /><select id="filterQuartiere"><option value="">Tutti i quartieri</option></select><select id="filterCategoria"><option value="">Tutte le categorie</option></select><select id="filterStato"><option value="">Tutti gli stati</option></select><select id="filterPriorita"><option value="">Tutte le priorità</option></select></section>
+<section class="crm-grid"><aside class="practice-list"><div class="panel-head"><h2>Elenco pratiche</h2><span class="badge default" id="practiceCount">0</span></div><div class="list-scroll" id="practiceList"><div class="case-empty">Caricamento pratiche...</div></div></aside>
+<section class="case-file"><div class="case-empty" id="caseEmpty"><h2>Seleziona una pratica</h2><p>Apri una pratica dall’elenco per vedere il fascicolo completo.</p></div><div class="case-content" id="caseContent"><div class="case-hero"><div class="case-hero-top"><div><span class="badge default" id="caseStatusBadge">Stato</span><h1 id="caseTitle">Titolo pratica</h1><p id="caseSubtitle">Quartiere • Categoria • Data</p></div><div><span class="badge default" id="caseId">ID</span></div></div></div><div class="case-body"><div><div class="case-section"><h3>📍 Localizzazione</h3><div id="mapWrap"><div id="caseMap"></div></div><div class="info-grid" style="margin-top:12px;"><div class="info"><span>Indirizzo</span><strong id="caseAddress">-</strong></div><div class="info"><span>Coordinate</span><strong id="caseCoords">-</strong></div></div></div><div class="case-section" id="photoSection"><h3>📷 Foto</h3><div id="photoWrap">Nessuna foto allegata.</div></div><div class="case-section"><h3>👤 Cittadino</h3><div class="info-grid"><div class="info"><span>Nome</span><strong id="citizenName">-</strong></div><div class="info"><span>Telefono</span><a id="citizenPhone" href="#">-</a></div><div class="info"><span>Email</span><a id="citizenEmail" href="#">-</a></div><div class="info"><span>Priorità</span><strong id="casePriority">-</strong></div></div></div><div class="case-section"><h3>📄 Descrizione</h3><p id="caseDescription" style="line-height:1.7;margin:0;"></p></div></div><div><div class="case-section"><h3>👨 Consigliere assegnato</h3><div class="action-stack"><select id="referenteSelect"></select><textarea id="referenteMessage" placeholder="Messaggio opzionale per il consigliere"></textarea><button class="btn-crm" id="sendReferenteBtn">Assegna e invia al consigliere</button><div class="info"><span>Assegnato a</span><strong id="caseReferente">Non assegnato</strong></div></div></div><div class="case-section"><h3>🏛 Ufficio competente</h3><div class="action-stack"><select id="ufficioSelect" disabled><option>Modulo uffici non ancora collegato</option></select><button class="btn-crm secondary" disabled>Invia all’ufficio</button><small class="muted">Questo pannello sarà attivato nello Sprint 2.</small></div></div><div class="case-section"><h3>⚙ Workflow pratica</h3><div class="workflow" id="workflowBox"></div></div><div class="case-section"><h3>🕒 Timeline pubblica</h3><div class="timeline" id="timelineBox"><p class="muted">Seleziona una pratica.</p></div></div><div class="case-section emphasis"><h3>📧 Storico comunicazioni</h3><div class="comm-log" id="commLog"><p class="muted">Seleziona una pratica.</p></div></div></div></div></div></section></section>
+</main></div><div class="toast" id="toast"></div>
+<script src="assets/js/config.js"></script><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const WORKFLOW=[{fase:'1',stato:'Segnalazione ricevuta',titolo:'Segnalazione ricevuta',descrizione:'La segnalazione è stata registrata dal sistema FDI Ascolta IX.'},{fase:'2',stato:'Presa in carico dal Gruppo Consiliare',titolo:'Presa in carico dal Gruppo Consiliare',descrizione:'La segnalazione è stata presa in carico dal Gruppo Consiliare.'},{fase:'3',stato:'Assegnata al consigliere',titolo:'Assegnata al consigliere',descrizione:'La pratica è stata assegnata al consigliere competente.'},{fase:'4',stato:'Inviata dal consigliere all’ufficio municipale competente',titolo:'Inviata all’ufficio municipale competente',descrizione:'La pratica è stata trasmessa all’ufficio municipale competente.'},{fase:'5',stato:'In attesa di risposta dall’ufficio municipale competente',titolo:'In attesa di risposta dall’ufficio municipale competente',descrizione:'La pratica è in attesa di riscontro da parte dell’ufficio competente.'},{fase:'6',stato:'Risposta ricevuta',titolo:'Risposta ricevuta',descrizione:'È stata ricevuta una risposta relativa alla pratica.'},{fase:'7',stato:'In lavorazione',titolo:'In lavorazione',descrizione:'La pratica risulta in lavorazione.'},{fase:'8',stato:'Risolta',titolo:'Risolta',descrizione:'La criticità segnalata risulta risolta.'},{fase:'9',stato:'Archiviata',titolo:'Archiviata',descrizione:'La pratica è stata archiviata.'}];
+let reports=[],filteredReports=[],referenti=[],selectedReport=null,map=null,marker=null;const E={userName:document.getElementById('userName'),logoutBtn:document.getElementById('logoutBtn'),practiceList:document.getElementById('practiceList'),practiceCount:document.getElementById('practiceCount'),caseEmpty:document.getElementById('caseEmpty'),caseContent:document.getElementById('caseContent'),searchInput:document.getElementById('searchInput'),filterQuartiere:document.getElementById('filterQuartiere'),filterCategoria:document.getElementById('filterCategoria'),filterStato:document.getElementById('filterStato'),filterPriorita:document.getElementById('filterPriorita'),statNew:document.getElementById('statNew'),statAssigned:document.getElementById('statAssigned'),statWaiting:document.getElementById('statWaiting'),statDone:document.getElementById('statDone'),statArchived:document.getElementById('statArchived'),toast:document.getElementById('toast')};
+function getApiUrl(){if(typeof CONFIG!=='undefined'&&CONFIG.API_URL)return CONFIG.API_URL;if(window.CONFIG&&window.CONFIG.API_URL)return window.CONFIG.API_URL;throw new Error('API_URL non configurato')}async function apiGet(action,params={}){const url=new URL(getApiUrl());url.searchParams.set('action',action);Object.keys(params).forEach(k=>url.searchParams.set(k,params[k]));const res=await fetch(url.toString());return await res.json()}async function apiPost(payload){const res=await fetch(getApiUrl(),{method:'POST',body:JSON.stringify(payload)});return await res.json()}function toast(type,msg){E.toast.className='toast '+(type||'');E.toast.textContent=msg;E.toast.style.display='block';setTimeout(()=>{E.toast.style.display='none'},3600)}function getStoredUser(){for(const k of ['fdiUser','user','currentUser','authUser']){try{const raw=localStorage.getItem(k);if(raw)return JSON.parse(raw)}catch(e){}}return null}function logout(){['fdiUser','user','currentUser','authUser'].forEach(k=>localStorage.removeItem(k));location.href='login.html'}function badgeClass(stato){const s=String(stato||'').toLowerCase();if(s.includes('ricevuta')||s.includes('nuova'))return'ricevuta';if(s.includes('presa')||s.includes('assegnata'))return'carico';if(s.includes('attesa')||s.includes('ufficio'))return'attesa';if(s.includes('risolta'))return'risolta';if(s.includes('archiviata'))return'archiviata';return'default'}function esc(v){return String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]))}function unique(f){return[...new Set(reports.map(r=>r[f]).filter(Boolean))].sort()}function fill(sel,vals,label){sel.innerHTML=`<option value="">${label}</option>`+vals.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('')}function updateFilters(){fill(E.filterQuartiere,unique('quartiere'),'Tutti i quartieri');fill(E.filterCategoria,unique('categoria'),'Tutte le categorie');fill(E.filterStato,unique('stato'),'Tutti gli stati');fill(E.filterPriorita,unique('priorita'),'Tutte le priorità')}function updateStats(){const c=fn=>reports.filter(fn).length;E.statNew.textContent=c(r=>/ricevuta|nuova/i.test(r.stato||''));E.statAssigned.textContent=c(r=>/presa|assegnata|consigliere/i.test(r.stato||''));E.statWaiting.textContent=c(r=>/attesa|ufficio/i.test(r.stato||''));E.statDone.textContent=c(r=>/risolta/i.test(r.stato||''));E.statArchived.textContent=c(r=>/archiviata/i.test(r.stato||''))}
+function applyFilters(){const q=E.searchInput.value.trim().toLowerCase(),qu=E.filterQuartiere.value,ca=E.filterCategoria.value,st=E.filterStato.value,pr=E.filterPriorita.value;filteredReports=reports.filter(r=>{const text=[r.id,r.titolo,r.descrizione,r.quartiere,r.categoria,r.nome,r.email,r.telefono].join(' ').toLowerCase();return(!q||text.includes(q))&&(!qu||r.quartiere===qu)&&(!ca||r.categoria===ca)&&(!st||r.stato===st)&&(!pr||r.priorita===pr)});renderList()}
+function renderList(){E.practiceCount.textContent=filteredReports.length;if(!filteredReports.length){E.practiceList.innerHTML='<div class="case-empty">Nessuna pratica trovata.</div>';return}E.practiceList.innerHTML=filteredReports.map(r=>`<article class="practice-item ${selectedReport&&selectedReport.id===r.id?'active':''}" data-id="${esc(r.id)}"><div class="practice-item-top"><div class="practice-code">${esc(r.id)}</div><span class="badge ${badgeClass(r.stato)}">${esc(r.stato||'Stato')}</span></div><div class="practice-title">${esc(r.titolo||'Senza titolo')}</div><div class="practice-meta">${esc(r.quartiere||'-')} • ${esc(r.categoria||'-')}<br>${esc(r.data||'')}</div></article>`).join('');document.querySelectorAll('.practice-item').forEach(item=>item.addEventListener('click',()=>{const r=reports.find(x=>x.id===item.dataset.id);if(r)selectReport(r)}))}
+function setText(id,val){document.getElementById(id).textContent=val||'-'}function setLink(id,val,prefix){const el=document.getElementById(id);el.textContent=val||'-';el.href=val?prefix+val:'#'}function validCoords(r){const lat=Number(r.latitudine),lng=Number(r.longitudine);return Number.isFinite(lat)&&Number.isFinite(lng)&&lat>40&&lat<43&&lng>10&&lng<15}function renderMap(r){const wrap=document.getElementById('mapWrap'),lat=Number(r.latitudine),lng=Number(r.longitudine);if(!validCoords(r)){wrap.innerHTML='<div class="map-warning">Coordinate mancanti o non valide. Il marker non può essere posizionato.</div>';map=null;marker=null;return}wrap.innerHTML='<div id="caseMap"></div>';setTimeout(()=>{map=L.map('caseMap').setView([lat,lng],17);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap'}).addTo(map);marker=L.marker([lat,lng]).addTo(map);marker.bindPopup(r.titolo||r.indirizzo||r.id).openPopup();setTimeout(()=>map.invalidateSize(),250)},50)}
+async function renderTimeline(id){const box=document.getElementById('timelineBox');box.innerHTML='<p class="muted">Caricamento timeline...</p>';try{const res=await apiGet('getTimeline',{reportId:id});const tl=res.ok?(res.timeline||[]):[];if(!tl.length){box.innerHTML='<p class="muted">Timeline non ancora disponibile.</p>';return}box.innerHTML=tl.map(t=>`<div class="timeline-item"><div class="timeline-date">${esc(t.data||'')}</div><div class="timeline-title">${esc(t.titolo||'Aggiornamento')}</div><div class="timeline-desc">${esc(t.descrizione||'')}</div></div>`).join('')}catch(e){box.innerHTML='<p class="muted">Impossibile caricare la timeline.</p>'}}
+function renderWorkflow(r){const box=document.getElementById('workflowBox'),cur=String(r.stato||'');box.innerHTML=WORKFLOW.map(s=>`<button type="button" class="${cur===s.stato?'current':''}" data-fase="${s.fase}">${s.fase}. ${esc(s.stato)}</button>`).join('');box.querySelectorAll('button').forEach(btn=>btn.addEventListener('click',async()=>{const step=WORKFLOW.find(s=>s.fase===btn.dataset.fase);if(!step||!selectedReport)return;try{btn.disabled=true;const res=await apiPost({action:'updateReportStatus',reportId:selectedReport.id,fase:step.fase,stato:step.stato,descrizione:step.descrizione,visibileCittadino:'Sì',operatore:'Dashboard CRM'});if(!res.ok)throw new Error(res.error||'Errore aggiornamento stato.');selectedReport.stato=step.stato;const idx=reports.findIndex(r=>r.id===selectedReport.id);if(idx>=0)reports[idx].stato=step.stato;toast('ok','Stato aggiornato: '+step.stato);updateStats();updateFilters();applyFilters();selectReport(selectedReport,true)}catch(e){toast('err',e.message)}finally{btn.disabled=false}}))}
+function renderReferenti(r){const sel=document.getElementById('referenteSelect');sel.innerHTML='<option value="">Seleziona consigliere/referente</option>'+referenti.map(x=>`<option value="${esc(x.id)}">${esc(x.nome)} — ${esc(x.ruolo||'')}</option>`).join('');const cur=referenti.find(x=>x.nome===r.referenteNome||x.email===r.referenteEmail);if(cur)sel.value=cur.id;document.getElementById('sendReferenteBtn').onclick=async()=>{if(!selectedReport)return;const referenteId=sel.value;if(!referenteId){toast('err','Seleziona un consigliere/referente.');return}const btn=document.getElementById('sendReferenteBtn');btn.disabled=true;try{const res=await apiPost({action:'sendToReferente',reportId:selectedReport.id,referenteId,messaggio:document.getElementById('referenteMessage').value.trim()});if(!res.ok)throw new Error(res.error||'Errore invio al consigliere.');const ref=referenti.find(x=>x.id===referenteId);selectedReport.referenteNome=ref?ref.nome:'';selectedReport.referenteEmail=ref?ref.email:'';selectedReport.stato='Assegnata al consigliere';const idx=reports.findIndex(x=>x.id===selectedReport.id);if(idx>=0)reports[idx]={...reports[idx],...selectedReport};toast('ok','Pratica assegnata e inviata al consigliere.');updateStats();updateFilters();applyFilters();selectReport(selectedReport,true)}catch(e){toast('err',e.message)}finally{btn.disabled=false}}}
 
-  <main class="dashboard-main crm-main">
-    <header class="dash-header">
-      <div>
-        <p class="eyebrow dark">Gestione pratiche</p>
-        <h1>Dashboard segnalazioni</h1>
-        <p class="muted">Seleziona una pratica a sinistra, assegna un referente e invia la richiesta.</p>
-      </div>
-      <div id="userBox" class="user-box"></div>
-    </header>
-
-    <section class="dash-stats">
-      <div><strong id="dNuove">0</strong><span>Nuove</span></div>
-      <div><strong id="dInviate">0</strong><span>Inviate</span></div>
-      <div><strong id="dRisolte">0</strong><span>Risolte</span></div>
-      <div><strong id="dTotali">0</strong><span>Totali</span></div>
-    </section>
-
-    <section class="crm-layout">
-      <aside class="card reports-panel" id="reportsPanel">
-        <div class="panel-header">
-          <div>
-            <h2>Pratiche</h2>
-            <p class="muted small">Ultime segnalazioni ricevute</p>
-          </div>
-        </div>
-
-        <div class="filters-row">
-          <input id="searchInput" type="search" placeholder="Cerca codice, via, quartiere..." />
-          <select id="statusFilter">
-            <option value="">Tutti gli stati</option>
-            <option value="nuova">Nuove</option>
-            <option value="inviata">Inviate</option>
-            <option value="risolta">Risolte/Chiuse</option>
-          </select>
-        </div>
-
-        <div id="reportsList" class="reports-list crm-list"></div>
-      </aside>
-
-      <section class="card practice-panel" id="practicePanel">
-        <div id="emptyPractice" class="empty-state">
-          <h2>Seleziona una pratica</h2>
-          <p>Scegli una segnalazione dall’elenco per vedere dettagli, posizione e referente.</p>
-        </div>
-
-        <div id="practiceContent" class="hidden">
-          <div class="practice-top">
-            <div>
-              <span id="pStatus" class="badge">Nuova</span>
-              <h2 id="pTitle">Titolo pratica</h2>
-              <p id="pMeta" class="meta"></p>
-            </div>
-          </div>
-
-          <div class="practice-grid">
-            <div>
-              <h3>Dettagli segnalazione</h3>
-              <p id="pDescription" class="practice-description"></p>
-              <dl class="details-list">
-                <div><dt>Quartiere</dt><dd id="pQuartiere"></dd></div>
-                <div><dt>Categoria</dt><dd id="pCategoria"></dd></div>
-                <div><dt>Indirizzo</dt><dd id="pIndirizzo"></dd></div>
-                <div><dt>Priorità</dt><dd id="pPriorita"></dd></div>
-                <div><dt>Cittadino</dt><dd id="pCittadino"></dd></div>
-                <div><dt>Email</dt><dd id="pEmail"></dd></div>
-                <div><dt>Telefono</dt><dd id="pTelefono"></dd></div>
-                <div><dt>Referente attuale</dt><dd id="pReferente"></dd></div>
-              </dl>
-            </div>
-            <div id="pPhotoBox" class="photo-box hidden">
-              <img id="pPhoto" alt="Foto segnalazione" />
-            </div>
-          </div>
-
-          <section class="practice-section" id="referentePanel">
-            <h3>Assegna e inoltra al referente</h3>
-            <div class="form-grid two">
-              <label>Referente
-                <select id="referenteSelect"></select>
-              </label>
-              <label>Stato pratica
-                <input id="currentStatus" type="text" disabled />
-              </label>
-            </div>
-            <label>Messaggio email
-              <textarea id="referenteMessage" rows="8"></textarea>
-            </label>
-            <div class="actions-row">
-              <button id="sendReferenteBtn" class="btn btn-primary">Invia al referente</button>
-              <button id="refreshBtn" class="btn btn-secondary">Aggiorna dati</button>
-            </div>
-            <div id="sendMessageBox" class="notice hidden"></div>
-          </section>
-
-          <section class="practice-section">
-            <h3>Mappa della pratica</h3>
-            <div id="mapNotice" class="notice hidden"></div>
-            <div id="detailMap" class="detail-map"></div>
-          </section>
-        </div>
-      </section>
-    </section>
-  </main>
-
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="assets/js/config.js"></script>
-  <script src="assets/js/api.js"></script>
-  <script src="assets/js/dashboard.js"></script>
+function renderCommunications(r){
+ const box=document.getElementById('commLog');
+ if(!box)return;
+ const items=[];
+ if(r.email){items.push({t:'Email automatica al cittadino',d:'Conferma di ricezione inviata a '+r.email+' con codice pratica e link tracking.'});}
+ if(r.referenteNome||r.referenteEmail){items.push({t:'Comunicazione al consigliere',d:'Pratica assegnata a '+(r.referenteNome||'consigliere')+(r.referenteEmail?' — '+r.referenteEmail:'')+'.'});}
+ if(r.dataInvio){items.push({t:'Data invio/assegnazione',d:r.dataInvio});}
+ items.push({t:'Prossimo modulo',d:'Nel prossimo Sprint collegheremo anche invio all’ufficio municipale, solleciti e risposte ricevute.'});
+ box.innerHTML=items.map(x=>`<div class="comm-item"><strong>${esc(x.t)}</strong><span>${esc(x.d)}</span></div>`).join('');
+}
+function selectReport(r,keep){selectedReport=r;E.caseEmpty.style.display='none';E.caseContent.classList.add('visible');document.getElementById('caseStatusBadge').className='badge '+badgeClass(r.stato);document.getElementById('caseStatusBadge').textContent=r.stato||'Stato';setText('caseTitle',r.titolo||'Pratica');setText('caseSubtitle',`${r.quartiere||'-'} • ${r.categoria||'-'} • ${r.data||''}`);setText('caseId',r.id);setText('caseAddress',r.indirizzo);setText('caseCoords',validCoords(r)?`${r.latitudine}, ${r.longitudine}`:'-');setText('citizenName',r.nome);setLink('citizenPhone',r.telefono,'tel:');setLink('citizenEmail',r.email,'mailto:');setText('casePriority',r.priorita);setText('caseDescription',r.descrizione||'Nessuna descrizione.');setText('caseReferente',r.referenteNome||'Non assegnato');const ph=document.getElementById('photoWrap');ph.innerHTML=r.fotoUrl?`<a href="${esc(r.fotoUrl)}" target="_blank" rel="noopener"><img class="case-photo" src="${esc(r.fotoUrl)}" alt="Foto segnalazione" /></a>`:'Nessuna foto allegata.';renderMap(r);renderWorkflow(r);renderReferenti(r);renderTimeline(r.id);renderCommunications(r);renderList();if(!keep)document.querySelector('.case-file').scrollIntoView({behavior:'smooth',block:'start'})}
+async function loadData(){try{const [rr,rf]=await Promise.all([apiGet('listReports'),apiGet('listReferenti')]);if(!rr.ok)throw new Error(rr.error||'Errore caricamento pratiche.');if(!rf.ok)throw new Error(rf.error||'Errore caricamento referenti.');reports=rr.reports||[];referenti=rf.referenti||[];filteredReports=reports.slice();updateStats();updateFilters();applyFilters();if(reports.length)selectReport(reports[0],true)}catch(e){E.practiceList.innerHTML=`<div class="case-empty">${esc(e.message)}</div>`;toast('err',e.message)}}['input','change'].forEach(evt=>{E.searchInput.addEventListener(evt,applyFilters);E.filterQuartiere.addEventListener(evt,applyFilters);E.filterCategoria.addEventListener(evt,applyFilters);E.filterStato.addEventListener(evt,applyFilters);E.filterPriorita.addEventListener(evt,applyFilters)});E.logoutBtn.addEventListener('click',logout);const user=getStoredUser();if(user&&(user.nome||user.email))E.userName.textContent=user.nome||user.email;loadData();
+</script>
 </body>
 </html>
