@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Uffici — FDI Ascolta IX CRM v2.6.3</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<style>
+body{margin:0;background:#f4f7fb;color:#172033;font-family:Inter,system-ui,Arial,sans-serif}
+.top{height:72px;background:#fff;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;padding:0 22px}
+.brand{font-weight:950;color:#103A71}.brand small{display:block;color:#64748b;font-size:12px}
+.btn{border:0;border-radius:14px;padding:12px 15px;background:#103A71;color:#fff;font-weight:900;text-decoration:none;cursor:pointer}
+.btn.secondary{background:#eef4fb;color:#103A71;border:1px solid #d9e7f6}
+.wrap{padding:18px;display:grid;gap:16px}
+.grid{display:grid;grid-template-columns:360px 1fr;gap:16px}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:22px;padding:16px;box-shadow:0 14px 38px rgba(16,58,113,.08)}
+.card h2,.card h3{margin:0 0 12px;color:#103A71}
+input,select{width:100%;box-sizing:border-box;border:1px solid #dbe3ef;border-radius:14px;padding:12px 14px;font-size:15px;background:#fff}
+.item{border:1px solid #e2e8f0;border-radius:16px;padding:13px;margin-bottom:10px;cursor:pointer;background:#fff}
+.item:hover,.item.active{border-color:#103A71;background:#f8fbff}
+.badge{display:inline-block;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:950;background:#eef4fb;color:#103A71}
+.info{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.info div{background:#f8fbff;border:1px solid #e7eef7;border-radius:14px;padding:12px}
+.info span{display:block;color:#64748b;font-size:12px;font-weight:900;text-transform:uppercase}
+.muted{color:#64748b}.hidden{display:none}
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{border-bottom:1px solid #e2e8f0;text-align:left;padding:12px}
+.table th{color:#103A71;font-size:12px;text-transform:uppercase}
+@media(max-width:900px){.grid,.info{grid-template-columns:1fr}.top{height:auto;gap:10px;flex-wrap:wrap;padding:12px}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">FDI Ascolta IX CRM<small>Frontend 2.6.3 · Modulo Uffici</small></div>
+  <nav>
+    <a class="btn secondary" href="dashboard.html?v=263">🏠 Dashboard</a>
+    <a class="btn secondary" href="pratiche.html?v=263">📋 Pratiche</a>
+  </nav>
+</header>
+
+<main class="wrap">
+  <section class="card">
+    <h2>🏛 Uffici municipali</h2>
+    <p class="muted">Archivio operativo degli uffici competenti. Qui puoi consultare ufficio, settore, email, telefono e stato.</p>
+  </section>
+
+  <section class="grid">
+    <aside class="card">
+      <h3>🔍 Cerca ufficio</h3>
+      <input id="q" placeholder="Cerca per ufficio, settore, email...">
+      <br><br>
+      <select id="fAttivo">
+        <option value="">Tutti</option>
+        <option value="sì">Solo attivi</option>
+        <option value="no">Solo non attivi</option>
+      </select>
+      <br><br>
+      <div id="list" class="muted">Caricamento uffici...</div>
+    </aside>
+
+    <section class="card">
+      <div id="empty" class="muted" style="padding:40px;text-align:center">
+        Seleziona un ufficio dall'elenco.
+      </div>
+
+      <div id="detail" class="hidden">
+        <span class="badge" id="activeBadge">Attivo</span>
+        <h2 id="officeName"></h2>
+        <p id="officeSector" class="muted"></p>
+
+        <div class="info">
+          <div><span>ID</span><strong id="officeId"></strong></div>
+          <div><span>Email</span><strong id="officeEmail"></strong></div>
+          <div><span>Telefono</span><strong id="officePhone"></strong></div>
+          <div><span>Stato</span><strong id="officeActive"></strong></div>
+        </div>
+
+        <br>
+        <h3>📝 Note</h3>
+        <p id="officeNotes" class="muted"></p>
+
+        <br>
+        <h3>📊 Uso nelle pratiche</h3>
+        <p class="muted">Questa sezione sarà collegata alle pratiche inviate all'ufficio nella prossima release.</p>
+      </div>
+    </section>
+  </section>
+
+  <section class="card">
+    <h3>📋 Tabella uffici</h3>
+    <div style="overflow:auto">
+      <table class="table">
+        <thead>
+          <tr><th>ID</th><th>Ufficio</th><th>Settore</th><th>Email</th><th>Telefono</th><th>Attivo</th></tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr><td colspan="6" class="muted">Caricamento...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script src="assets/js/config.js"></script>
+<script>
+let uffici = [];
+let filtered = [];
+let selected = null;
+
+function apiUrl(){
+  return (window.CONFIG && CONFIG.API_URL) || CONFIG.API_URL;
+}
+
+async function get(action){
+  const url = new URL(apiUrl());
+  url.searchParams.set("action", action);
+  const res = await fetch(url);
+  return await res.json();
+}
+
+function esc(v){
+  return String(v ?? "").replace(/[&<>"']/g, m => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#039;"
+  }[m]));
+}
+
+function officeName(u){ return u.ufficio || u.Ufficio || u.nome || "-"; }
+function officeSector(u){ return u.settore || u.Settore || ""; }
+function officeEmail(u){ return u.email || u.Email || ""; }
+function officePhone(u){ return u.telefono || u.Telefono || ""; }
+function officeActive(u){ return u.attivo || u.Attivo || ""; }
+
+function apply(){
+  const query = q.value.toLowerCase();
+  const attivo = fAttivo.value.toLowerCase();
+
+  filtered = uffici.filter(u => {
+    const text = [
+      u.id, officeName(u), officeSector(u), officeEmail(u), officePhone(u), u.note
+    ].join(" ").toLowerCase();
+
+    const a = officeActive(u).toLowerCase();
+
+    return (!query || text.includes(query)) && (!attivo || a === attivo);
+  });
+
+  renderList();
+  renderTable();
+}
+
+function renderList(){
+  list.innerHTML = filtered.map(u => `
+    <div class="item ${selected && selected.id === u.id ? "active" : ""}" onclick="openOffice('${esc(u.id)}')">
+      <b>${esc(officeName(u))}</b><br>
+      <span class="muted">${esc(officeSector(u))}</span><br>
+      <small>${esc(officeEmail(u))}</small>
+    </div>
+  `).join("") || "<p class='muted'>Nessun ufficio trovato.</p>";
+}
+
+function renderTable(){
+  tableBody.innerHTML = filtered.map(u => `
+    <tr>
+      <td>${esc(u.id)}</td>
+      <td>${esc(officeName(u))}</td>
+      <td>${esc(officeSector(u))}</td>
+      <td>${esc(officeEmail(u))}</td>
+      <td>${esc(officePhone(u))}</td>
+      <td>${esc(officeActive(u))}</td>
+    </tr>
+  `).join("") || "<tr><td colspan='6' class='muted'>Nessun ufficio trovato.</td></tr>";
+}
+
+function openOffice(id){
+  selected = uffici.find(u => u.id === id);
+  if (!selected) return;
+
+  empty.classList.add("hidden");
+  detail.classList.remove("hidden");
+
+  document.getElementById("officeName").textContent = officeName(selected);
+  document.getElementById("officeSector").textContent = officeSector(selected) || "Settore non indicato";
+  document.getElementById("officeId").textContent = selected.id || "-";
+  document.getElementById("officeEmail").textContent = officeEmail(selected) || "-";
+  document.getElementById("officePhone").textContent = officePhone(selected) || "-";
+  document.getElementById("officeActive").textContent = officeActive(selected) || "-";
+  document.getElementById("officeNotes").textContent = selected.note || selected.Note || "Nessuna nota inserita.";
+  document.getElementById("activeBadge").textContent = officeActive(selected) || "Stato";
+
+  renderList();
+}
+
+async function boot(){
+  try {
+    const res = await get("listUffici");
+
+    if (!res.ok) {
+      throw new Error(res.error || "Errore nel caricamento degli uffici.");
+    }
+
+    uffici = res.uffici || [];
+    filtered = uffici.slice();
+
+    apply();
+    if (uffici[0]) openOffice(uffici[0].id);
+
+  } catch (err) {
+    list.innerHTML = "<p class='muted'>" + esc(err.message) + "</p>";
+    tableBody.innerHTML = "<tr><td colspan='6' class='muted'>" + esc(err.message) + "</td></tr>";
+  }
+}
+
+q.oninput = apply;
+fAttivo.onchange = apply;
+
+boot();
+</script>
+</body>
+</html>
