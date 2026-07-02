@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Configurazione — FDI Ascolta IX CRM v2.6.5</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<style>
+body{margin:0;background:#f4f7fb;color:#172033;font-family:Inter,system-ui,Arial,sans-serif}
+.top{height:72px;background:#fff;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;padding:0 22px}
+.brand{font-weight:950;color:#103A71}.brand small{display:block;color:#64748b;font-size:12px}
+.btn{border:0;border-radius:14px;padding:12px 15px;background:#103A71;color:#fff;font-weight:900;text-decoration:none;cursor:pointer}
+.btn.secondary{background:#eef4fb;color:#103A71;border:1px solid #d9e7f6}
+.wrap{padding:18px;display:grid;gap:16px}
+.grid{display:grid;grid-template-columns:360px 1fr;gap:16px}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:22px;padding:16px;box-shadow:0 14px 38px rgba(16,58,113,.08)}
+.card h2,.card h3{margin:0 0 12px;color:#103A71}
+input,select,textarea{width:100%;box-sizing:border-box;border:1px solid #dbe3ef;border-radius:14px;padding:12px 14px;font-size:15px;background:#fff}
+textarea{min-height:110px;resize:vertical}
+label{display:block;font-weight:900;margin-bottom:14px}
+label span{display:block;color:#64748b;font-size:12px;text-transform:uppercase;margin-bottom:6px}
+.info{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.info div{background:#f8fbff;border:1px solid #e7eef7;border-radius:14px;padding:12px}
+.info span{display:block;color:#64748b;font-size:12px;font-weight:900;text-transform:uppercase}
+.muted{color:#64748b}.ok{background:#ecfdf5;color:#166534;padding:12px;border-radius:14px;font-weight:900}.warn{background:#fff7ed;color:#9a3412;padding:12px;border-radius:14px;font-weight:900}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}.tab{border:1px solid #e2e8f0;background:#fff;border-radius:999px;padding:9px 12px;font-weight:900;cursor:pointer}.tab.active{background:#103A71;color:#fff}
+.tabpane{display:none}.tabpane.active{display:block}
+.preview{border-radius:18px;border:1px solid #e2e8f0;overflow:hidden;background:#fff}
+.preview-header{background:#103A71;color:#fff;padding:18px}.preview-header h3{color:#fff;margin:0}.preview-body{padding:16px}
+@media(max-width:900px){.grid,.info{grid-template-columns:1fr}.top{height:auto;gap:10px;flex-wrap:wrap;padding:12px}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">FDI Ascolta IX CRM<small>Frontend 2.6.5 · Modulo Configurazione</small></div>
+  <nav>
+    <a class="btn secondary" href="dashboard.html?v=265">🏠 Dashboard</a>
+    <a class="btn secondary" href="pratiche.html?v=265">📋 Pratiche</a>
+    <a class="btn secondary" href="uffici.html?v=265">🏛 Uffici</a>
+  </nav>
+</header>
+
+<main class="wrap">
+  <section class="card">
+    <h2>⚙ Configurazione FDI Ascolta IX CRM</h2>
+    <p class="muted">
+      Questo modulo prepara la configurazione generale del gestionale mantenendo il nome attuale.
+      Per ora salva i dati nel browser come bozza locale. Nella prossima release li collegheremo al backend Apps Script.
+    </p>
+  </section>
+
+  <section class="grid">
+    <aside class="card">
+      <h3>📌 Stato modulo</h3>
+      <div class="warn">
+        Modalità bozza locale
+      </div>
+      <p class="muted">
+        I dati vengono salvati nel browser con <b>localStorage</b>. Non modificano ancora Google Sheet.
+      </p>
+
+      <div class="info">
+        <div><span>Nome CRM</span><strong>FDI Ascolta IX CRM</strong></div>
+        <div><span>Versione</span><strong>2.6.5</strong></div>
+        <div><span>Backend</span><strong>2.5.0</strong></div>
+        <div><span>Stato</span><strong>Preview</strong></div>
+      </div>
+
+      <br>
+      <button class="btn" id="saveBtn">Salva configurazione</button>
+      <br><br>
+      <button class="btn secondary" id="resetBtn">Ripristina valori iniziali</button>
+      <br><br>
+      <div id="msg"></div>
+    </aside>
+
+    <section class="card">
+      <div class="tabs">
+        <button class="tab active" data-tab="ente">Ente</button>
+        <button class="tab" data-tab="contatti">Contatti</button>
+        <button class="tab" data-tab="email">Email</button>
+        <button class="tab" data-tab="workflow">Workflow</button>
+        <button class="tab" data-tab="preview">Anteprima</button>
+      </div>
+
+      <div class="tabpane active" id="ente">
+        <h3>🏛 Dati ente / gruppo</h3>
+        <label><span>Nome portale pubblico</span><input id="publicName"></label>
+        <label><span>Nome gestionale interno</span><input id="crmName"></label>
+        <label><span>Gruppo / Organizzazione</span><input id="groupName"></label>
+        <label><span>Municipio / Territorio</span><input id="territory"></label>
+        <label><span>Sottotitolo</span><input id="subtitle"></label>
+        <label><span>Colore principale</span><input id="primaryColor" type="color"></label>
+      </div>
+
+      <div class="tabpane" id="contatti">
+        <h3>📞 Contatti istituzionali</h3>
+        <label><span>Email generale</span><input id="emailGeneral" type="email"></label>
+        <label><span>PEC</span><input id="pec" type="email"></label>
+        <label><span>Telefono</span><input id="phone"></label>
+        <label><span>Sede / Indirizzo</span><input id="address"></label>
+      </div>
+
+      <div class="tabpane" id="email">
+        <h3>📧 Testi email predefiniti</h3>
+        <label><span>Firma email</span><textarea id="emailSignature"></textarea></label>
+        <label><span>Testo conferma cittadino</span><textarea id="citizenTemplate"></textarea></label>
+        <label><span>Testo invio ufficio</span><textarea id="officeTemplate"></textarea></label>
+      </div>
+
+      <div class="tabpane" id="workflow">
+        <h3>⚙ Workflow ufficiale</h3>
+        <p class="muted">Queste fasi restano il riferimento operativo del CRM.</p>
+        <textarea id="workflowText"></textarea>
+      </div>
+
+      <div class="tabpane" id="preview">
+        <h3>👁 Anteprima configurazione</h3>
+        <div class="preview">
+          <div class="preview-header" id="previewHeader">
+            <h3 id="previewTitle"></h3>
+            <small id="previewSubtitle"></small>
+          </div>
+          <div class="preview-body">
+            <p><b>Gruppo:</b> <span id="previewGroup"></span></p>
+            <p><b>Territorio:</b> <span id="previewTerritory"></span></p>
+            <p><b>Email:</b> <span id="previewEmail"></span></p>
+            <p><b>PEC:</b> <span id="previewPec"></span></p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </section>
+</main>
+
+<script>
+const DEFAULT_CONFIG = {
+  publicName: "FDI Ascolta IX",
+  crmName: "FDI Ascolta IX CRM",
+  groupName: "Gruppo Consiliare Fratelli d’Italia — Municipio IX",
+  territory: "Municipio IX Roma",
+  subtitle: "Sistema di gestione delle pratiche territoriali",
+  primaryColor: "#103A71",
+  emailGeneral: "",
+  pec: "",
+  phone: "",
+  address: "",
+  emailSignature: "Cordiali saluti,\\nFDI Ascolta IX",
+  citizenTemplate: "Abbiamo ricevuto la tua segnalazione. Puoi seguire la pratica con il codice ricevuto via email.",
+  officeTemplate: "Si trasmette la seguente segnalazione ricevuta tramite la piattaforma FDI Ascolta IX.",
+  workflowText: "1. Segnalazione ricevuta\\n2. Presa in carico dal Gruppo Consiliare\\n3. Assegnata al consigliere\\n4. Inviata all’Ufficio Municipale competente\\n5. In attesa di risposta\\n6. Risposta ricevuta\\n7. In lavorazione\\n8. Risolta\\n9. Archiviata"
+};
+
+const STORAGE_KEY = "fdiAscoltaConfig";
+
+function getConfig(){
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || DEFAULT_CONFIG;
+  } catch(e) {
+    return DEFAULT_CONFIG;
+  }
+}
+
+function setConfig(cfg){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+}
+
+function fillForm(cfg){
+  Object.keys(DEFAULT_CONFIG).forEach(k => {
+    const el = document.getElementById(k);
+    if (el) el.value = cfg[k] || "";
+  });
+  updatePreview();
+}
+
+function readForm(){
+  const cfg = {};
+  Object.keys(DEFAULT_CONFIG).forEach(k => {
+    const el = document.getElementById(k);
+    cfg[k] = el ? el.value : DEFAULT_CONFIG[k];
+  });
+  return cfg;
+}
+
+function updatePreview(){
+  const cfg = readForm();
+  document.getElementById("previewHeader").style.background = cfg.primaryColor || "#103A71";
+  document.getElementById("previewTitle").textContent = cfg.crmName || "FDI Ascolta IX CRM";
+  document.getElementById("previewSubtitle").textContent = cfg.subtitle || "";
+  document.getElementById("previewGroup").textContent = cfg.groupName || "-";
+  document.getElementById("previewTerritory").textContent = cfg.territory || "-";
+  document.getElementById("previewEmail").textContent = cfg.emailGeneral || "-";
+  document.getElementById("previewPec").textContent = cfg.pec || "-";
+}
+
+document.querySelectorAll(".tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab,.tabpane").forEach(el => el.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById(btn.dataset.tab).classList.add("active");
+    updatePreview();
+  });
+});
+
+document.querySelectorAll("input,textarea").forEach(el => {
+  el.addEventListener("input", updatePreview);
+});
+
+document.getElementById("saveBtn").addEventListener("click", () => {
+  setConfig(readForm());
+  msg.innerHTML = "<div class='ok'>Configurazione salvata come bozza locale.</div>";
+});
+
+document.getElementById("resetBtn").addEventListener("click", () => {
+  setConfig(DEFAULT_CONFIG);
+  fillForm(DEFAULT_CONFIG);
+  msg.innerHTML = "<div class='ok'>Valori iniziali ripristinati.</div>";
+});
+
+fillForm(getConfig());
+</script>
+</body>
+</html>
