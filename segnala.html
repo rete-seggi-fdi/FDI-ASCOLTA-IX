@@ -246,21 +246,8 @@
         </label>
 
         <label>Quartiere *
-          <select required name="quartiere">
-            <option value="">Seleziona</option>
-            <option>EUR</option>
-            <option>Torrino</option>
-            <option>Mostacciano</option>
-            <option>Spinaceto</option>
-            <option>Laurentino</option>
-            <option>Fonte Ostiense</option>
-            <option>Vitinia</option>
-            <option>Trigoria</option>
-            <option>Mezzocammino</option>
-            <option>Vallerano</option>
-            <option>Cecchignola</option>
-            <option>Fonte Meravigliosa</option>
-            <option>Altro Municipio IX</option>
+          <select required name="quartiere" id="quartiere">
+            <option value="">Caricamento quartieri...</option>
           </select>
         </label>
       </div>
@@ -364,6 +351,7 @@
   const latInput = document.getElementById("latitudine");
   const lngInput = document.getElementById("longitudine");
   const formMessage = document.getElementById("formMessage");
+  const quartiereSelect = document.getElementById("quartiere");
 
   let gpsMap = null;
   let gpsMarker = null;
@@ -372,6 +360,37 @@
     if (typeof CONFIG !== "undefined" && CONFIG.API_URL) return CONFIG.API_URL;
     if (window.CONFIG && window.CONFIG.API_URL) return window.CONFIG.API_URL;
     throw new Error("API_URL non configurato");
+  }
+
+  async function loadQuartieri() {
+    try {
+      const url = new URL(getApiUrl());
+      url.searchParams.set("action", "listQuartieri");
+
+      const response = await fetch(url.toString());
+      const data = await response.json();
+
+      if (!data.ok) {
+        throw new Error(data.error || "Errore caricamento quartieri");
+      }
+
+      quartiereSelect.innerHTML = '<option value="">Seleziona quartiere</option>';
+
+      (data.quartieri || []).forEach(function(q) {
+        const option = document.createElement("option");
+        option.value = q.nome;
+        option.textContent = q.codice ? q.codice + " — " + q.nome : q.nome;
+        quartiereSelect.appendChild(option);
+      });
+
+      if (!data.quartieri || !data.quartieri.length) {
+        quartiereSelect.innerHTML = '<option value="">Nessun quartiere configurato</option>';
+      }
+
+    } catch (error) {
+      quartiereSelect.innerHTML = '<option value="">Errore caricamento quartieri</option>';
+      console.error(error);
+    }
   }
 
   function showNotice(type, text) {
@@ -526,6 +545,7 @@
       );
 
       form.reset();
+      loadQuartieri();
       latInput.value = "";
       lngInput.value = "";
       coordPreview.style.display = "none";
@@ -538,6 +558,8 @@
       showNotice("error", err.message);
     }
   });
+
+  loadQuartieri();
 </script>
 
 </body>
