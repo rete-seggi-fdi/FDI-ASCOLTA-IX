@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="assets/css/style.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
-body{margin:0;background:#f4f7fb;color:#172033;font-family:Inter,system-ui,Arial,sans-serif}.top{height:72px;background:#fff;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;padding:0 22px}.brand{font-weight:950;color:#103A71}.brand small{display:block;color:#64748b;font-size:12px}.btn{border:0;border-radius:14px;padding:12px 15px;background:#103A71;color:#fff;font-weight:900;text-decoration:none;cursor:pointer}.btn.secondary{background:#eef4fb;color:#103A71;border:1px solid #d9e7f6}.wrap{padding:18px}.grid{display:grid;grid-template-columns:360px 1fr 290px;gap:16px}.card{background:#fff;border:1px solid #e2e8f0;border-radius:22px;padding:16px;box-shadow:0 14px 38px rgba(16,58,113,.08);margin-bottom:16px}.card h2,.card h3{margin:0 0 12px;color:#103A71}.filters{display:grid;grid-template-columns:2fr repeat(4,1fr);gap:10px}.list{max-height:700px;overflow:auto}.item{border:1px solid #e2e8f0;border-radius:16px;padding:13px;margin-bottom:10px;cursor:pointer;background:#fff}.item:hover,.item.active{border-color:#103A71;background:#f8fbff}input,select,textarea{width:100%;box-sizing:border-box;border:1px solid #dbe3ef;border-radius:14px;padding:12px 14px;font-size:15px;background:#fff}textarea{min-height:90px}.badge{display:inline-block;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:950;background:#eef4fb;color:#103A71}.caseHero{background:linear-gradient(135deg,#103A71,#0b2b55);color:#fff;border-radius:22px;padding:20px}.caseHero h1{margin:10px 0 5px;font-size:32px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.tab{border:1px solid #e2e8f0;background:#fff;border-radius:999px;padding:9px 12px;font-weight:900;cursor:pointer}.tab.active{background:#103A71;color:#fff}.tabpane{display:none}.tabpane.active{display:block}.info{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.info div{background:#f8fbff;border:1px solid #e7eef7;border-radius:14px;padding:12px}.info span{display:block;color:#64748b;font-size:12px;font-weight:900}#generalMap,#caseMap{height:330px;border-radius:18px;border:1px solid #e2e8f0;overflow:hidden;background:#eef4fb}.timeline div{border-left:4px solid #103A71;padding:8px 0 8px 12px;margin-bottom:10px}.muted{color:#64748b}.hidden{display:none}@media(max-width:1200px){.grid,.filters{grid-template-columns:1fr}.info{grid-template-columns:1fr}}
+body{margin:0;background:#f4f7fb;color:#172033;font-family:Inter,system-ui,Arial,sans-serif}.top{height:72px;background:#fff;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;padding:0 22px}.brand{font-weight:950;color:#103A71}.brand small{display:block;color:#64748b;font-size:12px}.btn{border:0;border-radius:14px;padding:12px 15px;background:#103A71;color:#fff;font-weight:900;text-decoration:none;cursor:pointer}.btn.secondary{background:#eef4fb;color:#103A71;border:1px solid #d9e7f6}.wrap{padding:18px}.grid{display:grid;grid-template-columns:360px 1fr 290px;gap:16px}.card{background:#fff;border:1px solid #e2e8f0;border-radius:22px;padding:16px;box-shadow:0 14px 38px rgba(16,58,113,.08);margin-bottom:16px}.card h2,.card h3{margin:0 0 12px;color:#103A71}.filters{display:grid;grid-template-columns:2fr repeat(4,1fr);gap:10px}.list{max-height:700px;overflow:auto}.item{border:1px solid #e2e8f0;border-radius:16px;padding:13px;margin-bottom:10px;cursor:pointer;background:#fff}.item:hover,.item.active{border-color:#103A71;background:#f8fbff}input,select,textarea{width:100%;box-sizing:border-box;border:1px solid #dbe3ef;border-radius:14px;padding:12px 14px;font-size:15px;background:#fff}textarea{min-height:90px}.badge{display:inline-block;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:950;background:#eef4fb;color:#103A71}.caseHero{background:linear-gradient(135deg,#103A71,#0b2b55);color:#fff;border-radius:22px;padding:20px}.caseHero h1{margin:10px 0 5px;font-size:32px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.tab{border:1px solid #e2e8f0;background:#fff;border-radius:999px;padding:9px 12px;font-weight:900;cursor:pointer}.tab.active{background:#103A71;color:#fff}.tabpane{display:none}.tabpane.active{display:block}.info{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.info div{background:#f8fbff;border:1px solid #e7eef7;border-radius:14px;padding:12px}.info span{display:block;color:#64748b;font-size:12px;font-weight:900}#generalMap,#caseMap{height:330px;border-radius:18px;border:1px solid #e2e8f0;overflow:hidden;background:#eef4fb}.timeline div{border-left:4px solid #103A71;padding:8px 0 8px 12px;margin-bottom:10px}.muted{color:#64748b}.hidden{display:none}.modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;padding:18px;z-index:9999}.modal-backdrop.show{display:flex}.modal{width:min(680px,100%);background:#fff;border-radius:24px;border:1px solid #e2e8f0;box-shadow:0 30px 90px rgba(15,23,42,.30);overflow:hidden}.modal-head{background:linear-gradient(135deg,#103A71,#0b2b55);color:#fff;padding:20px}.modal-head h2{margin:0;color:#fff}.modal-body{padding:20px}.modal-actions{display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end;padding:0 20px 20px}.radio-row{display:grid;gap:10px;margin:12px 0 18px}.radio-row label{display:flex;align-items:center;gap:10px;border:1px solid #e2e8f0;border-radius:14px;padding:12px;font-weight:900}.radio-row input,.check-row input{width:auto}.check-row{display:flex;align-items:center;gap:10px;margin:12px 0;font-weight:900}.field-title{font-weight:950;color:#103A71;margin-top:14px}.notice-inline{display:none;margin-top:12px;border-radius:14px;padding:12px;font-weight:900}.notice-inline.err{display:block;background:#fef2f2;color:#991b1b}.notice-inline.ok{display:block;background:#ecfdf5;color:#166534}@media(max-width:1200px){.grid,.filters{grid-template-columns:1fr}.info{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -28,6 +28,36 @@ body{margin:0;background:#f4f7fb;color:#172033;font-family:Inter,system-ui,Arial
 </div></div>
 <aside class="card"><h3>⚡ Azioni rapide</h3><select id="refSelect"></select><br><br><textarea id="refMsg" placeholder="Messaggio opzionale"></textarea><br><br><button class="btn" id="sendRef">Assegna e invia</button><hr><h3>⚙ Workflow</h3><div id="workflow"></div></aside>
 </section>
+
+<div id="closeModal" class="modal-backdrop" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="closeTitle">
+    <div class="modal-head">
+      <h2 id="closeTitle">Chiusura pratica</h2>
+      <small>Completa la chiusura con esito, note finali e comunicazione al cittadino.</small>
+    </div>
+    <div class="modal-body">
+      <div class="field-title">Esito</div>
+      <div class="radio-row">
+        <label><input type="radio" name="closeEsito" value="Risolta" checked> Risolta</label>
+        <label><input type="radio" name="closeEsito" value="Parzialmente risolta"> Parzialmente risolta</label>
+        <label><input type="radio" name="closeEsito" value="Non risolvibile"> Non risolvibile</label>
+      </div>
+
+      <div class="field-title">Note finali *</div>
+      <textarea id="closeNotes" placeholder="Descrivi brevemente l'esito della pratica e le attività concluse."></textarea>
+
+      <label class="check-row"><input type="checkbox" id="closeSendEmail" checked> Invia email finale al cittadino</label>
+      <label class="check-row"><input type="checkbox" id="closeArchive" checked> Archivia automaticamente la pratica</label>
+
+      <div id="closeMsg" class="notice-inline"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn secondary" type="button" id="closeCancelBtn">Annulla</button>
+      <button class="btn" type="button" id="closeConfirmBtn">Chiudi pratica</button>
+    </div>
+  </div>
+</div>
+
 </main>
 <script src="assets/js/config.js"></script><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -61,6 +91,67 @@ let reports=[],filtered=[],referenti=[],uffici=[],selected=null,gMap=null,cMap=n
 
     setTimeout(()=>cMap.invalidateSize(),200);
   },80);
-}function renderWorkflow(){workflow.innerHTML=WORKFLOW.map(w=>`<button class="btn secondary" onclick="setStatus('${w[0]}')">${w[0]}. ${esc(w[1])}</button>`).join('')}async function setStatus(f){const w=WORKFLOW.find(x=>x[0]===f);const res=await post({action:'updateReportStatus',reportId:selected.id,fase:w[0],stato:w[1],descrizione:w[2],visibileCittadino:'Sì',operatore:'Modulo Pratiche'});if(res.ok){selected.stato=w[1];reports.find(r=>r.id===selected.id).stato=w[1];apply();openCase(selected.id)}else alert(res.error)}function renderRefs(){refSelect.innerHTML='<option value="">Seleziona consigliere</option>'+referenti.map(r=>`<option value="${esc(r.id)}">${esc(r.nome)}</option>`).join('')}function renderUffici(){uffSelect.innerHTML='<option value="">Seleziona ufficio</option>'+uffici.map(u=>`<option value="${esc(u.id)}">${esc(u.ufficio||u.nome)} — ${esc(u.settore||'')}</option>`).join('')}sendRef.onclick=async()=>{if(!selected)return alert('Seleziona pratica');if(!refSelect.value)return alert('Seleziona consigliere');const res=await post({action:'sendToReferente',reportId:selected.id,referenteId:refSelect.value,messaggio:refMsg.value});if(res.ok){alert('Inviata al consigliere');location.reload()}else alert(res.error)};sendUff.onclick=async()=>{if(!selected)return alert('Seleziona pratica');if(!uffSelect.value)return alert('Seleziona ufficio');const res=await post({action:'sendToUfficio',reportId:selected.id,ufficioId:uffSelect.value,messaggio:uffMsg.value});if(res.ok){alert('Inviata all’ufficio');location.reload()}else alert(res.error||'Funzione sendToUfficio non disponibile')};async function renderTimeline(){const res=await get('getTimeline',{reportId:selected.id});const arr=res.ok?(res.timeline||[]):[];timeline.innerHTML=arr.map(t=>`<div><b>${esc(t.titolo)}</b><br><small>${esc(t.data)}</small><br>${esc(t.descrizione)}</div>`).join('')||'<p class="muted">Timeline non disponibile.</p>'}function activateTab(id){document.querySelectorAll('.tab,.tabpane').forEach(e=>e.classList.remove('active'));document.querySelector(`[data-tab="${id}"]`)?.classList.add('active');document.getElementById(id)?.classList.add('active');if(id==='mappaTab'&&cMap)setTimeout(()=>cMap.invalidateSize(),150)}document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>activateTab(b.dataset.tab));async function boot(){const [r,ref,u]=await Promise.all([get('listReports'),get('listReferenti'),get('listUffici').catch(()=>({ok:false,uffici:[]}))]);reports=r.reports||[];referenti=ref.referenti||[];uffici=u.uffici||[];fill('fQuartiere',uniq('quartiere'),'Quartiere');fill('fCategoria',uniq('categoria'),'Categoria');fill('fStato',uniq('stato'),'Stato');fill('fPriorita',uniq('priorita'),'Priorità');apply();if(reports[0])openCase(reports[0].id)}[q,fQuartiere,fCategoria,fStato,fPriorita].forEach(el=>{el.oninput=apply;el.onchange=apply});boot();
+}function renderWorkflow(){workflow.innerHTML=WORKFLOW.map(w=>`<button class="btn secondary" onclick="setStatus('${w[0]}')">${w[0]}. ${esc(w[1])}</button>`).join('')}async function setStatus(f){
+  if(!selected)return alert('Seleziona una pratica');
+  const w=WORKFLOW.find(x=>x[0]===f);
+  if(!w)return;
+  if(w[0]==='8'){
+    openCloseModal();
+    return;
+  }
+  const res=await post({action:'updateReportStatus',reportId:selected.id,fase:w[0],stato:w[1],descrizione:w[2],visibileCittadino:'Sì',operatore:'Modulo Pratiche'});
+  if(res.ok){
+    selected.stato=w[1];
+    reports.find(r=>r.id===selected.id).stato=w[1];
+    apply();
+    openCase(selected.id);
+  }else alert(res.error||'Errore aggiornamento stato');
+}
+function openCloseModal(){
+  document.getElementById('closeNotes').value='';
+  document.getElementById('closeSendEmail').checked=true;
+  document.getElementById('closeArchive').checked=true;
+  document.getElementById('closeMsg').className='notice-inline';
+  document.getElementById('closeMsg').textContent='';
+  document.getElementById('closeModal').classList.add('show');
+}
+function closeCloseModal(){
+  document.getElementById('closeModal').classList.remove('show');
+}
+async function confirmClosePractice(){
+  if(!selected)return;
+  const notes=document.getElementById('closeNotes').value.trim();
+  const msg=document.getElementById('closeMsg');
+  if(!notes){
+    msg.className='notice-inline err';
+    msg.textContent='Inserisci le note finali prima di chiudere la pratica.';
+    return;
+  }
+  const esito=(document.querySelector('input[name="closeEsito"]:checked')||{}).value||'Risolta';
+  const sendEmail=document.getElementById('closeSendEmail').checked;
+  const archive=document.getElementById('closeArchive').checked;
+  const btn=document.getElementById('closeConfirmBtn');
+  btn.disabled=true;
+  btn.textContent='Chiusura in corso...';
+  try{
+    let res=await post({action:'closeReport',reportId:selected.id,esito:esito,noteFinali:notes,inviaEmail:sendEmail,archivia:archive,operatore:'Modulo Pratiche'});
+    if(!res.ok){
+      const statoFinale=archive?'Archiviata':'Risolta';
+      res=await post({action:'updateReportStatus',reportId:selected.id,fase:archive?'9':'8',stato:statoFinale,descrizione:'Chiusura pratica - Esito: '+esito+'. '+notes,visibileCittadino:'Sì',operatore:'Modulo Pratiche'});
+    }
+    if(!res.ok)throw new Error(res.error||'Errore durante la chiusura pratica');
+    selected.stato=archive?'Archiviata':'Risolta';
+    const found=reports.find(r=>r.id===selected.id);if(found)found.stato=selected.stato;
+    msg.className='notice-inline ok';
+    msg.textContent='Pratica chiusa correttamente.';
+    setTimeout(()=>{closeCloseModal();apply();openCase(selected.id);},600);
+  }catch(err){
+    msg.className='notice-inline err';
+    msg.textContent=err.message;
+  }finally{
+    btn.disabled=false;
+    btn.textContent='Chiudi pratica';
+  }
+}function renderRefs(){refSelect.innerHTML='<option value="">Seleziona consigliere</option>'+referenti.map(r=>`<option value="${esc(r.id)}">${esc(r.nome)}</option>`).join('')}function renderUffici(){uffSelect.innerHTML='<option value="">Seleziona ufficio</option>'+uffici.map(u=>`<option value="${esc(u.id)}">${esc(u.ufficio||u.nome)} — ${esc(u.settore||'')}</option>`).join('')}sendRef.onclick=async()=>{if(!selected)return alert('Seleziona pratica');if(!refSelect.value)return alert('Seleziona consigliere');const res=await post({action:'sendToReferente',reportId:selected.id,referenteId:refSelect.value,messaggio:refMsg.value});if(res.ok){alert('Inviata al consigliere');location.reload()}else alert(res.error)};sendUff.onclick=async()=>{if(!selected)return alert('Seleziona pratica');if(!uffSelect.value)return alert('Seleziona ufficio');const res=await post({action:'sendToUfficio',reportId:selected.id,ufficioId:uffSelect.value,messaggio:uffMsg.value});if(res.ok){alert('Inviata all’ufficio');location.reload()}else alert(res.error||'Funzione sendToUfficio non disponibile')};async function renderTimeline(){const res=await get('getTimeline',{reportId:selected.id});const arr=res.ok?(res.timeline||[]):[];timeline.innerHTML=arr.map(t=>`<div><b>${esc(t.titolo)}</b><br><small>${esc(t.data)}</small><br>${esc(t.descrizione)}</div>`).join('')||'<p class="muted">Timeline non disponibile.</p>'}function activateTab(id){document.querySelectorAll('.tab,.tabpane').forEach(e=>e.classList.remove('active'));document.querySelector(`[data-tab="${id}"]`)?.classList.add('active');document.getElementById(id)?.classList.add('active');if(id==='mappaTab'&&cMap)setTimeout(()=>cMap.invalidateSize(),150)}document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>activateTab(b.dataset.tab));document.getElementById('closeCancelBtn').onclick=closeCloseModal;document.getElementById('closeConfirmBtn').onclick=confirmClosePractice;document.getElementById('closeModal').addEventListener('click',function(e){if(e.target===this)closeCloseModal();});async function boot(){const [r,ref,u]=await Promise.all([get('listReports'),get('listReferenti'),get('listUffici').catch(()=>({ok:false,uffici:[]}))]);reports=r.reports||[];referenti=ref.referenti||[];uffici=u.uffici||[];fill('fQuartiere',uniq('quartiere'),'Quartiere');fill('fCategoria',uniq('categoria'),'Categoria');fill('fStato',uniq('stato'),'Stato');fill('fPriorita',uniq('priorita'),'Priorità');apply();if(reports[0])openCase(reports[0].id)}[q,fQuartiere,fCategoria,fStato,fPriorita].forEach(el=>{el.oninput=apply;el.onchange=apply});boot();
 </script>
 </body></html>
