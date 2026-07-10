@@ -1,38 +1,446 @@
 <!doctype html>
-<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Uffici PRO v1.1 RC1 — FDI Ascolta IX CRM</title>
-<link rel="stylesheet" href="assets/css/style.css"><link rel="stylesheet" href="assets/css/theme-fdi.css?v=113">
-<style>
-:root{--blue:#082f6a;--blue2:#0b4c99;--gold:#d3a400;--bg:#f4f7fb;--card:#fff;--line:#dfe6ef;--ink:#102342;--muted:#67758c;--green:#159447;--orange:#ef6c00;--red:#c62828;--shadow:0 12px 32px rgba(15,36,69,.08)}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-.topbar{min-height:88px;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:16px 28px;background:linear-gradient(135deg,var(--blue),#063f8c);color:#fff;border-bottom:4px solid var(--gold);box-shadow:0 10px 24px rgba(8,47,106,.18)}
-.brand strong{display:block;color:#fff;font-size:1.25rem}.brand small{display:block;color:#f2c600;margin-top:4px;font-weight:900;letter-spacing:.07em;text-transform:uppercase}
-.top-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.nav-btn,.version-pill{display:inline-flex;align-items:center;min-height:43px;padding:0 14px;border-radius:12px;text-decoration:none;font-weight:900}
-.nav-btn{border:1px solid rgba(255,255,255,.45);color:#fff;background:rgba(255,255,255,.06)}.nav-btn:hover{background:#fff;color:var(--blue)}
-.version-pill{background:#114fa6;color:#fff;border-radius:999px}
-.page{max-width:1500px;margin:0 auto;padding:24px}.hero{margin-bottom:18px}.hero h1{margin:0;color:var(--blue);font-size:clamp(1.8rem,4vw,3rem)}.hero p{color:var(--muted);margin:8px 0 0}
-.panel{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}.panel-head{min-height:58px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 20px;border-bottom:1px solid var(--line)}.panel-head h2,.panel-head h3{margin:0;color:var(--blue);font-size:1rem}.panel-body{padding:20px}
-input,select,textarea{width:100%;border:1px solid var(--line);border-radius:13px;background:#fff;color:var(--ink);padding:13px 14px;font-size:15px}input:focus,select:focus,textarea:focus{outline:0;border-color:var(--blue2);box-shadow:0 0 0 4px rgba(11,76,153,.12)}
-label{display:block;font-weight:850;color:var(--ink);margin-bottom:14px}label span{display:block;color:var(--muted);font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
-.btn{min-height:44px;padding:0 16px;border:0;border-radius:12px;background:var(--blue);color:#fff;font-weight:950;cursor:pointer}.btn:hover{background:#061f49}.btn.secondary{background:#fff;color:var(--blue);border:1px solid var(--blue)}.btn.danger{background:var(--red)}
-.badge{display:inline-flex;align-items:center;min-height:27px;padding:4px 9px;border-radius:999px;background:#edf4ff;color:var(--blue2);font-weight:950;font-size:.74rem}.muted{color:var(--muted)}.hidden{display:none}
-.message{padding:13px 15px;border-radius:13px;font-weight:850}.message.success{background:#e8f8ee;color:#15763b}.message.error{background:#fff0f0;color:#b42121}.message.info{background:#edf5ff;color:var(--blue2)}
-.footer{text-align:center;color:#fff;background:var(--blue);padding:13px;margin-top:22px}
-@media(max-width:760px){.topbar{align-items:flex-start;flex-direction:column;padding:15px}.page{padding:14px}.top-actions{width:100%}.nav-btn,.version-pill{flex:1;justify-content:center}}
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Uffici PRO v1.2 RC1 — FDI Ascolta IX CRM</title>
 
-.office-layout{display:grid;grid-template-columns:340px minmax(0,1fr);gap:18px;align-items:start}.filter-box{display:grid;gap:10px;margin-bottom:14px}.office-list{max-height:620px;overflow:auto;display:grid;gap:9px}.office-item{border:1px solid var(--line);border-radius:14px;padding:13px;cursor:pointer;background:#fff;transition:.18s ease}.office-item:hover,.office-item.active{border-color:var(--blue2);background:#f5f9ff;transform:translateX(2px)}.office-item b{display:block;color:var(--blue2)}.office-item span,.office-item small{display:block;color:var(--muted);margin-top:4px}
-.office-hero{background:linear-gradient(135deg,var(--blue),#0b4d98);color:#fff;padding:22px;border-bottom:4px solid var(--gold)}.office-hero h2{margin:10px 0 5px;color:#fff;font-size:2rem}.office-hero p{margin:0;color:rgba(255,255,255,.8)}.info-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.info-box{padding:14px;border:1px solid var(--line);border-radius:14px;background:#f8fbff}.info-box span{display:block;color:var(--muted);font-size:.72rem;text-transform:uppercase}.info-box b{display:block;margin-top:5px}table{width:100%;border-collapse:collapse}th,td{padding:12px;border-bottom:1px solid var(--line);text-align:left}th{background:#fbfcfe;color:var(--blue);font-size:.72rem;text-transform:uppercase}
-@media(max-width:900px){.office-layout,.info-grid{grid-template-columns:1fr}}
-</style></head><body>
-<header class="topbar"><div class="brand"><strong>FDI ASCOLTA IX CRM</strong><small>Uffici PRO · Municipio IX Roma</small></div><div class="top-actions"><span class="version-pill">Versione 1.1 RC1</span><a class="nav-btn" href="dashboard.html">▦ Dashboard</a><a class="nav-btn" href="pratiche.html">▣ Pratiche</a></div></header>
-<main class="page"><section class="hero"><h1>Uffici PRO</h1><p>Archivio operativo degli uffici municipali, settori e contatti.</p></section>
-<section class="office-layout">
-<aside class="panel"><div class="panel-head"><h2>Elenco uffici</h2><span class="badge" id="officeCount">0</span></div><div class="panel-body"><div class="filter-box"><input id="q" placeholder="🔍 Cerca ufficio, settore o email..."><select id="fAttivo"><option value="">Tutti gli uffici</option><option value="sì">Solo attivi</option><option value="no">Solo non attivi</option></select></div><div id="list" class="office-list"><div class="muted">Caricamento uffici...</div></div></div></aside>
-<section class="panel"><div id="empty" class="panel-body muted" style="padding:60px;text-align:center">Seleziona un ufficio dall’elenco.</div><div id="detail" class="hidden"><div class="office-hero"><span class="badge" id="activeBadge">Stato</span><h2 id="officeName"></h2><p id="officeSector"></p></div><div class="panel-body"><div class="info-grid"><div class="info-box"><span>ID</span><b id="officeId"></b></div><div class="info-box"><span>Email</span><b id="officeEmail"></b></div><div class="info-box"><span>Telefono</span><b id="officePhone"></b></div><div class="info-box"><span>Stato</span><b id="officeActive"></b></div></div><h3 style="color:var(--blue);margin-top:20px">Note</h3><p id="officeNotes" class="muted"></p></div></div></section>
-</section>
-<section class="panel" style="margin-top:18px"><div class="panel-head"><h2>Tabella completa</h2></div><div style="overflow:auto"><table><thead><tr><th>ID</th><th>Ufficio</th><th>Settore</th><th>Email</th><th>Telefono</th><th>Attivo</th></tr></thead><tbody id="tableBody"><tr><td colspan="6" class="muted">Caricamento...</td></tr></tbody></table></div></section>
-</main><footer class="footer">FDI Ascolta IX CRM — Uffici PRO v1.1 RC1</footer>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/theme-fdi.css?v=120">
+
+  <style>
+    :root{
+      --blue:#082f6a;
+      --blue2:#0b4c99;
+      --gold:#d3a400;
+      --bg:#f4f7fb;
+      --card:#fff;
+      --line:#dfe6ef;
+      --ink:#102342;
+      --muted:#67758c;
+      --green:#159447;
+      --red:#c62828;
+      --shadow:0 12px 32px rgba(15,36,69,.08);
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--ink);
+      font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+
+    .topbar{
+      min-height:92px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:18px;
+      padding:16px 30px;
+      background:linear-gradient(135deg,var(--blue),#063f8c);
+      color:#fff;
+      border-bottom:4px solid var(--gold);
+      box-shadow:0 10px 24px rgba(8,47,106,.18);
+      position:sticky;
+      top:0;
+      z-index:100;
+    }
+
+    .brand strong{display:block;color:#fff;font-size:1.35rem}
+    .brand small{
+      display:block;
+      color:#f2c600;
+      margin-top:4px;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.07em;
+    }
+
+    .top-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .version-pill,.nav-btn{
+      display:inline-flex;
+      align-items:center;
+      min-height:43px;
+      padding:0 14px;
+      border-radius:12px;
+      font-weight:900;
+    }
+    .version-pill{background:#114fa6;color:#fff;border-radius:999px}
+    .nav-btn{
+      border:1px solid rgba(255,255,255,.45);
+      color:#fff;
+      text-decoration:none;
+      background:rgba(255,255,255,.06);
+    }
+    .nav-btn:hover{background:#fff;color:var(--blue)}
+
+    .page{max-width:1550px;margin:0 auto;padding:24px}
+
+    .page-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:18px;
+      margin-bottom:18px;
+    }
+    .title-wrap{display:flex;align-items:center;gap:14px}
+    .title-icon{
+      width:50px;height:50px;border-radius:15px;
+      display:grid;place-items:center;
+      background:#eef4ff;color:var(--blue2);font-size:1.5rem;
+    }
+    .page-head h1{margin:0;color:var(--blue);font-size:2rem}
+    .page-head p{margin:5px 0 0;color:var(--muted)}
+
+    .kpis{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:14px;
+      margin-bottom:18px;
+    }
+    .kpi{
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:17px;
+      box-shadow:var(--shadow);
+      display:flex;
+      align-items:center;
+      gap:13px;
+    }
+    .kpi-icon{
+      width:48px;height:48px;border-radius:50%;
+      display:grid;place-items:center;
+      font-size:1.3rem;
+      background:#eef4ff;color:var(--blue2);
+    }
+    .kpi:nth-child(2) .kpi-icon{background:#eaf8ee;color:var(--green)}
+    .kpi:nth-child(3) .kpi-icon{background:#fff4e8;color:#d26400}
+    .kpi:nth-child(4) .kpi-icon{background:#f1ecff;color:#6c38c7}
+    .kpi b{display:block;color:var(--blue);font-size:1.55rem}
+    .kpi span{display:block;color:var(--muted);font-size:.8rem;margin-top:2px}
+
+    .workspace{
+      display:grid;
+      grid-template-columns:360px minmax(0,1fr);
+      gap:18px;
+      align-items:start;
+    }
+
+    .panel{
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .panel-head{
+      min-height:58px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:0 18px;
+      border-bottom:1px solid var(--line);
+    }
+    .panel-head h2{margin:0;color:var(--blue);font-size:1rem}
+    .badge{
+      display:inline-flex;
+      min-height:27px;
+      align-items:center;
+      padding:4px 9px;
+      border-radius:999px;
+      background:#edf4ff;
+      color:var(--blue2);
+      font-size:.74rem;
+      font-weight:950;
+    }
+
+    .filters{display:grid;gap:10px;padding:14px;border-bottom:1px solid var(--line)}
+    .filters input,.filters select{
+      width:100%;
+      min-height:44px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:0 13px;
+      background:#fff;
+      color:var(--ink);
+      font:inherit;
+    }
+
+    .office-list{
+      max-height:650px;
+      overflow:auto;
+      padding:12px;
+      display:grid;
+      gap:8px;
+    }
+
+    .office-item{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:13px;
+      background:#fff;
+      cursor:pointer;
+      transition:.18s ease;
+    }
+    .office-item:hover,.office-item.active{
+      border-color:var(--blue2);
+      background:#f5f9ff;
+      transform:translateX(2px);
+    }
+    .office-item b{display:block;color:var(--blue2)}
+    .office-item span,.office-item small{
+      display:block;
+      color:var(--muted);
+      margin-top:4px;
+      line-height:1.4;
+    }
+
+    .empty{
+      min-height:420px;
+      display:grid;
+      place-items:center;
+      text-align:center;
+      padding:30px;
+      color:var(--muted);
+    }
+
+    .detail-head{
+      padding:24px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:18px;
+      border-bottom:1px solid var(--line);
+      background:linear-gradient(180deg,#fbfdff,#f5f9ff);
+    }
+
+    .detail-head h2{
+      margin:9px 0 5px;
+      color:var(--blue);
+      font-size:clamp(1.7rem,3vw,2.5rem);
+    }
+    .detail-head p{margin:0;color:var(--muted)}
+
+    .status-pill{
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      min-height:31px;
+      padding:5px 11px;
+      border-radius:999px;
+      background:#eaf8ee;
+      color:#16753d;
+      border:1px solid #c8ead3;
+      font-weight:950;
+      font-size:.78rem;
+      white-space:nowrap;
+    }
+
+    .detail-body{padding:20px}
+
+    .info-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:12px;
+      margin-bottom:18px;
+    }
+
+    .info-box{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:14px;
+      background:#fbfcfe;
+    }
+    .info-box span{
+      display:block;
+      color:var(--muted);
+      font-size:.72rem;
+      text-transform:uppercase;
+      letter-spacing:.04em;
+      margin-bottom:5px;
+    }
+    .info-box b{display:block;color:var(--ink);word-break:break-word}
+
+    .notes-card,.contact-card{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:16px;
+      background:#fff;
+      margin-bottom:14px;
+    }
+    .notes-card h3,.contact-card h3{margin:0 0 10px;color:var(--blue);font-size:1rem}
+    .notes-card p{margin:0;color:var(--muted);line-height:1.6}
+
+    .contact-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .contact-actions a{
+      min-height:40px;
+      padding:0 13px;
+      border-radius:10px;
+      display:inline-flex;
+      align-items:center;
+      text-decoration:none;
+      font-weight:900;
+    }
+    .mail-btn{background:var(--blue);color:#fff}
+    .phone-btn{border:1px solid var(--blue);color:var(--blue);background:#fff}
+
+    .table-panel{margin-top:18px}
+    .table-wrap{overflow:auto}
+    table{width:100%;border-collapse:collapse;background:#fff}
+    th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+    th{background:#fbfcfe;color:var(--blue);font-size:.72rem;text-transform:uppercase}
+    tbody tr:hover{background:#f8fbff}
+
+    .hidden{display:none}
+    .muted{color:var(--muted)}
+    .footer{
+      margin-top:18px;
+      background:var(--blue);
+      color:#fff;
+      text-align:center;
+      padding:14px;
+    }
+
+    @media(max-width:1050px){
+      .workspace{grid-template-columns:1fr}
+      .office-list{max-height:420px}
+      .kpis{grid-template-columns:repeat(2,1fr)}
+    }
+    @media(max-width:700px){
+      .topbar{align-items:flex-start;flex-direction:column;padding:15px}
+      .page{padding:14px}
+      .page-head{align-items:flex-start;flex-direction:column}
+      .kpis,.info-grid{grid-template-columns:1fr}
+      .detail-head{flex-direction:column}
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <strong>FDI ASCOLTA IX CRM</strong>
+    <small>Uffici PRO · Municipio IX Roma</small>
+  </div>
+
+  <div class="top-actions">
+    <span class="version-pill">Versione 1.2 RC1</span>
+    <a class="nav-btn" href="dashboard.html">▦ Dashboard</a>
+    <a class="nav-btn" href="pratiche.html">▣ Pratiche</a>
+    <a class="nav-btn" href="configurazione.html">⚙ Configurazione</a>
+  </div>
+</header>
+
+<main class="page">
+  <section class="page-head">
+    <div class="title-wrap">
+      <div class="title-icon">🏛</div>
+      <div>
+        <h1>Uffici</h1>
+        <p>Archivio operativo di uffici, settori e contatti.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="kpis">
+    <div class="kpi"><div class="kpi-icon">🏛</div><div><b id="kpiTotal">0</b><span>Uffici totali</span></div></div>
+    <div class="kpi"><div class="kpi-icon">✓</div><div><b id="kpiActive">0</b><span>Uffici attivi</span></div></div>
+    <div class="kpi"><div class="kpi-icon">✉</div><div><b id="kpiEmail">0</b><span>Con email</span></div></div>
+    <div class="kpi"><div class="kpi-icon">☎</div><div><b id="kpiPhone">0</b><span>Con telefono</span></div></div>
+  </section>
+
+  <section class="workspace">
+    <aside class="panel">
+      <div class="panel-head">
+        <h2>Elenco uffici</h2>
+        <span class="badge" id="officeCount">0</span>
+      </div>
+
+      <div class="filters">
+        <input id="q" placeholder="🔍 Cerca ufficio, settore o email...">
+        <select id="fAttivo">
+          <option value="">Tutti gli uffici</option>
+          <option value="sì">Solo attivi</option>
+          <option value="no">Solo non attivi</option>
+        </select>
+      </div>
+
+      <div id="list" class="office-list">
+        <div class="muted">Caricamento uffici...</div>
+      </div>
+    </aside>
+
+    <section class="panel">
+      <div id="empty" class="empty">
+        <div>
+          <div style="font-size:2rem">🏛</div>
+          <h3 style="color:var(--blue)">Seleziona un ufficio</h3>
+          <p>Consulta contatti, settore e informazioni operative.</p>
+        </div>
+      </div>
+
+      <div id="detail" class="hidden">
+        <div class="detail-head">
+          <div>
+            <span class="status-pill" id="activeBadge">Stato</span>
+            <h2 id="officeName"></h2>
+            <p id="officeSector"></p>
+          </div>
+        </div>
+
+        <div class="detail-body">
+          <div class="info-grid">
+            <div class="info-box"><span>ID ufficio</span><b id="officeId"></b></div>
+            <div class="info-box"><span>Stato</span><b id="officeActive"></b></div>
+            <div class="info-box"><span>Email</span><b id="officeEmail"></b></div>
+            <div class="info-box"><span>Telefono</span><b id="officePhone"></b></div>
+          </div>
+
+          <div class="contact-card">
+            <h3>Contatti rapidi</h3>
+            <div class="contact-actions" id="contactActions"></div>
+          </div>
+
+          <div class="notes-card">
+            <h3>Note operative</h3>
+            <p id="officeNotes"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <section class="panel table-panel">
+    <div class="panel-head"><h2>Tabella completa uffici</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Ufficio</th>
+            <th>Settore</th>
+            <th>Email</th>
+            <th>Telefono</th>
+            <th>Attivo</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr><td colspan="6" class="muted">Caricamento...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">FDI Ascolta IX CRM — Uffici PRO v1.2 RC1</footer>
 <script src="assets/js/config.js?v=uffici113"></script><script>
 const FALLBACK="https://script.google.com/macros/s/AKfycbydMX5t3F9r3sHQ3zM3tSH6edMBz_hqGnDiVvK_kisOrSz8kn1pbeoMG00fX_Ei6wd7HQ/exec";let uffici=[],filtered=[],selected=null;
 function apiUrl(){return typeof CONFIG!=="undefined"&&CONFIG.API_URL&&CONFIG.API_URL.includes("/macros/s/")?CONFIG.API_URL:FALLBACK}
@@ -45,4 +453,39 @@ function renderTable(){tableBody.innerHTML=filtered.map(u=>`<tr><td>${esc(u.id)}
 function openOffice(id){selected=uffici.find(u=>u.id===id);if(!selected)return;empty.classList.add("hidden");detail.classList.remove("hidden");officeName.textContent=name(selected);officeSector.textContent=sector(selected)||"Settore non indicato";officeId.textContent=selected.id||"-";officeEmail.textContent=email(selected)||"-";officePhone.textContent=phone(selected)||"-";officeActive.textContent=active(selected)||"-";officeNotes.textContent=selected.note||selected.Note||"Nessuna nota inserita.";activeBadge.textContent=active(selected)||"Stato";renderList()}
 async function boot(){try{const res=await get("listUffici");if(!res.ok)throw new Error(res.error||"Errore caricamento uffici");uffici=res.uffici||[];apply();if(uffici[0])openOffice(uffici[0].id)}catch(e){list.innerHTML='<div class="message error">'+esc(e.message)+'</div>';tableBody.innerHTML='<tr><td colspan="6">'+esc(e.message)+'</td></tr>'}}
 q.oninput=apply;fAttivo.onchange=apply;boot();
-</script></body></html>
+</script>
+<script>
+const baseApply = apply;
+apply = function(){
+  baseApply();
+  kpiTotal.textContent = uffici.length;
+  kpiActive.textContent = uffici.filter(u => String(active(u)).toLowerCase() === "sì").length;
+  kpiEmail.textContent = uffici.filter(u => email(u)).length;
+  kpiPhone.textContent = uffici.filter(u => phone(u)).length;
+};
+
+const baseOpenOffice = openOffice;
+openOffice = function(id){
+  baseOpenOffice(id);
+
+  if(!selected) return;
+
+  const links = [];
+
+  if(email(selected)){
+    links.push(
+      '<a class="mail-btn" href="mailto:' + esc(email(selected)) + '">✉ Scrivi email</a>'
+    );
+  }
+
+  if(phone(selected)){
+    links.push(
+      '<a class="phone-btn" href="tel:' + esc(phone(selected)) + '">☎ Chiama</a>'
+    );
+  }
+
+  contactActions.innerHTML = links.join("") || '<span class="muted">Nessun contatto rapido disponibile.</span>';
+};
+</script>
+</body>
+</html>
