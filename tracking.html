@@ -1,237 +1,30 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tracking PRO v1.1 RC1 — FDI Ascolta IX</title>
+<link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="assets/css/style.css"><link rel="stylesheet" href="assets/css/theme-fdi.css?v=114">
+<style>
+:root{--blue:#082f6a;--blue2:#0b4c99;--gold:#d3a400;--bg:#f4f7fb;--card:#fff;--line:#dfe6ef;--ink:#102342;--muted:#67758c;--green:#159447;--orange:#ef6c00;--red:#c62828;--shadow:0 12px 32px rgba(15,36,69,.08)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.topbar{min-height:88px;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:16px 28px;background:linear-gradient(135deg,var(--blue),#063f8c);color:#fff;border-bottom:4px solid var(--gold);box-shadow:0 10px 24px rgba(8,47,106,.18)}
+.brand strong{display:block;color:#fff;font-size:1.25rem}.brand small{display:block;color:#f2c600;margin-top:4px;font-weight:900;letter-spacing:.07em;text-transform:uppercase}
+.top-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.nav-btn,.version-pill{display:inline-flex;align-items:center;min-height:43px;padding:0 14px;border-radius:12px;text-decoration:none;font-weight:900}
+.nav-btn{border:1px solid rgba(255,255,255,.45);color:#fff;background:rgba(255,255,255,.06)}.nav-btn:hover{background:#fff;color:var(--blue)}
+.version-pill{background:#114fa6;color:#fff;border-radius:999px}
+.page{max-width:1500px;margin:0 auto;padding:24px}.hero{margin-bottom:18px}.hero h1{margin:0;color:var(--blue);font-size:clamp(1.8rem,4vw,3rem)}.hero p{color:var(--muted);margin:8px 0 0}
+.panel{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}.panel-head{min-height:58px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 20px;border-bottom:1px solid var(--line)}.panel-head h2,.panel-head h3{margin:0;color:var(--blue);font-size:1rem}.panel-body{padding:20px}
+input,select,textarea{width:100%;border:1px solid var(--line);border-radius:13px;background:#fff;color:var(--ink);padding:13px 14px;font-size:15px}input:focus,select:focus,textarea:focus{outline:0;border-color:var(--blue2);box-shadow:0 0 0 4px rgba(11,76,153,.12)}
+label{display:block;font-weight:850;color:var(--ink);margin-bottom:14px}label span{display:block;color:var(--muted);font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.btn{min-height:44px;padding:0 16px;border:0;border-radius:12px;background:var(--blue);color:#fff;font-weight:950;cursor:pointer}.btn:hover{background:#061f49}.btn.secondary{background:#fff;color:var(--blue);border:1px solid var(--blue)}.btn.danger{background:var(--red)}
+.badge{display:inline-flex;align-items:center;min-height:27px;padding:4px 9px;border-radius:999px;background:#edf4ff;color:var(--blue2);font-weight:950;font-size:.74rem}.muted{color:var(--muted)}.hidden{display:none}
+.message{padding:13px 15px;border-radius:13px;font-weight:850}.message.success{background:#e8f8ee;color:#15763b}.message.error{background:#fff0f0;color:#b42121}.message.info{background:#edf5ff;color:var(--blue2)}
+.footer{text-align:center;color:#fff;background:var(--blue);padding:13px;margin-top:22px}
+@media(max-width:760px){.topbar{align-items:flex-start;flex-direction:column;padding:15px}.page{padding:14px}.top-actions{width:100%}.nav-btn,.version-pill{flex:1;justify-content:center}}
 
-  <title>Segui pratica — FDI Ascolta IX</title>
-
-  <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="assets/css/style.css" />
-<link rel="stylesheet" href="assets/css/theme-fdi.css?v=100">
-  <style>
-    .timeline-box {
-      margin-top: 28px;
-      border-left: 4px solid #103A71;
-      padding-left: 22px;
-    }
-
-    .timeline-item {
-      position: relative;
-      margin-bottom: 24px;
-      padding: 18px;
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 18px;
-      box-shadow: 0 10px 28px rgba(16, 58, 113, 0.08);
-    }
-
-    .timeline-item::before {
-      content: "";
-      position: absolute;
-      left: -34px;
-      top: 22px;
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: #103A71;
-      border: 4px solid #ffffff;
-      box-shadow: 0 0 0 2px #103A71;
-    }
-
-    .timeline-date {
-      font-size: 0.9rem;
-      color: #64748b;
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
-
-    .timeline-title {
-      color: #103A71;
-      font-weight: 900;
-      font-size: 1.05rem;
-      margin-bottom: 6px;
-    }
-
-    .timeline-desc {
-      color: #334155;
-      line-height: 1.6;
-    }
-
-    .practice-summary {
-      margin-top: 24px;
-      padding: 22px;
-      border-radius: 20px;
-      background: #f8fbff;
-      border: 1px solid #dfe7f1;
-    }
-
-    .practice-summary h2 {
-      color: #103A71;
-      margin-top: 0;
-    }
-
-    .empty-timeline {
-      margin-top: 22px;
-      padding: 18px;
-      border-radius: 16px;
-      background: #fff7ed;
-      color: #9a3412;
-      font-weight: 700;
-    }
-  </style>
-</head>
-
-<body>
-
-<header class="site-header compact">
-  <a class="brand" href="index.html">
-    <img src="assets/logo/logo.svg" alt="Logo" />
-    <span>
-      <strong>FDI Ascolta IX</strong>
-      <small>Municipio IX Roma</small>
-    </span>
-  </a>
-
-  <nav class="main-nav">
-    <a href="segnala.html">Invia segnalazione</a>
-    <a href="login.html">Area riservata</a>
-  </nav>
-</header>
-
-<main class="page container narrow">
-  <section class="card form-card">
-    <p class="eyebrow dark">Tracking cittadino</p>
-
-    <h1>Segui la tua pratica</h1>
-
-    <p class="muted">
-      Inserisci il codice ricevuto via email dopo l’invio della segnalazione.
-    </p>
-
-    <form id="trackingForm" class="inline-form">
-      <input required id="trackingCode" placeholder="Es. IX-20260630-154224-37" />
-      <button class="btn btn-primary" type="submit">Cerca</button>
-    </form>
-
-    <div id="trackingResult" class="tracking-result"></div>
-  </section>
-</main>
-
-<script src="assets/js/config.js"></script>
-<script src="assets/js/api.js"></script>
-
-<script>
-  const form = document.getElementById("trackingForm");
-  const codeInput = document.getElementById("trackingCode");
-  const resultBox = document.getElementById("trackingResult");
-
-  function getApiUrl() {
-    if (typeof CONFIG !== "undefined" && CONFIG.API_URL) return CONFIG.API_URL;
-    if (window.CONFIG && window.CONFIG.API_URL) return window.CONFIG.API_URL;
-    throw new Error("API_URL non configurato");
-  }
-
-  async function apiGet(action, params = {}) {
-    const url = new URL(getApiUrl());
-    url.searchParams.set("action", action);
-
-    Object.keys(params).forEach(function (key) {
-      url.searchParams.set(key, params[key]);
-    });
-
-    const response = await fetch(url.toString());
-    return await response.json();
-  }
-
-  function statusLabel(report) {
-    return report.stato || "Segnalazione ricevuta";
-  }
-
-  function renderTimeline(timeline) {
-    if (!timeline || timeline.length === 0) {
-      return `
-        <div class="empty-timeline">
-          Timeline non ancora disponibile per questa pratica.
-        </div>
-      `;
-    }
-
-    return `
-      <div class="timeline-box">
-        ${timeline.map(item => `
-          <div class="timeline-item">
-            <div class="timeline-date">${item.data || ""}</div>
-            <div class="timeline-title">${item.titolo || item.fase || "Aggiornamento pratica"}</div>
-            <div class="timeline-desc">${item.descrizione || ""}</div>
-          </div>
-        `).join("")}
-      </div>
-    `;
-  }
-
-  function renderReport(report, timeline) {
-    resultBox.innerHTML = `
-      <div class="practice-summary">
-        <h2>${report.titolo || "Segnalazione"}</h2>
-        <p><strong>Codice pratica:</strong> ${report.id}</p>
-        <p><strong>Stato attuale:</strong> ${statusLabel(report)}</p>
-        <p><strong>Quartiere:</strong> ${report.quartiere || "-"}</p>
-        <p><strong>Categoria:</strong> ${report.categoria || "-"}</p>
-        <p><strong>Indirizzo:</strong> ${report.indirizzo || "-"}</p>
-        <p><strong>Referente:</strong> ${report.referenteNome || "Non ancora assegnato"}</p>
-      </div>
-
-      <h2 style="margin-top:30px;color:#103A71;">Percorso della segnalazione</h2>
-
-      ${renderTimeline(timeline)}
-    `;
-  }
-
-  form.addEventListener("submit", async function (event) {
-    event.preventDefault();
-
-    const code = codeInput.value.trim();
-
-    if (!code) return;
-
-    resultBox.innerHTML = `<p class="muted">Ricerca pratica in corso...</p>`;
-
-    try {
-      const reportsResponse = await apiGet("listReports");
-
-      if (!reportsResponse.ok) {
-        throw new Error(reportsResponse.error || "Errore nel recupero delle pratiche.");
-      }
-
-      const report = (reportsResponse.reports || []).find(r => r.id === code);
-
-      if (!report) {
-        resultBox.innerHTML = `
-          <div class="empty-timeline">
-            Nessuna pratica trovata con questo codice.
-          </div>
-        `;
-        return;
-      }
-
-      const timelineResponse = await apiGet("getTimeline", {
-        reportId: code
-      });
-
-      const timeline = timelineResponse.ok ? timelineResponse.timeline : [];
-
-      renderReport(report, timeline);
-
-    } catch (error) {
-      resultBox.innerHTML = `
-        <div class="empty-timeline">
-          ${error.message}
-        </div>
-      `;
-    }
-  });
-</script>
-
-</body>
-</html>
+.tracking-shell{max-width:1050px;margin:0 auto;padding:42px 18px 70px}.tracking-hero{text-align:center;margin-bottom:22px}.tracking-hero h1{font-size:clamp(2rem,5vw,3.7rem);margin:8px 0;color:var(--blue)}.tracking-hero p{color:var(--muted);font-size:1.05rem}.tracking-card{background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);overflow:hidden}.tracking-search{display:grid;grid-template-columns:1fr auto;gap:10px;padding:20px;background:#f8fbff;border-bottom:1px solid var(--line)}.tracking-search input{height:50px}.tracking-search .btn{min-width:150px}#trackingResult{padding:20px}.citizen-note{display:flex;gap:10px;align-items:flex-start;padding:14px 16px;border-radius:14px;background:#eef5ff;color:var(--blue2);margin-top:16px}@media(max-width:650px){.tracking-search{grid-template-columns:1fr}.tracking-search .btn{width:100%}}
+</style></head><body>
+<header class="topbar"><div class="brand"><strong>FDI ASCOLTA IX</strong><small>Tracking cittadino · Municipio IX Roma</small></div><div class="top-actions"><span class="version-pill">Versione 1.1 RC1</span><a class="nav-btn" href="index.html">Home</a><a class="nav-btn" href="segnala.html">Invia segnalazione</a><a class="nav-btn" href="login.html">Area riservata</a></div></header>
+<main class="tracking-shell"><section class="tracking-hero"><span class="badge">Tracking cittadino</span><h1>Segui la tua pratica</h1><p>Inserisci il codice ricevuto dopo l’invio della segnalazione per visualizzare stato e percorso.</p></section>
+<section class="tracking-card"><form id="trackingForm" class="tracking-search"><input required id="trackingCode" placeholder="Es. IX-20260706-084042-962"><button class="btn" type="submit">Cerca pratica</button></form><div id="trackingResult"><div class="citizen-note"><span>ℹ</span><span>Il codice pratica è riportato nell’email di conferma ricevuta dopo l’invio della segnalazione.</span></div></div></section></main><footer class="footer">FDI Ascolta IX — Tracking PRO v1.1 RC1</footer>
+<script src="assets/js/config.js?v=tracking114"></script><script src="assets/js/api.js?v=tracking114"></script><script src="assets/js/tracking.js?v=tracking114"></script>
+</body></html>
