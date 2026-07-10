@@ -102,6 +102,15 @@ function renderWorkflow(){workflow.innerHTML=WORKFLOW.map(w=>`<button class="btn
   }else alert(res.error||'Errore aggiornamento stato');
 }
 function renderRefs(){refSelect.innerHTML='<option value="">Seleziona consigliere</option>'+referenti.map(r=>`<option value="${esc(r.id)}">${esc(r.nome)}</option>`).join('')}function renderUffici(){uffSelect.innerHTML='<option value="">Seleziona ufficio</option>'+uffici.map(u=>`<option value="${esc(u.id)}">${esc(u.ufficio||u.nome)} — ${esc(u.settore||'')}</option>`).join('')}sendRef.onclick=async()=>{if(!selected)return alert('Seleziona pratica');if(!refSelect.value)return alert('Seleziona consigliere');const res=await post({action:'sendToReferente',reportId:selected.id,referenteId:refSelect.value,messaggio:refMsg.value});if(res.ok){alert('Inviata al consigliere');location.reload()}else alert(res.error)};sendUff.onclick=async()=>{if(!selected)return alert('Seleziona pratica');if(!uffSelect.value)return alert('Seleziona ufficio');const res=await post({action:'sendToUfficio',reportId:selected.id,ufficioId:uffSelect.value,messaggio:uffMsg.value});if(res.ok){alert('Inviata all’ufficio');location.reload()}else alert(res.error||'Funzione sendToUfficio non disponibile')};async function renderTimeline(){const res=await get('getTimeline',{reportId:selected.id});const arr=res.ok?(res.timeline||[]):[];timeline.innerHTML=arr.map(t=>`<div><b>${esc(t.titolo)}</b><br><small>${esc(t.data)}</small><br>${esc(t.descrizione)}</div>`).join('')||'<p class="muted">Timeline non disponibile.</p>'}
+const closeModal=document.getElementById('closeModal');
+const closeModalX=document.getElementById('closeModalX');
+const closeCancel=document.getElementById('closeCancel');
+const closeConfirm=document.getElementById('closeConfirm');
+const closeNotes=document.getElementById('closeNotes');
+const closeMsg=document.getElementById('closeMsg');
+const closeSendEmail=document.getElementById('closeSendEmail');
+const closeArchive=document.getElementById('closeArchive');
+
 function openCloseModal(){
   if(!selected)return alert('Seleziona pratica');
   closeNotes.value='';
@@ -135,6 +144,29 @@ closeModalX.onclick=closeCloseModal;
 closeCancel.onclick=closeCloseModal;
 closeConfirm.onclick=confirmClosePractice;
 
-function activateTab(id){document.querySelectorAll('.tab,.tabpane').forEach(e=>e.classList.remove('active'));document.querySelector(`[data-tab="${id}"]`)?.classList.add('active');document.getElementById(id)?.classList.add('active');if(id==='mappaTab'&&cMap)setTimeout(()=>cMap.invalidateSize(),150)}document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>activateTab(b.dataset.tab));async function boot(){const [r,ref,u]=await Promise.all([get('listReports'),get('listReferenti'),get('listUffici').catch(()=>({ok:false,uffici:[]}))]);reports=r.reports||[];referenti=ref.referenti||[];uffici=u.uffici||[];fill('fQuartiere',uniq('quartiere'),'Quartiere');fill('fCategoria',uniq('categoria'),'Categoria');fill('fStato',uniq('stato'),'Stato');fill('fPriorita',uniq('priorita'),'Priorità');apply();if(reports[0])openCase(reports[0].id)}[q,fQuartiere,fCategoria,fStato,fPriorita].forEach(el=>{el.oninput=apply;el.onchange=apply});boot();
+function activateTab(id){document.querySelectorAll('.tab,.tabpane').forEach(e=>e.classList.remove('active'));document.querySelector(`[data-tab="${id}"]`)?.classList.add('active');document.getElementById(id)?.classList.add('active');if(id==='mappaTab'&&cMap)setTimeout(()=>cMap.invalidateSize(),150)}document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>activateTab(b.dataset.tab));async function boot(){
+  try{
+    const [r,ref,u]=await Promise.all([
+      get('listReports'),
+      get('listReferenti'),
+      get('listUffici').catch(()=>({ok:false,uffici:[]}))
+    ]);
+    if(!r.ok)throw new Error(r.error||'Errore caricamento pratiche');
+    reports=r.reports||[];
+    referenti=ref.referenti||[];
+    uffici=u.uffici||[];
+    fill('fQuartiere',uniq('quartiere'),'Quartiere');
+    fill('fCategoria',uniq('categoria'),'Categoria');
+    fill('fStato',uniq('stato'),'Stato');
+    fill('fPriorita',uniq('priorita'),'Priorità');
+    apply();
+    if(reports[0])openCase(reports[0].id);
+  }catch(err){
+    console.error(err);
+    document.getElementById('list').innerHTML='<p class="muted">Errore caricamento: '+esc(err.message)+'</p>';
+  }
+}
+[q,fQuartiere,fCategoria,fStato,fPriorita].forEach(el=>{el.oninput=apply;el.onchange=apply});
+boot();
 </script>
 </body></html>
