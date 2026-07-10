@@ -28,7 +28,37 @@ label{display:block;font-weight:850;color:var(--ink);margin-bottom:14px}label sp
 <main class="login-page"><section class="login-grid"><div class="login-info"><span class="badge" style="background:rgba(255,255,255,.12);color:#fff">Accesso operatori</span><h1>Area riservata</h1><p>Accedi al centro di controllo per gestire pratiche, assegnazioni, uffici, comunicazioni e chiusure.</p><div class="feature-list"><div class="feature"><i>✓</i> Dashboard operativa</div><div class="feature"><i>✓</i> Workflow completo delle pratiche</div><div class="feature"><i>✓</i> Registro comunicazioni e tracking</div></div></div>
 <div class="login-form"><h2>Bentornato</h2><p>Inserisci le credenziali autorizzate.</p><form id="loginForm"><div id="messageBox" class="message error" hidden></div><label><span>Email</span><input id="email" type="email" required autocomplete="username" placeholder="nome@dominio.it"></label><label><span>Password</span><div class="password-wrap"><input id="password" type="password" required autocomplete="current-password" placeholder="Password"><button class="show-pass" id="showPass" type="button" aria-label="Mostra password">◉</button></div></label><button class="btn" id="loginBtn" type="submit">Entra nel CRM</button></form><a class="back-link" href="index.html">← Torna al portale pubblico</a></div></section></main>
 <footer class="footer">FDI Ascolta IX CRM — Login PRO v1.1 RC1</footer>
-<script src="assets/js/config.js?v=login115"></script><script src="assets/js/api.js?v=login115"></script><script>
+<script src="assets/js/config.js?v=login116"></script><script>
+
+const FALLBACK_API_URL =
+  "https://script.google.com/macros/s/AKfycbydMX5t3F9r3sHQ3zM3tSH6edMBz_hqGnDiVvK_kisOrSz8kn1pbeoMG00fX_Ei6wd7HQ/exec";
+
+function getApiUrl() {
+  if (
+    typeof CONFIG !== "undefined" &&
+    CONFIG.API_URL &&
+    CONFIG.API_URL.includes("/macros/s/")
+  ) {
+    return CONFIG.API_URL;
+  }
+  return FALLBACK_API_URL;
+}
+
+async function apiPost(payload) {
+  const response = await fetch(getApiUrl(), {
+    method: "POST",
+    cache: "no-store",
+    redirect: "follow",
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    throw new Error("Errore API HTTP " + response.status);
+  }
+
+  return await response.json();
+}
+
 showPass.onclick=()=>{password.type=password.type==="password"?"text":"password"};
-loginForm.onsubmit=async e=>{e.preventDefault();messageBox.hidden=true;loginBtn.disabled=true;loginBtn.textContent="Accesso in corso...";try{const r=await apiPost({action:"login",email:email.value,password:password.value});if(!r.ok)throw new Error(r.error||"Accesso negato");localStorage.setItem("fdi_user",JSON.stringify(r.user));localStorage.setItem("fdi_ascolta_ix_user",JSON.stringify(r.user));location.href="dashboard.html"}catch(err){messageBox.hidden=false;messageBox.textContent=err.message}finally{loginBtn.disabled=false;loginBtn.textContent="Entra nel CRM"}};
+loginForm.onsubmit=async e=>{e.preventDefault();messageBox.hidden=true;loginBtn.disabled=true;loginBtn.textContent="Accesso in corso...";try{const r=await apiPost({action:"login",email:email.value,password:password.value});if(!r.ok)throw new Error(r.error||"Credenziali non valide o accesso negato");localStorage.setItem("fdi_user",JSON.stringify(r.user));localStorage.setItem("fdi_ascolta_ix_user",JSON.stringify(r.user));location.href="dashboard.html"}catch(err){messageBox.hidden=false;messageBox.textContent=err.message}finally{loginBtn.disabled=false;loginBtn.textContent="Entra nel CRM"}};
 </script></body></html>
