@@ -420,6 +420,103 @@
 
     .backend-dot{color:#4fe07e}
 
+
+    .edit-modal-overlay{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+      background:rgba(7,31,73,.64);
+      backdrop-filter:blur(4px);
+      z-index:9999;
+    }
+    .edit-modal-overlay.show{display:flex}
+    .edit-modal{
+      width:min(620px,96vw);
+      max-height:90vh;
+      overflow:auto;
+      background:#fff;
+      border-radius:20px;
+      box-shadow:0 35px 90px rgba(0,0,0,.35);
+      border:1px solid var(--line);
+    }
+    .edit-modal-head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:14px;
+      padding:20px 22px;
+      background:var(--blue);
+      color:#fff;
+      border-bottom:4px solid var(--gold);
+    }
+    .edit-modal-head h3{margin:0;color:#fff;font-size:1.2rem}
+    .edit-modal-head p{margin:5px 0 0;color:rgba(255,255,255,.78);font-size:.84rem}
+    .edit-close{
+      width:40px;height:40px;
+      border-radius:11px;
+      border:1px solid rgba(255,255,255,.3);
+      background:rgba(255,255,255,.1);
+      color:#fff;
+      font-size:22px;
+      cursor:pointer;
+    }
+    .edit-modal-body{padding:20px 22px}
+    .edit-field{display:block;margin-bottom:14px}
+    .edit-field span{
+      display:block;
+      color:var(--muted);
+      font-size:.72rem;
+      text-transform:uppercase;
+      letter-spacing:.04em;
+      margin-bottom:6px;
+      font-weight:900;
+    }
+    .edit-field input,.edit-field textarea,.edit-field select{
+      width:100%;
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:12px 13px;
+      font:inherit;
+      color:var(--ink);
+      background:#fff;
+    }
+    .edit-field textarea{min-height:110px;resize:vertical}
+    .edit-modal-actions{
+      display:flex;
+      justify-content:flex-end;
+      gap:10px;
+      padding:16px 22px 20px;
+      border-top:1px solid var(--line);
+    }
+    .edit-modal-actions button{
+      min-width:130px;
+      min-height:42px;
+      border-radius:10px;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .edit-cancel{background:#fff;color:var(--blue);border:1px solid var(--blue)}
+    .edit-save{background:var(--blue);color:#fff;border:1px solid var(--blue)}
+    .toast{
+      position:fixed;
+      right:20px;
+      bottom:20px;
+      max-width:360px;
+      padding:14px 16px;
+      border-radius:12px;
+      background:#eaf8ee;
+      color:#16733d;
+      border:1px solid #c6ead2;
+      box-shadow:var(--shadow);
+      font-weight:900;
+      display:none;
+      z-index:10000;
+    }
+    .toast.show{display:block}
+
     @media(max-width:1250px){
       .topbar{grid-template-columns:1fr auto}
       .control-center{display:none}
@@ -682,6 +779,48 @@
   </main>
 </div>
 
+
+<div id="editModal" class="edit-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
+  <div class="edit-modal">
+    <div class="edit-modal-head">
+      <div>
+        <h3 id="editModalTitle">Modifica elemento</h3>
+        <p id="editModalSubtitle">Aggiorna i dati dell'elemento selezionato.</p>
+      </div>
+      <button type="button" class="edit-close" id="editClose" aria-label="Chiudi">×</button>
+    </div>
+
+    <div class="edit-modal-body">
+      <label class="edit-field">
+        <span>Nome</span>
+        <input id="editName" type="text">
+      </label>
+
+      <label class="edit-field">
+        <span>Descrizione / dettaglio</span>
+        <textarea id="editDescription"></textarea>
+      </label>
+
+      <label class="edit-field">
+        <span>Stato</span>
+        <select id="editStatus">
+          <option value="Attivo">Attivo</option>
+          <option value="Non attivo">Non attivo</option>
+        </select>
+      </label>
+
+      <div id="editInfo" style="color:var(--muted);font-size:.84rem"></div>
+    </div>
+
+    <div class="edit-modal-actions">
+      <button type="button" class="edit-cancel" id="editCancel">Annulla</button>
+      <button type="button" class="edit-save" id="editSave">Salva modifica</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast">Modifica salvata localmente.</div>
+
 <footer class="footer">
   <span>FDI Ascolta IX CRM v1.1 RC1 • Municipio IX Roma • © 2026</span>
   <span>Backend: Online <b class="backend-dot">●</b></span>
@@ -823,6 +962,106 @@
         '</span></div></div>';
     }
   }
+
+
+  let currentEditRow = null;
+
+  function openEditor(button) {
+    const row = button.closest(".editor-row");
+    if (!row) return;
+
+    currentEditRow = row;
+
+    const titleEl = row.querySelector("b");
+    const descEl = row.querySelector("span");
+
+    const section = row.closest(".section");
+    const sectionTitle = section
+      ? (section.querySelector(".panel-head h3")?.textContent || "Configurazione")
+      : "Configurazione";
+
+    editModalTitle.textContent =
+      (button.textContent.trim() === "Dettagli" ? "Dettagli" : "Modifica") +
+      " — " + sectionTitle;
+
+    editModalSubtitle.textContent =
+      "Gestione locale dell'elemento selezionato. Il backend non viene modificato.";
+
+    editName.value = titleEl ? titleEl.textContent.trim() : "";
+    editDescription.value = descEl ? descEl.textContent.trim() : "";
+    editStatus.value =
+      /non attiv/i.test(editDescription.value) ? "Non attivo" : "Attivo";
+
+    editInfo.textContent =
+      button.textContent.trim() === "Dettagli"
+        ? "Puoi consultare o aggiornare i dati e salvarli come bozza locale."
+        : "Le modifiche vengono applicate alla pagina e salvate nel browser.";
+
+    editModal.classList.add("show");
+    setTimeout(() => editName.focus(), 50);
+  }
+
+  function closeEditor() {
+    editModal.classList.remove("show");
+    currentEditRow = null;
+  }
+
+  function saveEditor() {
+    if (!currentEditRow) return;
+
+    const titleEl = currentEditRow.querySelector("b");
+    const descEl = currentEditRow.querySelector("span");
+
+    if (titleEl) titleEl.textContent = editName.value.trim() || "Elemento";
+    if (descEl) {
+      const detail = editDescription.value.trim();
+      descEl.textContent =
+        detail || (editStatus.value === "Attivo" ? "Elemento attivo" : "Elemento non attivo");
+    }
+
+    const key = "fdi_config_draft_" +
+      (currentEditRow.closest(".section")?.id || "general") +
+      "_" +
+      (editName.value.trim() || "elemento").toLowerCase().replace(/\s+/g, "_");
+
+    localStorage.setItem(key, JSON.stringify({
+      nome: editName.value.trim(),
+      descrizione: editDescription.value.trim(),
+      stato: editStatus.value,
+      aggiornatoIl: new Date().toISOString()
+    }));
+
+    closeEditor();
+
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 2200);
+  }
+
+  document.addEventListener("click", event => {
+    const button = event.target.closest(".simple-editor button");
+    if (!button) return;
+
+    if (button.textContent.trim() === "Apri" && button.closest("#officeList")) {
+      return;
+    }
+
+    event.preventDefault();
+    openEditor(button);
+  });
+
+  editClose.addEventListener("click", closeEditor);
+  editCancel.addEventListener("click", closeEditor);
+  editSave.addEventListener("click", saveEditor);
+
+  editModal.addEventListener("click", event => {
+    if (event.target === editModal) closeEditor();
+  });
+
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && editModal.classList.contains("show")) {
+      closeEditor();
+    }
+  });
 
   logoutBtn.addEventListener("click", logout);
 
