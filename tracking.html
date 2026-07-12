@@ -1,30 +1,801 @@
 <!doctype html>
-<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Tracking PRO v1.1 RC1 — FDI Ascolta IX</title>
-<link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="assets/css/style.css"><link rel="stylesheet" href="assets/css/theme-fdi.css?v=114">
-<style>
-:root{--blue:#082f6a;--blue2:#0b4c99;--gold:#d3a400;--bg:#f4f7fb;--card:#fff;--line:#dfe6ef;--ink:#102342;--muted:#67758c;--green:#159447;--orange:#ef6c00;--red:#c62828;--shadow:0 12px 32px rgba(15,36,69,.08)}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-.topbar{min-height:88px;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:16px 28px;background:linear-gradient(135deg,var(--blue),#063f8c);color:#fff;border-bottom:4px solid var(--gold);box-shadow:0 10px 24px rgba(8,47,106,.18)}
-.brand strong{display:block;color:#fff;font-size:1.25rem}.brand small{display:block;color:#f2c600;margin-top:4px;font-weight:900;letter-spacing:.07em;text-transform:uppercase}
-.top-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.nav-btn,.version-pill{display:inline-flex;align-items:center;min-height:43px;padding:0 14px;border-radius:12px;text-decoration:none;font-weight:900}
-.nav-btn{border:1px solid rgba(255,255,255,.45);color:#fff;background:rgba(255,255,255,.06)}.nav-btn:hover{background:#fff;color:var(--blue)}
-.version-pill{background:#114fa6;color:#fff;border-radius:999px}
-.page{max-width:1500px;margin:0 auto;padding:24px}.hero{margin-bottom:18px}.hero h1{margin:0;color:var(--blue);font-size:clamp(1.8rem,4vw,3rem)}.hero p{color:var(--muted);margin:8px 0 0}
-.panel{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}.panel-head{min-height:58px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 20px;border-bottom:1px solid var(--line)}.panel-head h2,.panel-head h3{margin:0;color:var(--blue);font-size:1rem}.panel-body{padding:20px}
-input,select,textarea{width:100%;border:1px solid var(--line);border-radius:13px;background:#fff;color:var(--ink);padding:13px 14px;font-size:15px}input:focus,select:focus,textarea:focus{outline:0;border-color:var(--blue2);box-shadow:0 0 0 4px rgba(11,76,153,.12)}
-label{display:block;font-weight:850;color:var(--ink);margin-bottom:14px}label span{display:block;color:var(--muted);font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
-.btn{min-height:44px;padding:0 16px;border:0;border-radius:12px;background:var(--blue);color:#fff;font-weight:950;cursor:pointer}.btn:hover{background:#061f49}.btn.secondary{background:#fff;color:var(--blue);border:1px solid var(--blue)}.btn.danger{background:var(--red)}
-.badge{display:inline-flex;align-items:center;min-height:27px;padding:4px 9px;border-radius:999px;background:#edf4ff;color:var(--blue2);font-weight:950;font-size:.74rem}.muted{color:var(--muted)}.hidden{display:none}
-.message{padding:13px 15px;border-radius:13px;font-weight:850}.message.success{background:#e8f8ee;color:#15763b}.message.error{background:#fff0f0;color:#b42121}.message.info{background:#edf5ff;color:var(--blue2)}
-.footer{text-align:center;color:#fff;background:var(--blue);padding:13px;margin-top:22px}
-@media(max-width:760px){.topbar{align-items:flex-start;flex-direction:column;padding:15px}.page{padding:14px}.top-actions{width:100%}.nav-btn,.version-pill{flex:1;justify-content:center}}
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Tracking PRO v1.2 RC1 — FDI Ascolta IX</title>
 
-.tracking-shell{max-width:1050px;margin:0 auto;padding:42px 18px 70px}.tracking-hero{text-align:center;margin-bottom:22px}.tracking-hero h1{font-size:clamp(2rem,5vw,3.7rem);margin:8px 0;color:var(--blue)}.tracking-hero p{color:var(--muted);font-size:1.05rem}.tracking-card{background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);overflow:hidden}.tracking-search{display:grid;grid-template-columns:1fr auto;gap:10px;padding:20px;background:#f8fbff;border-bottom:1px solid var(--line)}.tracking-search input{height:50px}.tracking-search .btn{min-width:150px}#trackingResult{padding:20px}.citizen-note{display:flex;gap:10px;align-items:flex-start;padding:14px 16px;border-radius:14px;background:#eef5ff;color:var(--blue2);margin-top:16px}@media(max-width:650px){.tracking-search{grid-template-columns:1fr}.tracking-search .btn{width:100%}}
-</style></head><body>
-<header class="topbar"><div class="brand"><strong>FDI ASCOLTA IX</strong><small>Tracking cittadino · Municipio IX Roma</small></div><div class="top-actions"><span class="version-pill">Versione 1.1 RC1</span><a class="nav-btn" href="index.html">Home</a><a class="nav-btn" href="segnala.html">Invia segnalazione</a><a class="nav-btn" href="login.html">Area riservata</a></div></header>
-<main class="tracking-shell"><section class="tracking-hero"><span class="badge">Tracking cittadino</span><h1>Segui la tua pratica</h1><p>Inserisci il codice ricevuto dopo l’invio della segnalazione per visualizzare stato e percorso.</p></section>
-<section class="tracking-card"><form id="trackingForm" class="tracking-search"><input required id="trackingCode" placeholder="Es. IX-20260706-084042-962"><button class="btn" type="submit">Cerca pratica</button></form><div id="trackingResult"><div class="citizen-note"><span>ℹ</span><span>Il codice pratica è riportato nell’email di conferma ricevuta dopo l’invio della segnalazione.</span></div></div></section></main><footer class="footer">FDI Ascolta IX — Tracking PRO v1.1 RC1</footer>
-<script src="assets/js/config.js?v=tracking114"></script><script src="assets/js/api.js?v=tracking114"></script><script src="assets/js/tracking.js?v=tracking114"></script>
-</body></html>
+  <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/theme-fdi.css?v=122">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+  <style>
+    :root{
+      --blue:#082f6a;
+      --blue2:#0b4c99;
+      --gold:#d3a400;
+      --bg:#f4f7fb;
+      --card:#fff;
+      --line:#dfe6ef;
+      --ink:#102342;
+      --muted:#67758c;
+      --green:#159447;
+      --green-soft:#eaf8ee;
+      --orange:#ef6c00;
+      --orange-soft:#fff3e8;
+      --red:#c62828;
+      --shadow:0 12px 32px rgba(15,36,69,.08);
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      background:
+        radial-gradient(circle at 10% 10%,rgba(11,76,153,.08),transparent 28%),
+        var(--bg);
+      color:var(--ink);
+      font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+
+    .topbar{
+      min-height:88px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:18px;
+      padding:16px 28px;
+      background:linear-gradient(135deg,var(--blue),#063f8c);
+      color:#fff;
+      border-bottom:4px solid var(--gold);
+      box-shadow:0 10px 24px rgba(8,47,106,.18);
+    }
+
+    .brand strong{display:block;color:#fff;font-size:1.3rem}
+    .brand small{
+      display:block;
+      color:#f2c600;
+      margin-top:4px;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.07em;
+    }
+
+    .top-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .nav-btn,.version-pill{
+      display:inline-flex;
+      min-height:42px;
+      align-items:center;
+      padding:0 14px;
+      border-radius:12px;
+      text-decoration:none;
+      font-weight:900;
+    }
+    .version-pill{background:#114fa6;color:#fff;border-radius:999px}
+    .nav-btn{
+      border:1px solid rgba(255,255,255,.45);
+      color:#fff;
+      background:rgba(255,255,255,.06);
+    }
+    .nav-btn:hover{background:#fff;color:var(--blue)}
+
+    .page{max-width:1250px;margin:0 auto;padding:34px 20px 60px}
+
+    .hero{
+      text-align:center;
+      max-width:850px;
+      margin:0 auto 24px;
+    }
+    .hero .eyebrow{
+      display:inline-flex;
+      align-items:center;
+      min-height:30px;
+      padding:5px 10px;
+      border-radius:999px;
+      background:#edf4ff;
+      color:var(--blue2);
+      font-size:.78rem;
+      font-weight:950;
+    }
+    .hero h1{
+      margin:12px 0 8px;
+      color:var(--blue);
+      font-size:clamp(2.2rem,5vw,4rem);
+      letter-spacing:-.04em;
+    }
+    .hero p{color:var(--muted);font-size:1.05rem;line-height:1.7}
+
+    .search-card{
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:20px;
+      box-shadow:var(--shadow);
+      padding:18px;
+      margin-bottom:20px;
+    }
+    .search-form{
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:10px;
+      align-items:center;
+    }
+    .search-form input{
+      min-height:52px;
+      border:1px solid var(--line);
+      border-radius:13px;
+      padding:0 15px;
+      font-size:1rem;
+      color:var(--ink);
+    }
+    .search-form button{
+      min-height:52px;
+      padding:0 20px;
+      border:0;
+      border-radius:13px;
+      background:var(--blue);
+      color:#fff;
+      font-weight:950;
+      cursor:pointer;
+    }
+    .search-form button:hover{background:#061f49}
+
+    .message{
+      margin-top:12px;
+      padding:13px 15px;
+      border-radius:12px;
+      font-weight:850;
+    }
+    .message.error{background:#fff0f0;color:#a82323;border:1px solid #ffc9c9}
+    .message.info{background:#eef5ff;color:var(--blue2);border:1px solid #d4e4f8}
+    .hidden{display:none}
+
+    .result{display:none}
+    .result.show{display:block}
+
+    .status-hero{
+      background:linear-gradient(135deg,var(--blue),#0b4d98);
+      color:#fff;
+      border-radius:22px;
+      overflow:hidden;
+      box-shadow:var(--shadow);
+      margin-bottom:18px;
+    }
+    .status-hero-main{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) auto;
+      gap:18px;
+      align-items:center;
+      padding:24px;
+      border-bottom:4px solid var(--gold);
+    }
+    .status-code{
+      display:inline-flex;
+      align-items:center;
+      min-height:30px;
+      padding:5px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.25);
+      background:rgba(255,255,255,.1);
+      font-weight:950;
+      font-size:.8rem;
+    }
+    .status-hero h2{
+      margin:12px 0 6px;
+      color:#fff;
+      font-size:clamp(1.8rem,4vw,3rem);
+    }
+    .status-sub{color:rgba(255,255,255,.8)}
+    .status-badge{
+      min-width:170px;
+      min-height:60px;
+      display:grid;
+      place-items:center;
+      padding:12px 16px;
+      border-radius:16px;
+      font-weight:1000;
+      text-align:center;
+      background:#fff;
+      color:var(--blue);
+      box-shadow:0 10px 24px rgba(0,0,0,.15);
+    }
+    .status-badge.done{color:var(--green)}
+    .status-badge.wait{color:var(--orange)}
+    .status-badge.archived{color:#6c38c7}
+
+    .content-grid{
+      display:grid;
+      grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr);
+      gap:18px;
+      align-items:start;
+    }
+
+    .panel{
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .panel-head{
+      min-height:58px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:0 20px;
+      border-bottom:1px solid var(--line);
+    }
+    .panel-head h3{margin:0;color:var(--blue);font-size:1rem}
+    .panel-body{padding:20px}
+
+    .timeline{
+      position:relative;
+      display:grid;
+      gap:0;
+    }
+    .timeline::before{
+      content:"";
+      position:absolute;
+      left:18px;
+      top:20px;
+      bottom:20px;
+      width:3px;
+      background:#dce3ed;
+    }
+    .timeline-item{
+      position:relative;
+      display:grid;
+      grid-template-columns:42px 1fr;
+      gap:12px;
+      padding:0 0 20px;
+    }
+    .timeline-dot{
+      width:38px;
+      height:38px;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      z-index:2;
+      background:#fff;
+      border:3px solid #cfd8e4;
+      color:#94a3b8;
+      font-weight:1000;
+    }
+    .timeline-item.done .timeline-dot{
+      background:var(--green);
+      border-color:var(--green);
+      color:#fff;
+    }
+    .timeline-item.current .timeline-dot{
+      background:var(--orange);
+      border-color:var(--orange);
+      color:#fff;
+      box-shadow:0 0 0 6px var(--orange-soft);
+    }
+    .timeline-copy{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:13px 14px;
+      background:#fbfcfe;
+    }
+    .timeline-copy b{display:block;color:var(--ink)}
+    .timeline-copy span{display:block;color:var(--muted);font-size:.84rem;margin-top:4px}
+    .timeline-copy small{display:block;color:var(--muted);font-size:.78rem;margin-top:6px}
+
+    .info-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:10px;
+    }
+    .info-box{
+      border:1px solid var(--line);
+      border-radius:13px;
+      padding:13px;
+      background:#fbfcfe;
+    }
+    .info-box span{
+      display:block;
+      color:var(--muted);
+      font-size:.72rem;
+      text-transform:uppercase;
+      letter-spacing:.04em;
+      margin-bottom:4px;
+    }
+    .info-box b{display:block;color:var(--ink);word-break:break-word}
+
+    .map-wrap{height:320px;border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+    #trackingMap{height:100%}
+
+    .photo-box{
+      min-height:140px;
+      display:grid;
+      place-items:center;
+      border:1px dashed #cbd5e1;
+      border-radius:14px;
+      background:#fbfcfe;
+      color:var(--muted);
+      text-align:center;
+      padding:16px;
+    }
+    .photo-box img{
+      max-width:100%;
+      max-height:420px;
+      border-radius:12px;
+      display:block;
+    }
+
+    .final-card{
+      margin-top:18px;
+      background:var(--green-soft);
+      border:1px solid #c8ead3;
+      border-radius:16px;
+      padding:18px;
+      color:#16753d;
+    }
+    .final-card h3{margin:0 0 8px}
+    .final-card p{margin:0;line-height:1.6}
+
+    .stack{display:grid;gap:18px}
+
+    .footer{
+      background:var(--blue);
+      color:#fff;
+      text-align:center;
+      padding:14px;
+    }
+
+    @media(max-width:900px){
+      .content-grid{grid-template-columns:1fr}
+    }
+    @media(max-width:650px){
+      .topbar{align-items:flex-start;flex-direction:column;padding:15px}
+      .page{padding:22px 14px 50px}
+      .search-form{grid-template-columns:1fr}
+      .status-hero-main{grid-template-columns:1fr}
+      .status-badge{width:100%}
+      .info-grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <strong>FDI ASCOLTA IX</strong>
+    <small>Tracking cittadino · Municipio IX Roma</small>
+  </div>
+
+  <div class="top-actions">
+    <span class="version-pill">Versione 1.2 RC1</span>
+    <a class="nav-btn" href="index.html">Home</a>
+    <a class="nav-btn" href="segnala.html">Invia segnalazione</a>
+    <a class="nav-btn" href="login.html">Area riservata</a>
+  </div>
+</header>
+
+<main class="page">
+  <section class="hero">
+    <span class="eyebrow">Tracking cittadino</span>
+    <h1>Segui la tua pratica</h1>
+    <p>
+      Inserisci il codice ricevuto dopo l’invio della segnalazione.
+      Potrai consultare stato, percorso, dettagli e aggiornamenti visibili.
+    </p>
+  </section>
+
+  <section class="search-card">
+    <form id="trackingForm" class="search-form">
+      <input
+        id="trackingCode"
+        required
+        autocomplete="off"
+        placeholder="Es. IX-20260706-084042-962"
+      >
+      <button id="searchBtn" type="submit">Cerca pratica</button>
+    </form>
+
+    <div id="searchMessage" class="message info">
+      Il codice pratica è riportato nell’email di conferma ricevuta dopo l’invio.
+    </div>
+  </section>
+
+  <section id="result" class="result">
+    <section class="status-hero">
+      <div class="status-hero-main">
+        <div>
+          <span class="status-code" id="reportCode">—</span>
+          <h2 id="reportTitle">Pratica</h2>
+          <div class="status-sub" id="reportSub">—</div>
+        </div>
+
+        <div class="status-badge" id="reportStatus">Stato</div>
+      </div>
+    </section>
+
+    <section class="content-grid">
+      <div class="stack">
+        <section class="panel">
+          <div class="panel-head">
+            <h3>✓ Percorso della pratica</h3>
+          </div>
+          <div class="panel-body">
+            <div id="timeline" class="timeline"></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h3>▣ Dettaglio pratica</h3>
+          </div>
+          <div class="panel-body">
+            <div class="info-grid">
+              <div class="info-box"><span>Categoria</span><b id="category"></b></div>
+              <div class="info-box"><span>Quartiere</span><b id="district"></b></div>
+              <div class="info-box"><span>Priorità</span><b id="priority"></b></div>
+              <div class="info-box"><span>Data apertura</span><b id="openedAt"></b></div>
+              <div class="info-box"><span>Indirizzo</span><b id="address"></b></div>
+              <div class="info-box"><span>Referente</span><b id="referent"></b></div>
+            </div>
+
+            <div id="finalOutcome" class="final-card hidden">
+              <h3>Esito finale</h3>
+              <p id="finalOutcomeText"></p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <aside class="stack">
+        <section class="panel">
+          <div class="panel-head">
+            <h3>⌖ Posizione</h3>
+          </div>
+          <div class="panel-body">
+            <div class="map-wrap">
+              <div id="trackingMap"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h3>▧ Foto allegata</h3>
+          </div>
+          <div class="panel-body">
+            <div id="photoBox" class="photo-box">Nessuna foto disponibile.</div>
+          </div>
+        </section>
+      </aside>
+    </section>
+  </section>
+</main>
+
+<footer class="footer">
+  FDI Ascolta IX — Tracking PRO v1.2 RC1
+</footer>
+
+<script src="assets/js/config.js?v=tracking122"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const FALLBACK_API_URL =
+    "https://script.google.com/macros/s/AKfycbydMX5t3F9r3sHQ3zM3tSH6edMBz_hqGnDiVvK_kisOrSz8kn1pbeoMG00fX_Ei6wd7HQ/exec";
+
+  const WORKFLOW = [
+    "Segnalazione ricevuta",
+    "Presa in carico dal Gruppo Consiliare",
+    "Assegnata al consigliere",
+    "Inviata dal consigliere all’ufficio municipale competente",
+    "In attesa di risposta dall’ufficio municipale competente",
+    "Risposta ricevuta",
+    "In lavorazione",
+    "Risolta",
+    "Archiviata"
+  ];
+
+  let trackingMap = null;
+  let allReports = [];
+
+  function apiUrl() {
+    if (
+      typeof CONFIG !== "undefined" &&
+      CONFIG.API_URL &&
+      CONFIG.API_URL.includes("/macros/s/")
+    ) {
+      return CONFIG.API_URL;
+    }
+
+    return FALLBACK_API_URL;
+  }
+
+  async function apiGet(action, params = {}) {
+    const url = new URL(apiUrl());
+    url.searchParams.set("action", action);
+    url.searchParams.set("_", Date.now());
+
+    Object.entries(params).forEach(([key, value]) => {
+      url.searchParams.set(key, value);
+    });
+
+    const response = await fetch(url.toString(), {
+      cache:"no-store",
+      redirect:"follow"
+    });
+
+    if (!response.ok) {
+      throw new Error("Errore API HTTP " + response.status);
+    }
+
+    return await response.json();
+  }
+
+  function esc(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+      "&":"&amp;",
+      "<":"&lt;",
+      ">":"&gt;",
+      '"':"&quot;",
+      "'":"&#039;"
+    }[char]));
+  }
+
+  function normalizeStatus(value) {
+    return String(value || "").trim().toLowerCase();
+  }
+
+  function currentWorkflowIndex(status) {
+    const normalized = normalizeStatus(status);
+
+    let index = WORKFLOW.findIndex(item =>
+      normalizeStatus(item) === normalized
+    );
+
+    if (index >= 0) return index;
+
+    if (normalized.includes("archiv")) return 8;
+    if (normalized.includes("risolt")) return 7;
+    if (normalized.includes("lavorazione")) return 6;
+    if (normalized.includes("risposta ricevuta")) return 5;
+    if (normalized.includes("attesa")) return 4;
+    if (normalized.includes("ufficio")) return 3;
+    if (normalized.includes("assegnata")) return 2;
+    if (normalized.includes("presa")) return 1;
+
+    return 0;
+  }
+
+  function statusClass(status) {
+    const value = normalizeStatus(status);
+
+    if (value.includes("archiv")) return "archived";
+    if (value.includes("risolt")) return "done";
+    if (value.includes("attesa") || value.includes("ufficio")) return "wait";
+
+    return "";
+  }
+
+  function renderWorkflow(report, events) {
+    const currentIndex = currentWorkflowIndex(report.stato);
+
+    const byTitle = new Map();
+
+    (events || []).forEach(event => {
+      const key = normalizeStatus(
+        event.titolo ||
+        event.tipo ||
+        event.stato ||
+        ""
+      );
+
+      if (key) byTitle.set(key, event);
+    });
+
+    timeline.innerHTML = WORKFLOW.map((label, index) => {
+      const done = index < currentIndex;
+      const current = index === currentIndex;
+
+      const match = [...byTitle.entries()].find(([key]) =>
+        key.includes(normalizeStatus(label)) ||
+        normalizeStatus(label).includes(key)
+      );
+
+      const event = match ? match[1] : null;
+
+      return `
+        <div class="timeline-item ${done ? "done" : ""} ${current ? "current" : ""}">
+          <div class="timeline-dot">${done ? "✓" : current ? "●" : "○"}</div>
+          <div class="timeline-copy">
+            <b>${esc(label)}</b>
+            <span>${current ? "Stato attuale" : done ? "Completato" : "Non ancora raggiunto"}</span>
+            <small>${event ? esc(event.data || event.dataOra || "") : ""}</small>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function showMap(report) {
+    const lat = Number(report.latitudine);
+    const lng = Number(report.longitudine);
+
+    if (
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lng) ||
+      lat < 40 || lat > 43 ||
+      lng < 10 || lng > 15
+    ) {
+      document.querySelector(".map-wrap").innerHTML =
+        '<div class="photo-box">Posizione non disponibile.</div>';
+      return;
+    }
+
+    if (trackingMap) {
+      trackingMap.remove();
+      trackingMap = null;
+    }
+
+    trackingMap = L.map("trackingMap").setView([lat, lng], 16);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution:"&copy; OpenStreetMap"
+    }).addTo(trackingMap);
+
+    L.marker([lat, lng]).addTo(trackingMap);
+
+    setTimeout(() => trackingMap.invalidateSize(), 200);
+  }
+
+  function renderReport(report, timelineEvents, communications) {
+    reportCode.textContent = report.id || "—";
+    reportTitle.textContent = report.titolo || "Pratica";
+    reportSub.textContent = [
+      report.quartiere,
+      report.categoria
+    ].filter(Boolean).join(" · ") || "Dettagli pratica";
+
+    reportStatus.textContent = report.stato || "Stato non disponibile";
+    reportStatus.className =
+      "status-badge " + statusClass(report.stato);
+
+    category.textContent = report.categoria || "—";
+    district.textContent = report.quartiere || "—";
+    priority.textContent = report.priorita || "Media";
+    openedAt.textContent = report.data || "—";
+    address.textContent = report.indirizzo || "—";
+    referent.textContent = report.referenteNome || "Non assegnato";
+
+    const publicEvents = (communications || []).filter(item =>
+      String(item.visibileCittadino || item["Visibile cittadino"] || "")
+        .toLowerCase() !== "no"
+    );
+
+    renderWorkflow(
+      report,
+      timelineEvents.length ? timelineEvents : publicEvents
+    );
+
+    showMap(report);
+
+    if (report.fotoUrl) {
+      photoBox.innerHTML =
+        '<a href="' + esc(report.fotoUrl) + '" target="_blank" rel="noopener">' +
+        '<img src="' + esc(report.fotoUrl) + '" alt="Foto allegata alla pratica">' +
+        '</a>';
+    } else {
+      photoBox.textContent = "Nessuna foto disponibile.";
+    }
+
+    const closingEvent = [...publicEvents].reverse().find(item =>
+      /chiusura|risolta|archiviata/i.test(
+        [
+          item.tipo,
+          item.titolo,
+          item.stato
+        ].join(" ")
+      )
+    );
+
+    if (
+      closingEvent &&
+      (closingEvent.messaggio || closingEvent.descrizione)
+    ) {
+      finalOutcome.classList.remove("hidden");
+      finalOutcomeText.textContent =
+        closingEvent.messaggio ||
+        closingEvent.descrizione;
+    } else {
+      finalOutcome.classList.add("hidden");
+      finalOutcomeText.textContent = "";
+    }
+
+    result.classList.add("show");
+    result.scrollIntoView({behavior:"smooth", block:"start"});
+  }
+
+  async function searchReport(code) {
+    searchMessage.className = "message info";
+    searchMessage.textContent = "Ricerca della pratica in corso...";
+    searchBtn.disabled = true;
+    searchBtn.textContent = "Ricerca...";
+
+    try {
+      if (!allReports.length) {
+        const reportsResult = await apiGet("listReports");
+
+        if (!reportsResult.ok) {
+          throw new Error(
+            reportsResult.error ||
+            "Impossibile caricare le pratiche."
+          );
+        }
+
+        allReports = reportsResult.reports || [];
+      }
+
+      const report = allReports.find(item =>
+        String(item.id || "").trim().toLowerCase() ===
+        String(code || "").trim().toLowerCase()
+      );
+
+      if (!report) {
+        throw new Error("Codice pratica non trovato.");
+      }
+
+      const [timelineResult, communicationsResult] = await Promise.all([
+        apiGet("getTimeline", {reportId:report.id})
+          .catch(() => ({ok:false,timeline:[]})),
+        apiGet("getCommunications", {
+          reportId:report.id,
+          publicOnly:"true"
+        }).catch(() => ({ok:false,comunicazioni:[]}))
+      ]);
+
+      renderReport(
+        report,
+        timelineResult.ok ? timelineResult.timeline || [] : [],
+        communicationsResult.ok
+          ? communicationsResult.comunicazioni || []
+          : []
+      );
+
+      searchMessage.className = "message info";
+      searchMessage.textContent =
+        "Pratica trovata. Visualizzazione aggiornata.";
+
+      const url = new URL(window.location.href);
+      url.searchParams.set("id", report.id);
+      history.replaceState(null, "", url);
+
+    } catch (error) {
+      result.classList.remove("show");
+      searchMessage.className = "message error";
+      searchMessage.textContent = error.message;
+
+    } finally {
+      searchBtn.disabled = false;
+      searchBtn.textContent = "Cerca pratica";
+    }
+  }
+
+  trackingForm.addEventListener("submit", event => {
+    event.preventDefault();
+
+    const code = trackingCode.value.trim();
+
+    if (!code) {
+      searchMessage.className = "message error";
+      searchMessage.textContent = "Inserisci il codice pratica.";
+      return;
+    }
+
+    searchReport(code);
+  });
+
+  const queryId = new URLSearchParams(location.search).get("id");
+
+  if (queryId) {
+    trackingCode.value = queryId;
+    searchReport(queryId);
+  }
+</script>
+</body>
+</html>
