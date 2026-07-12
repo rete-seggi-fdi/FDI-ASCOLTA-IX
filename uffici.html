@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Uffici PRO v1.2 RC1 — FDI Ascolta IX CRM</title>
+  <title>Uffici PRO v1.3 RC1 — FDI Ascolta IX CRM</title>
 
   <link rel="stylesheet" href="assets/css/style.css">
-  <link rel="stylesheet" href="assets/css/theme-fdi.css?v=120">
+  <link rel="stylesheet" href="assets/css/theme-fdi.css?v=130">
 
   <style>
     :root{
@@ -19,7 +19,10 @@
       --ink:#102342;
       --muted:#67758c;
       --green:#159447;
+      --green-soft:#eaf8ee;
       --red:#c62828;
+      --red-soft:#fff0f0;
+      --purple:#6c38c7;
       --shadow:0 12px 32px rgba(15,36,69,.08);
     }
 
@@ -115,9 +118,9 @@
       font-size:1.3rem;
       background:#eef4ff;color:var(--blue2);
     }
-    .kpi:nth-child(2) .kpi-icon{background:#eaf8ee;color:var(--green)}
+    .kpi:nth-child(2) .kpi-icon{background:var(--green-soft);color:var(--green)}
     .kpi:nth-child(3) .kpi-icon{background:#fff4e8;color:#d26400}
-    .kpi:nth-child(4) .kpi-icon{background:#f1ecff;color:#6c38c7}
+    .kpi:nth-child(4) .kpi-icon{background:#f1ecff;color:var(--purple)}
     .kpi b{display:block;color:var(--blue);font-size:1.55rem}
     .kpi span{display:block;color:var(--muted);font-size:.8rem;margin-top:2px}
 
@@ -146,6 +149,7 @@
       border-bottom:1px solid var(--line);
     }
     .panel-head h2{margin:0;color:var(--blue);font-size:1rem}
+
     .badge{
       display:inline-flex;
       min-height:27px;
@@ -158,7 +162,13 @@
       font-weight:950;
     }
 
-    .filters{display:grid;gap:10px;padding:14px;border-bottom:1px solid var(--line)}
+    .filters{
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:9px;
+      padding:14px;
+      border-bottom:1px solid var(--line);
+    }
     .filters input,.filters select{
       width:100%;
       min-height:44px;
@@ -185,6 +195,10 @@
       background:#fff;
       cursor:pointer;
       transition:.18s ease;
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:10px;
+      align-items:start;
     }
     .office-item:hover,.office-item.active{
       border-color:var(--blue2);
@@ -198,6 +212,17 @@
       margin-top:4px;
       line-height:1.4;
     }
+
+    .office-state{
+      min-width:10px;
+      height:10px;
+      border-radius:50%;
+      margin-top:4px;
+      background:#94a3b8;
+      box-shadow:0 0 0 4px #f1f5f9;
+    }
+    .office-state.on{background:var(--green);box-shadow:0 0 0 4px var(--green-soft)}
+    .office-state.off{background:var(--red);box-shadow:0 0 0 4px var(--red-soft)}
 
     .empty{
       min-height:420px;
@@ -232,12 +257,17 @@
       min-height:31px;
       padding:5px 11px;
       border-radius:999px;
-      background:#eaf8ee;
+      background:var(--green-soft);
       color:#16753d;
       border:1px solid #c8ead3;
       font-weight:950;
       font-size:.78rem;
       white-space:nowrap;
+    }
+    .status-pill.off{
+      background:var(--red-soft);
+      color:#a82323;
+      border-color:#ffc9c9;
     }
 
     .detail-body{padding:20px}
@@ -280,7 +310,7 @@
       gap:10px;
       flex-wrap:wrap;
     }
-    .contact-actions a{
+    .contact-actions a,.contact-actions button{
       min-height:40px;
       padding:0 13px;
       border-radius:10px;
@@ -288,16 +318,36 @@
       align-items:center;
       text-decoration:none;
       font-weight:900;
+      cursor:pointer;
     }
-    .mail-btn{background:var(--blue);color:#fff}
+    .mail-btn{background:var(--blue);color:#fff;border:1px solid var(--blue)}
     .phone-btn{border:1px solid var(--blue);color:var(--blue);background:#fff}
+    .copy-btn{border:1px solid var(--line);color:var(--ink);background:#fff}
 
     .table-panel{margin-top:18px}
     .table-wrap{overflow:auto}
     table{width:100%;border-collapse:collapse;background:#fff}
     th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
     th{background:#fbfcfe;color:var(--blue);font-size:.72rem;text-transform:uppercase}
+    tbody tr{cursor:pointer}
     tbody tr:hover{background:#f8fbff}
+    tbody tr.selected{background:#eef5ff}
+
+    .toast{
+      position:fixed;
+      right:20px;
+      bottom:20px;
+      background:#eaf8ee;
+      color:#16753d;
+      border:1px solid #c8ead3;
+      box-shadow:var(--shadow);
+      border-radius:12px;
+      padding:13px 15px;
+      font-weight:900;
+      display:none;
+      z-index:9999;
+    }
+    .toast.show{display:block}
 
     .hidden{display:none}
     .muted{color:var(--muted)}
@@ -320,6 +370,7 @@
       .page-head{align-items:flex-start;flex-direction:column}
       .kpis,.info-grid{grid-template-columns:1fr}
       .detail-head{flex-direction:column}
+      .filters{grid-template-columns:1fr}
     }
   </style>
 </head>
@@ -332,7 +383,7 @@
   </div>
 
   <div class="top-actions">
-    <span class="version-pill">Versione 1.2 RC1</span>
+    <span class="version-pill">Versione 1.3 RC1</span>
     <a class="nav-btn" href="dashboard.html">▦ Dashboard</a>
     <a class="nav-btn" href="pratiche.html">▣ Pratiche</a>
     <a class="nav-btn" href="configurazione.html">⚙ Configurazione</a>
@@ -367,9 +418,9 @@
       <div class="filters">
         <input id="q" placeholder="🔍 Cerca ufficio, settore o email...">
         <select id="fAttivo">
-          <option value="">Tutti gli uffici</option>
-          <option value="sì">Solo attivi</option>
-          <option value="no">Solo non attivi</option>
+          <option value="">Tutti</option>
+          <option value="sì">Attivi</option>
+          <option value="no">Non attivi</option>
         </select>
       </div>
 
@@ -440,52 +491,247 @@
   </section>
 </main>
 
-<footer class="footer">FDI Ascolta IX CRM — Uffici PRO v1.2 RC1</footer>
-<script src="assets/js/config.js?v=uffici113"></script><script>
-const FALLBACK="https://script.google.com/macros/s/AKfycbydMX5t3F9r3sHQ3zM3tSH6edMBz_hqGnDiVvK_kisOrSz8kn1pbeoMG00fX_Ei6wd7HQ/exec";let uffici=[],filtered=[],selected=null;
-function apiUrl(){return typeof CONFIG!=="undefined"&&CONFIG.API_URL&&CONFIG.API_URL.includes("/macros/s/")?CONFIG.API_URL:FALLBACK}
-async function get(action){const u=new URL(apiUrl());u.searchParams.set("action",action);u.searchParams.set("_",Date.now());const r=await fetch(u,{cache:"no-store",redirect:"follow"});if(!r.ok)throw new Error("Errore API HTTP "+r.status);return r.json()}
-function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
-function name(u){return u.ufficio||u.Ufficio||u.nome||"-"}function sector(u){return u.settore||u.Settore||""}function email(u){return u.email||u.Email||""}function phone(u){return u.telefono||u.Telefono||""}function active(u){return u.attivo||u.Attivo||""}
-function apply(){const query=q.value.toLowerCase(),a=fAttivo.value.toLowerCase();filtered=uffici.filter(u=>{const t=[u.id,name(u),sector(u),email(u),phone(u),u.note].join(" ").toLowerCase();return(!query||t.includes(query))&&(!a||active(u).toLowerCase()===a)});renderList();renderTable();officeCount.textContent=filtered.length}
-function renderList(){list.innerHTML=filtered.map(u=>`<div class="office-item ${selected&&selected.id===u.id?"active":""}" onclick="openOffice('${esc(u.id)}')"><b>${esc(name(u))}</b><span>${esc(sector(u))}</span><small>${esc(email(u))}</small></div>`).join("")||'<div class="muted">Nessun ufficio trovato.</div>'}
-function renderTable(){tableBody.innerHTML=filtered.map(u=>`<tr><td>${esc(u.id)}</td><td>${esc(name(u))}</td><td>${esc(sector(u))}</td><td>${esc(email(u))}</td><td>${esc(phone(u))}</td><td>${esc(active(u))}</td></tr>`).join("")||'<tr><td colspan="6">Nessun ufficio trovato.</td></tr>'}
-function openOffice(id){selected=uffici.find(u=>u.id===id);if(!selected)return;empty.classList.add("hidden");detail.classList.remove("hidden");officeName.textContent=name(selected);officeSector.textContent=sector(selected)||"Settore non indicato";officeId.textContent=selected.id||"-";officeEmail.textContent=email(selected)||"-";officePhone.textContent=phone(selected)||"-";officeActive.textContent=active(selected)||"-";officeNotes.textContent=selected.note||selected.Note||"Nessuna nota inserita.";activeBadge.textContent=active(selected)||"Stato";renderList()}
-async function boot(){try{const res=await get("listUffici");if(!res.ok)throw new Error(res.error||"Errore caricamento uffici");uffici=res.uffici||[];apply();if(uffici[0])openOffice(uffici[0].id)}catch(e){list.innerHTML='<div class="message error">'+esc(e.message)+'</div>';tableBody.innerHTML='<tr><td colspan="6">'+esc(e.message)+'</td></tr>'}}
-q.oninput=apply;fAttivo.onchange=apply;boot();
-</script>
+<div id="toast" class="toast">Copiato negli appunti.</div>
+
+<footer class="footer">FDI Ascolta IX CRM — Uffici PRO v1.3 RC1</footer>
+
+<script src="assets/js/config.js?v=uffici130"></script>
 <script>
-const baseApply = apply;
-apply = function(){
-  baseApply();
+const FALLBACK_API_URL =
+  "https://script.google.com/macros/s/AKfycbydMX5t3F9r3sHQ3zM3tSH6edMBz_hqGnDiVvK_kisOrSz8kn1pbeoMG00fX_Ei6wd7HQ/exec";
+
+let uffici = [];
+let filtered = [];
+let selected = null;
+
+function apiUrl() {
+  if (
+    typeof CONFIG !== "undefined" &&
+    CONFIG.API_URL &&
+    CONFIG.API_URL.includes("/macros/s/")
+  ) {
+    return CONFIG.API_URL;
+  }
+  return FALLBACK_API_URL;
+}
+
+async function get(action) {
+  const url = new URL(apiUrl());
+  url.searchParams.set("action", action);
+  url.searchParams.set("_", Date.now());
+
+  const response = await fetch(url.toString(), {
+    cache: "no-store",
+    redirect: "follow"
+  });
+
+  if (!response.ok) {
+    throw new Error("Errore API HTTP " + response.status);
+  }
+
+  return await response.json();
+}
+
+function esc(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    '"':"&quot;",
+    "'":"&#039;"
+  }[char]));
+}
+
+function officeName(item) {
+  return item.ufficio || item.Ufficio || item.nome || "-";
+}
+
+function officeSector(item) {
+  return item.settore || item.Settore || "";
+}
+
+function officeEmail(item) {
+  return item.email || item.Email || "";
+}
+
+function officePhone(item) {
+  return item.telefono || item.Telefono || "";
+}
+
+function officeActive(item) {
+  return item.attivo || item.Attivo || "";
+}
+
+function isActive(item) {
+  return String(officeActive(item)).trim().toLowerCase() === "sì";
+}
+
+function apply() {
+  const query = q.value.trim().toLowerCase();
+  const activeFilter = fAttivo.value.trim().toLowerCase();
+
+  filtered = uffici.filter(item => {
+    const text = [
+      item.id,
+      officeName(item),
+      officeSector(item),
+      officeEmail(item),
+      officePhone(item),
+      item.note,
+      item.Note
+    ].join(" ").toLowerCase();
+
+    const status = String(officeActive(item)).toLowerCase();
+
+    return (
+      (!query || text.includes(query)) &&
+      (!activeFilter || status === activeFilter)
+    );
+  });
+
+  renderList();
+  renderTable();
+  renderKpis();
+
+  officeCount.textContent = filtered.length;
+}
+
+function renderKpis() {
   kpiTotal.textContent = uffici.length;
-  kpiActive.textContent = uffici.filter(u => String(active(u)).toLowerCase() === "sì").length;
-  kpiEmail.textContent = uffici.filter(u => email(u)).length;
-  kpiPhone.textContent = uffici.filter(u => phone(u)).length;
-};
+  kpiActive.textContent = uffici.filter(isActive).length;
+  kpiEmail.textContent = uffici.filter(item => officeEmail(item)).length;
+  kpiPhone.textContent = uffici.filter(item => officePhone(item)).length;
+}
 
-const baseOpenOffice = openOffice;
-openOffice = function(id){
-  baseOpenOffice(id);
+function renderList() {
+  list.innerHTML = filtered.map(item => `
+    <div
+      class="office-item ${selected && selected.id === item.id ? "active" : ""}"
+      onclick="openOffice('${esc(item.id)}')"
+      role="button"
+      tabindex="0"
+      onkeydown="if(event.key==='Enter')openOffice('${esc(item.id)}')"
+    >
+      <div>
+        <b>${esc(officeName(item))}</b>
+        <span>${esc(officeSector(item) || "Settore non indicato")}</span>
+        <small>${esc(officeEmail(item) || officePhone(item) || "Contatti non disponibili")}</small>
+      </div>
+      <span class="office-state ${isActive(item) ? "on" : "off"}" title="${isActive(item) ? "Attivo" : "Non attivo"}"></span>
+    </div>
+  `).join("") || '<div class="muted">Nessun ufficio trovato.</div>';
+}
 
-  if(!selected) return;
+function renderTable() {
+  tableBody.innerHTML = filtered.map(item => `
+    <tr
+      class="${selected && selected.id === item.id ? "selected" : ""}"
+      onclick="openOffice('${esc(item.id)}')"
+    >
+      <td>${esc(item.id)}</td>
+      <td>${esc(officeName(item))}</td>
+      <td>${esc(officeSector(item))}</td>
+      <td>${esc(officeEmail(item))}</td>
+      <td>${esc(officePhone(item))}</td>
+      <td>${esc(officeActive(item))}</td>
+    </tr>
+  `).join("") || '<tr><td colspan="6">Nessun ufficio trovato.</td></tr>';
+}
 
-  const links = [];
+function copyText(value) {
+  if (!value) return;
 
-  if(email(selected)){
-    links.push(
-      '<a class="mail-btn" href="mailto:' + esc(email(selected)) + '">✉ Scrivi email</a>'
+  navigator.clipboard.writeText(value).then(() => {
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 1800);
+  }).catch(() => {
+    alert("Impossibile copiare automaticamente.");
+  });
+}
+
+function openOffice(id) {
+  selected = uffici.find(item => item.id === id);
+  if (!selected) return;
+
+  empty.classList.add("hidden");
+  detail.classList.remove("hidden");
+
+  const active = isActive(selected);
+  const email = officeEmail(selected);
+  const phone = officePhone(selected);
+
+  document.getElementById("officeName").textContent = officeName(selected);
+  officeSector.textContent = officeSector(selected) || "Settore non indicato";
+  officeId.textContent = selected.id || "-";
+  officeEmail.textContent = email || "-";
+  officePhone.textContent = phone || "-";
+  officeActive.textContent = officeActive(selected) || "-";
+  officeNotes.textContent =
+    selected.note ||
+    selected.Note ||
+    "Nessuna nota operativa inserita.";
+
+  activeBadge.textContent = active ? "● Attivo" : "● Non attivo";
+  activeBadge.classList.toggle("off", !active);
+
+  const actions = [];
+
+  if (email) {
+    actions.push(
+      '<a class="mail-btn" href="mailto:' + esc(email) + '">✉ Scrivi email</a>'
+    );
+    actions.push(
+      '<button class="copy-btn" type="button" onclick="copyText(\'' + esc(email) + '\')">Copia email</button>'
     );
   }
 
-  if(phone(selected)){
-    links.push(
-      '<a class="phone-btn" href="tel:' + esc(phone(selected)) + '">☎ Chiama</a>'
+  if (phone) {
+    actions.push(
+      '<a class="phone-btn" href="tel:' + esc(phone) + '">☎ Chiama</a>'
+    );
+    actions.push(
+      '<button class="copy-btn" type="button" onclick="copyText(\'' + esc(phone) + '\')">Copia telefono</button>'
     );
   }
 
-  contactActions.innerHTML = links.join("") || '<span class="muted">Nessun contatto rapido disponibile.</span>';
-};
+  contactActions.innerHTML =
+    actions.join("") ||
+    '<span class="muted">Nessun contatto rapido disponibile.</span>';
+
+  renderList();
+  renderTable();
+}
+
+async function boot() {
+  try {
+    const result = await get("listUffici");
+
+    if (!result.ok) {
+      throw new Error(result.error || "Errore caricamento uffici");
+    }
+
+    uffici = result.uffici || [];
+    apply();
+
+    if (uffici[0]) {
+      openOffice(uffici[0].id);
+    }
+
+  } catch (error) {
+    list.innerHTML =
+      '<div style="padding:14px;color:#a82323;background:#fff0f0;border-radius:12px">' +
+      esc(error.message) +
+      '</div>';
+
+    tableBody.innerHTML =
+      '<tr><td colspan="6">' + esc(error.message) + '</td></tr>';
+  }
+}
+
+q.addEventListener("input", apply);
+fAttivo.addEventListener("change", apply);
+
+boot();
 </script>
 </body>
 </html>
