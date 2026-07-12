@@ -3,17 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Tracking PRO v1.2 RC1 — FDI Ascolta IX</title>
+  <title>Tracking PRO v1.3 RC1 — FDI Ascolta IX</title>
 
-  <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="assets/css/style.css">
-  <link rel="stylesheet" href="assets/css/theme-fdi.css?v=122">
+  <link rel="stylesheet" href="assets/css/theme-fdi.css?v=130">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
   <style>
     :root{
       --blue:#082f6a;
       --blue2:#0b4c99;
+      --blue3:#1766c2;
       --gold:#d3a400;
       --bg:#f4f7fb;
       --card:#fff;
@@ -23,7 +23,7 @@
       --green:#159447;
       --green-soft:#eaf8ee;
       --orange:#ef6c00;
-      --orange-soft:#fff3e8;
+      --orange-soft:#fff4e8;
       --red:#c62828;
       --shadow:0 12px 32px rgba(15,36,69,.08);
     }
@@ -31,329 +31,468 @@
     *{box-sizing:border-box}
     body{
       margin:0;
-      background:
-        radial-gradient(circle at 10% 10%,rgba(11,76,153,.08),transparent 28%),
-        var(--bg);
+      background:var(--bg);
       color:var(--ink);
       font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
     }
 
     .topbar{
-      min-height:88px;
+      min-height:74px;
       display:flex;
       align-items:center;
       justify-content:space-between;
       gap:18px;
-      padding:16px 28px;
+      padding:12px 26px;
       background:linear-gradient(135deg,var(--blue),#063f8c);
       color:#fff;
-      border-bottom:4px solid var(--gold);
-      box-shadow:0 10px 24px rgba(8,47,106,.18);
+      border-bottom:3px solid var(--gold);
+      box-shadow:0 8px 22px rgba(8,47,106,.16);
     }
 
-    .brand strong{display:block;color:#fff;font-size:1.3rem}
+    .brand strong{display:block;color:#fff;font-size:1.2rem}
     .brand small{
       display:block;
       color:#f2c600;
-      margin-top:4px;
+      margin-top:3px;
       font-weight:900;
       text-transform:uppercase;
-      letter-spacing:.07em;
+      letter-spacing:.06em;
+      font-size:.78rem;
     }
 
-    .top-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-    .nav-btn,.version-pill{
+    .top-actions{display:flex;gap:10px;flex-wrap:wrap}
+    .top-actions a{
+      min-height:40px;
       display:inline-flex;
-      min-height:42px;
       align-items:center;
-      padding:0 14px;
-      border-radius:12px;
+      padding:0 13px;
+      border:1px solid rgba(255,255,255,.4);
+      border-radius:11px;
+      color:#fff;
       text-decoration:none;
       font-weight:900;
-    }
-    .version-pill{background:#114fa6;color:#fff;border-radius:999px}
-    .nav-btn{
-      border:1px solid rgba(255,255,255,.45);
-      color:#fff;
       background:rgba(255,255,255,.06);
     }
-    .nav-btn:hover{background:#fff;color:var(--blue)}
+    .top-actions a:hover{background:#fff;color:var(--blue)}
 
-    .page{max-width:1250px;margin:0 auto;padding:34px 20px 60px}
+    .page{max-width:1500px;margin:0 auto;padding:20px}
 
-    .hero{
-      text-align:center;
-      max-width:850px;
-      margin:0 auto 24px;
-    }
-    .hero .eyebrow{
-      display:inline-flex;
+    .search-hero{
+      display:grid;
+      grid-template-columns:minmax(0,1.2fr) minmax(420px,.8fr);
+      gap:22px;
       align-items:center;
-      min-height:30px;
-      padding:5px 10px;
-      border-radius:999px;
-      background:#edf4ff;
-      color:var(--blue2);
-      font-size:.78rem;
-      font-weight:950;
-    }
-    .hero h1{
-      margin:12px 0 8px;
-      color:var(--blue);
-      font-size:clamp(2.2rem,5vw,4rem);
-      letter-spacing:-.04em;
-    }
-    .hero p{color:var(--muted);font-size:1.05rem;line-height:1.7}
-
-    .search-card{
       background:#fff;
       border:1px solid var(--line);
-      border-radius:20px;
+      border-radius:18px;
       box-shadow:var(--shadow);
-      padding:18px;
-      margin-bottom:20px;
+      padding:22px;
+      margin-bottom:16px;
     }
-    .search-form{
-      display:grid;
-      grid-template-columns:1fr auto;
-      gap:10px;
+
+    .search-copy{
+      display:flex;
       align-items:center;
+      gap:18px;
     }
-    .search-form input{
-      min-height:52px;
+
+    .hero-icon{
+      width:88px;
+      height:88px;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      background:#eaf2ff;
+      color:var(--blue2);
+      font-size:2.2rem;
+      flex:0 0 auto;
+    }
+
+    .search-copy span{
+      display:block;
+      color:var(--blue2);
+      text-transform:uppercase;
+      font-size:.74rem;
+      font-weight:950;
+      letter-spacing:.05em;
+    }
+
+    .search-copy h1{
+      margin:6px 0;
+      color:var(--blue);
+      font-size:clamp(2rem,4vw,3rem);
+      letter-spacing:-.03em;
+    }
+
+    .search-copy p{
+      margin:0;
+      color:var(--muted);
+      line-height:1.6;
+      max-width:640px;
+    }
+
+    .search-panel label{
+      display:block;
+      color:var(--blue2);
+      font-size:.76rem;
+      font-weight:950;
+      text-transform:uppercase;
+      margin-bottom:8px;
+    }
+
+    .search-row{
+      display:grid;
+      grid-template-columns:1fr 140px;
+      gap:10px;
+    }
+
+    .search-row input{
+      min-height:48px;
       border:1px solid var(--line);
-      border-radius:13px;
-      padding:0 15px;
-      font-size:1rem;
+      border-radius:10px;
+      padding:0 13px;
+      font:inherit;
       color:var(--ink);
     }
-    .search-form button{
-      min-height:52px;
-      padding:0 20px;
+
+    .search-row button{
       border:0;
-      border-radius:13px;
+      border-radius:10px;
       background:var(--blue);
       color:#fff;
       font-weight:950;
       cursor:pointer;
     }
-    .search-form button:hover{background:#061f49}
+
+    .search-help{
+      margin-top:8px;
+      color:var(--muted);
+      font-size:.78rem;
+    }
 
     .message{
-      margin-top:12px;
-      padding:13px 15px;
-      border-radius:12px;
+      margin-top:10px;
+      padding:11px 13px;
+      border-radius:10px;
       font-weight:850;
+      font-size:.86rem;
     }
-    .message.error{background:#fff0f0;color:#a82323;border:1px solid #ffc9c9}
-    .message.info{background:#eef5ff;color:var(--blue2);border:1px solid #d4e4f8}
-    .hidden{display:none}
+    .message.info{background:#edf5ff;color:var(--blue2)}
+    .message.error{background:#fff0f0;color:#a82323}
 
     .result{display:none}
     .result.show{display:block}
 
-    .status-hero{
-      background:linear-gradient(135deg,var(--blue),#0b4d98);
-      color:#fff;
-      border-radius:22px;
-      overflow:hidden;
-      box-shadow:var(--shadow);
-      margin-bottom:18px;
-    }
-    .status-hero-main{
+    .status-summary{
       display:grid;
-      grid-template-columns:minmax(0,1fr) auto;
+      grid-template-columns:300px minmax(0,1fr) 300px;
       gap:18px;
       align-items:center;
-      padding:24px;
-      border-bottom:4px solid var(--gold);
-    }
-    .status-code{
-      display:inline-flex;
-      align-items:center;
-      min-height:30px;
-      padding:5px 10px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.25);
-      background:rgba(255,255,255,.1);
-      font-weight:950;
-      font-size:.8rem;
-    }
-    .status-hero h2{
-      margin:12px 0 6px;
-      color:#fff;
-      font-size:clamp(1.8rem,4vw,3rem);
-    }
-    .status-sub{color:rgba(255,255,255,.8)}
-    .status-badge{
-      min-width:170px;
-      min-height:60px;
-      display:grid;
-      place-items:center;
-      padding:12px 16px;
-      border-radius:16px;
-      font-weight:1000;
-      text-align:center;
-      background:#fff;
-      color:var(--blue);
-      box-shadow:0 10px 24px rgba(0,0,0,.15);
-    }
-    .status-badge.done{color:var(--green)}
-    .status-badge.wait{color:var(--orange)}
-    .status-badge.archived{color:#6c38c7}
-
-    .content-grid{
-      display:grid;
-      grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr);
-      gap:18px;
-      align-items:start;
-    }
-
-    .panel{
       background:#fff;
       border:1px solid var(--line);
-      border-radius:18px;
+      border-radius:18px 18px 0 0;
       box-shadow:var(--shadow);
-      overflow:hidden;
-    }
-    .panel-head{
-      min-height:58px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      padding:0 20px;
+      padding:20px;
       border-bottom:1px solid var(--line);
     }
-    .panel-head h3{margin:0;color:var(--blue);font-size:1rem}
-    .panel-body{padding:20px}
+
+    .current-status span{
+      display:block;
+      color:var(--blue2);
+      text-transform:uppercase;
+      font-size:.74rem;
+      font-weight:950;
+      margin-bottom:8px;
+    }
+
+    .status-pill{
+      min-height:56px;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:0 16px;
+      border-radius:12px;
+      background:var(--green-soft);
+      color:var(--green);
+      font-size:1.4rem;
+      font-weight:1000;
+    }
+    .status-pill.wait{background:var(--orange-soft);color:var(--orange)}
+    .status-pill.archived{background:#f0ebff;color:#6c38c7}
+
+    .report-main h2{
+      margin:0;
+      color:var(--blue);
+      font-size:1.6rem;
+    }
+
+    .chips{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:10px;
+    }
+
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      min-height:28px;
+      padding:4px 10px;
+      border-radius:999px;
+      background:#f4f7fb;
+      color:var(--ink);
+      font-size:.8rem;
+      border:1px solid var(--line);
+    }
+
+    .dates{
+      display:grid;
+      grid-template-columns:44px 1fr;
+      gap:10px;
+      align-items:center;
+    }
+
+    .date-icon{
+      width:44px;
+      height:44px;
+      border-radius:50%;
+      background:#eef4ff;
+      color:var(--blue2);
+      display:grid;
+      place-items:center;
+      font-size:1.2rem;
+    }
+
+    .date-row{margin-bottom:6px}
+    .date-row span{display:block;color:var(--muted);font-size:.74rem}
+    .date-row b{display:block;color:var(--ink);margin-top:2px}
+
+    .main-grid{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);
+      background:#fff;
+      border-left:1px solid var(--line);
+      border-right:1px solid var(--line);
+      box-shadow:var(--shadow);
+    }
+
+    .section{
+      padding:20px;
+      border-right:1px solid var(--line);
+      min-width:0;
+    }
+    .section:last-child{border-right:0}
+
+    .section h3{
+      margin:0 0 14px;
+      color:var(--blue2);
+      font-size:.88rem;
+      text-transform:uppercase;
+      letter-spacing:.03em;
+    }
 
     .timeline{
       position:relative;
       display:grid;
-      gap:0;
+      gap:12px;
     }
+
     .timeline::before{
       content:"";
       position:absolute;
-      left:18px;
-      top:20px;
-      bottom:20px;
-      width:3px;
+      top:15px;
+      bottom:15px;
+      left:15px;
+      width:2px;
       background:#dce3ed;
     }
+
     .timeline-item{
-      position:relative;
       display:grid;
-      grid-template-columns:42px 1fr;
-      gap:12px;
-      padding:0 0 20px;
+      grid-template-columns:32px 1fr auto;
+      gap:10px;
+      align-items:start;
+      position:relative;
+      z-index:1;
     }
+
     .timeline-dot{
-      width:38px;
-      height:38px;
+      width:30px;
+      height:30px;
       border-radius:50%;
       display:grid;
       place-items:center;
-      z-index:2;
       background:#fff;
-      border:3px solid #cfd8e4;
+      border:2px solid #cbd5e1;
       color:#94a3b8;
       font-weight:1000;
+      font-size:.8rem;
     }
+
     .timeline-item.done .timeline-dot{
+      background:var(--green-soft);
+      border-color:var(--green);
+      color:var(--green);
+    }
+
+    .timeline-item.current .timeline-dot{
       background:var(--green);
       border-color:var(--green);
       color:#fff;
     }
-    .timeline-item.current .timeline-dot{
-      background:var(--orange);
-      border-color:var(--orange);
-      color:#fff;
-      box-shadow:0 0 0 6px var(--orange-soft);
-    }
-    .timeline-copy{
-      border:1px solid var(--line);
-      border-radius:14px;
-      padding:13px 14px;
-      background:#fbfcfe;
-    }
-    .timeline-copy b{display:block;color:var(--ink)}
-    .timeline-copy span{display:block;color:var(--muted);font-size:.84rem;margin-top:4px}
-    .timeline-copy small{display:block;color:var(--muted);font-size:.78rem;margin-top:6px}
 
-    .info-grid{
-      display:grid;
-      grid-template-columns:repeat(2,minmax(0,1fr));
-      gap:10px;
-    }
-    .info-box{
-      border:1px solid var(--line);
-      border-radius:13px;
-      padding:13px;
-      background:#fbfcfe;
-    }
-    .info-box span{
-      display:block;
+    .timeline-copy b{display:block;color:var(--ink);font-size:.9rem}
+    .timeline-copy span{display:block;color:var(--muted);font-size:.78rem;margin-top:3px}
+    .timeline-operator{
       color:var(--muted);
       font-size:.72rem;
-      text-transform:uppercase;
-      letter-spacing:.04em;
-      margin-bottom:4px;
+      text-align:right;
+      line-height:1.4;
     }
-    .info-box b{display:block;color:var(--ink);word-break:break-word}
 
-    .map-wrap{height:320px;border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+    .info-list{display:grid}
+    .info-row{
+      display:grid;
+      grid-template-columns:150px 1fr;
+      gap:12px;
+      padding:10px 0;
+      border-bottom:1px solid #edf1f5;
+      font-size:.84rem;
+    }
+    .info-row:last-child{border-bottom:0}
+    .info-row span{color:var(--muted)}
+    .info-row b{color:var(--ink);word-break:break-word}
+
+    .actions-row{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-top:18px;
+    }
+
+    .actions-row button{
+      min-height:40px;
+      border-radius:10px;
+      border:1px solid var(--blue2);
+      background:#fff;
+      color:var(--blue2);
+      font-weight:900;
+      cursor:pointer;
+    }
+
+    .map-box{
+      height:230px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      overflow:hidden;
+      background:#eef4fb;
+    }
     #trackingMap{height:100%}
 
+    .media-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:16px;
+      margin-top:16px;
+    }
+
+    .photo-box,.outcome-box{
+      min-height:150px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:12px;
+      background:#fbfcfe;
+    }
+
     .photo-box{
-      min-height:140px;
       display:grid;
       place-items:center;
-      border:1px dashed #cbd5e1;
-      border-radius:14px;
-      background:#fbfcfe;
       color:var(--muted);
       text-align:center;
-      padding:16px;
     }
+
     .photo-box img{
-      max-width:100%;
-      max-height:420px;
-      border-radius:12px;
+      width:100%;
+      max-height:220px;
+      object-fit:cover;
+      border-radius:10px;
       display:block;
     }
 
-    .final-card{
-      margin-top:18px;
+    .outcome-box{
       background:var(--green-soft);
-      border:1px solid #c8ead3;
-      border-radius:16px;
-      padding:18px;
+      border-color:#c8ead3;
       color:#16753d;
     }
-    .final-card h3{margin:0 0 8px}
-    .final-card p{margin:0;line-height:1.6}
 
-    .stack{display:grid;gap:18px}
+    .outcome-box b{display:block;margin-bottom:6px}
+    .outcome-box p{margin:0;line-height:1.55}
+
+    .communications{
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:0 0 18px 18px;
+      box-shadow:var(--shadow);
+      padding:18px 20px 20px;
+      margin-bottom:20px;
+    }
+
+    .communications h3{
+      margin:0 0 14px;
+      color:var(--blue2);
+      font-size:.88rem;
+      text-transform:uppercase;
+    }
+
+    .comm-grid{
+      display:grid;
+      grid-template-columns:repeat(5,minmax(0,1fr));
+      gap:10px;
+    }
+
+    .comm-card{
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:12px;
+      background:#fbfcfe;
+      min-height:120px;
+    }
+    .comm-card small{display:block;color:var(--muted);font-size:.72rem}
+    .comm-card b{display:block;color:var(--ink);margin:7px 0 5px;font-size:.86rem}
+    .comm-card p{margin:0;color:var(--muted);font-size:.78rem;line-height:1.45}
 
     .footer{
       background:var(--blue);
       color:#fff;
-      text-align:center;
-      padding:14px;
+      padding:14px 22px;
+      display:flex;
+      justify-content:space-between;
+      gap:16px;
+      flex-wrap:wrap;
+      font-size:.82rem;
     }
 
-    @media(max-width:900px){
-      .content-grid{grid-template-columns:1fr}
+    .hidden{display:none}
+
+    @media(max-width:1150px){
+      .search-hero{grid-template-columns:1fr}
+      .status-summary{grid-template-columns:1fr 1fr}
+      .dates{grid-column:1/-1}
+      .main-grid{grid-template-columns:1fr}
+      .section{border-right:0;border-bottom:1px solid var(--line)}
+      .comm-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
     }
-    @media(max-width:650px){
-      .topbar{align-items:flex-start;flex-direction:column;padding:15px}
-      .page{padding:22px 14px 50px}
-      .search-form{grid-template-columns:1fr}
-      .status-hero-main{grid-template-columns:1fr}
-      .status-badge{width:100%}
-      .info-grid{grid-template-columns:1fr}
+
+    @media(max-width:700px){
+      .topbar{align-items:flex-start;flex-direction:column;padding:14px}
+      .page{padding:14px}
+      .search-copy{align-items:flex-start}
+      .hero-icon{width:64px;height:64px}
+      .search-row{grid-template-columns:1fr}
+      .status-summary{grid-template-columns:1fr}
+      .media-grid,.actions-row{grid-template-columns:1fr}
+      .info-row{grid-template-columns:1fr}
+      .comm-grid{grid-template-columns:1fr}
     }
   </style>
 </head>
@@ -362,120 +501,133 @@
 <header class="topbar">
   <div class="brand">
     <strong>FDI ASCOLTA IX</strong>
-    <small>Tracking cittadino · Municipio IX Roma</small>
+    <small>Municipio Roma IX</small>
   </div>
 
   <div class="top-actions">
-    <span class="version-pill">Versione 1.2 RC1</span>
-    <a class="nav-btn" href="index.html">Home</a>
-    <a class="nav-btn" href="segnala.html">Invia segnalazione</a>
-    <a class="nav-btn" href="login.html">Area riservata</a>
+    <a href="index.html">⌂ Torna alla home</a>
+    <a href="segnala.html">Segnala un problema</a>
   </div>
 </header>
 
 <main class="page">
-  <section class="hero">
-    <span class="eyebrow">Tracking cittadino</span>
-    <h1>Segui la tua pratica</h1>
-    <p>
-      Inserisci il codice ricevuto dopo l’invio della segnalazione.
-      Potrai consultare stato, percorso, dettagli e aggiornamenti visibili.
-    </p>
-  </section>
+  <section class="search-hero">
+    <div class="search-copy">
+      <div class="hero-icon">⌕</div>
+      <div>
+        <span>Tracking cittadino</span>
+        <h1>Segui la tua pratica</h1>
+        <p>
+          Inserisci il codice ricevuto dopo l’invio della segnalazione
+          per consultare stato, percorso, dettagli e aggiornamenti visibili.
+        </p>
+      </div>
+    </div>
 
-  <section class="search-card">
-    <form id="trackingForm" class="search-form">
-      <input
-        id="trackingCode"
-        required
-        autocomplete="off"
-        placeholder="Es. IX-20260706-084042-962"
-      >
-      <button id="searchBtn" type="submit">Cerca pratica</button>
-    </form>
-
-    <div id="searchMessage" class="message info">
-      Il codice pratica è riportato nell’email di conferma ricevuta dopo l’invio.
+    <div class="search-panel">
+      <label for="trackingCode">Inserisci il codice della tua pratica</label>
+      <form id="trackingForm" class="search-row">
+        <input
+          id="trackingCode"
+          required
+          autocomplete="off"
+          placeholder="Es. IX-20260706-084042-962"
+        >
+        <button id="searchBtn" type="submit">⌕ Cerca</button>
+      </form>
+      <div class="search-help">Il codice è composto da lettere e numeri.</div>
+      <div id="searchMessage" class="message info">
+        Inserisci il codice ricevuto nell’email di conferma.
+      </div>
     </div>
   </section>
 
   <section id="result" class="result">
-    <section class="status-hero">
-      <div class="status-hero-main">
-        <div>
-          <span class="status-code" id="reportCode">—</span>
-          <h2 id="reportTitle">Pratica</h2>
-          <div class="status-sub" id="reportSub">—</div>
-        </div>
+    <section class="status-summary">
+      <div class="current-status">
+        <span>Stato attuale della pratica</span>
+        <div id="reportStatus" class="status-pill">Stato</div>
+      </div>
 
-        <div class="status-badge" id="reportStatus">Stato</div>
+      <div class="report-main">
+        <h2 id="reportCode">—</h2>
+        <div class="chips">
+          <span id="categoryChip" class="chip">Categoria</span>
+          <span id="districtChip" class="chip">Quartiere</span>
+        </div>
+      </div>
+
+      <div class="dates">
+        <div class="date-icon">🗓</div>
+        <div>
+          <div class="date-row"><span>Data apertura</span><b id="openedAt">—</b></div>
+          <div class="date-row"><span>Data chiusura</span><b id="closedAt">—</b></div>
+        </div>
       </div>
     </section>
 
-    <section class="content-grid">
-      <div class="stack">
-        <section class="panel">
-          <div class="panel-head">
-            <h3>✓ Percorso della pratica</h3>
-          </div>
-          <div class="panel-body">
-            <div id="timeline" class="timeline"></div>
-          </div>
-        </section>
+    <section class="main-grid">
+      <section class="section">
+        <h3>Percorso della pratica</h3>
+        <div id="timeline" class="timeline"></div>
+      </section>
 
-        <section class="panel">
-          <div class="panel-head">
-            <h3>▣ Dettaglio pratica</h3>
-          </div>
-          <div class="panel-body">
-            <div class="info-grid">
-              <div class="info-box"><span>Categoria</span><b id="category"></b></div>
-              <div class="info-box"><span>Quartiere</span><b id="district"></b></div>
-              <div class="info-box"><span>Priorità</span><b id="priority"></b></div>
-              <div class="info-box"><span>Data apertura</span><b id="openedAt"></b></div>
-              <div class="info-box"><span>Indirizzo</span><b id="address"></b></div>
-              <div class="info-box"><span>Referente</span><b id="referent"></b></div>
-            </div>
+      <section class="section">
+        <h3>Dettagli della pratica</h3>
 
-            <div id="finalOutcome" class="final-card hidden">
-              <h3>Esito finale</h3>
-              <p id="finalOutcomeText"></p>
-            </div>
-          </div>
-        </section>
-      </div>
+        <div class="info-list">
+          <div class="info-row"><span>Titolo</span><b id="reportTitle"></b></div>
+          <div class="info-row"><span>Categoria</span><b id="category"></b></div>
+          <div class="info-row"><span>Quartiere</span><b id="district"></b></div>
+          <div class="info-row"><span>Priorità</span><b id="priority"></b></div>
+          <div class="info-row"><span>Consigliere</span><b id="referent"></b></div>
+          <div class="info-row"><span>Ufficio competente</span><b id="office"></b></div>
+          <div class="info-row"><span>Data apertura</span><b id="openedAt2"></b></div>
+          <div class="info-row"><span>Codice pratica</span><b id="reportCode2"></b></div>
+        </div>
 
-      <aside class="stack">
-        <section class="panel">
-          <div class="panel-head">
-            <h3>⌖ Posizione</h3>
-          </div>
-          <div class="panel-body">
-            <div class="map-wrap">
-              <div id="trackingMap"></div>
-            </div>
-          </div>
-        </section>
+        <div class="actions-row">
+          <button type="button" onclick="window.print()">Stampa</button>
+          <button type="button" id="copyCodeBtn">Copia codice</button>
+        </div>
+      </section>
 
-        <section class="panel">
-          <div class="panel-head">
-            <h3>▧ Foto allegata</h3>
-          </div>
-          <div class="panel-body">
+      <section class="section">
+        <h3>Posizione sulla mappa</h3>
+        <div class="map-box"><div id="trackingMap"></div></div>
+
+        <div class="media-grid">
+          <div>
+            <h3>Foto allegata</h3>
             <div id="photoBox" class="photo-box">Nessuna foto disponibile.</div>
           </div>
-        </section>
-      </aside>
+
+          <div>
+            <h3>Esito finale</h3>
+            <div id="outcomeBox" class="outcome-box">
+              <b>Pratica in corso</b>
+              <p>L’esito finale sarà visibile al termine della lavorazione.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <section class="communications">
+      <h3>Comunicazioni pubbliche</h3>
+      <div id="communicationsGrid" class="comm-grid"></div>
     </section>
   </section>
 </main>
 
 <footer class="footer">
-  FDI Ascolta IX — Tracking PRO v1.2 RC1
+  <span>FDI Ascolta IX — Municipio Roma IX</span>
+  <span>© 2026 — Tutti i diritti riservati</span>
 </footer>
 
-<script src="assets/js/config.js?v=tracking122"></script>
+<script src="assets/js/config.js?v=tracking130"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <script>
   const FALLBACK_API_URL =
     "https://script.google.com/macros/s/AKfycbydMX5t3F9r3sHQ3zM3tSH6edMBz_hqGnDiVvK_kisOrSz8kn1pbeoMG00fX_Ei6wd7HQ/exec";
@@ -492,8 +644,9 @@
     "Archiviata"
   ];
 
-  let trackingMap = null;
   let allReports = [];
+  let trackingMap = null;
+  let currentReport = null;
 
   function apiUrl() {
     if (
@@ -503,7 +656,6 @@
     ) {
       return CONFIG.API_URL;
     }
-
     return FALLBACK_API_URL;
   }
 
@@ -538,82 +690,71 @@
     }[char]));
   }
 
-  function normalizeStatus(value) {
+  function norm(value) {
     return String(value || "").trim().toLowerCase();
   }
 
-  function currentWorkflowIndex(status) {
-    const normalized = normalizeStatus(status);
+  function statusIndex(status) {
+    const value = norm(status);
 
-    let index = WORKFLOW.findIndex(item =>
-      normalizeStatus(item) === normalized
-    );
+    const exact = WORKFLOW.findIndex(item => norm(item) === value);
+    if (exact >= 0) return exact;
 
-    if (index >= 0) return index;
-
-    if (normalized.includes("archiv")) return 8;
-    if (normalized.includes("risolt")) return 7;
-    if (normalized.includes("lavorazione")) return 6;
-    if (normalized.includes("risposta ricevuta")) return 5;
-    if (normalized.includes("attesa")) return 4;
-    if (normalized.includes("ufficio")) return 3;
-    if (normalized.includes("assegnata")) return 2;
-    if (normalized.includes("presa")) return 1;
+    if (value.includes("archiv")) return 8;
+    if (value.includes("risolt")) return 7;
+    if (value.includes("lavorazione")) return 6;
+    if (value.includes("risposta ricevuta")) return 5;
+    if (value.includes("attesa")) return 4;
+    if (value.includes("ufficio")) return 3;
+    if (value.includes("assegnata")) return 2;
+    if (value.includes("presa")) return 1;
 
     return 0;
   }
 
   function statusClass(status) {
-    const value = normalizeStatus(status);
+    const value = norm(status);
 
     if (value.includes("archiv")) return "archived";
-    if (value.includes("risolt")) return "done";
     if (value.includes("attesa") || value.includes("ufficio")) return "wait";
-
     return "";
   }
 
-  function renderWorkflow(report, events) {
-    const currentIndex = currentWorkflowIndex(report.stato);
-
-    const byTitle = new Map();
-
-    (events || []).forEach(event => {
-      const key = normalizeStatus(
-        event.titolo ||
-        event.tipo ||
-        event.stato ||
-        ""
-      );
-
-      if (key) byTitle.set(key, event);
-    });
+  function renderTimeline(report, events) {
+    const current = statusIndex(report.stato);
 
     timeline.innerHTML = WORKFLOW.map((label, index) => {
-      const done = index < currentIndex;
-      const current = index === currentIndex;
+      const done = index < current;
+      const isCurrent = index === current;
 
-      const match = [...byTitle.entries()].find(([key]) =>
-        key.includes(normalizeStatus(label)) ||
-        normalizeStatus(label).includes(key)
-      );
+      const event = (events || []).find(item => {
+        const text = norm(
+          item.titolo ||
+          item.tipo ||
+          item.stato ||
+          item.descrizione ||
+          ""
+        );
 
-      const event = match ? match[1] : null;
+        return text.includes(norm(label)) || norm(label).includes(text);
+      });
 
       return `
-        <div class="timeline-item ${done ? "done" : ""} ${current ? "current" : ""}">
-          <div class="timeline-dot">${done ? "✓" : current ? "●" : "○"}</div>
+        <div class="timeline-item ${done ? "done" : ""} ${isCurrent ? "current" : ""}">
+          <div class="timeline-dot">${done ? "✓" : isCurrent ? "●" : "○"}</div>
           <div class="timeline-copy">
             <b>${esc(label)}</b>
-            <span>${current ? "Stato attuale" : done ? "Completato" : "Non ancora raggiunto"}</span>
-            <small>${event ? esc(event.data || event.dataOra || "") : ""}</small>
+            <span>${event ? esc(event.data || event.dataOra || "") : ""}</span>
+          </div>
+          <div class="timeline-operator">
+            ${event ? esc(event.operatore || "") : ""}
           </div>
         </div>
       `;
     }).join("");
   }
 
-  function showMap(report) {
+  function renderMap(report) {
     const lat = Number(report.latitudine);
     const lng = Number(report.longitudine);
 
@@ -623,7 +764,7 @@
       lat < 40 || lat > 43 ||
       lng < 10 || lng > 15
     ) {
-      document.querySelector(".map-wrap").innerHTML =
+      document.querySelector(".map-box").innerHTML =
         '<div class="photo-box">Posizione non disponibile.</div>';
       return;
     }
@@ -644,67 +785,83 @@
     setTimeout(() => trackingMap.invalidateSize(), 200);
   }
 
-  function renderReport(report, timelineEvents, communications) {
+  function renderCommunications(items) {
+    const visible = (items || []).filter(item =>
+      norm(item.visibileCittadino || item["Visibile cittadino"]) !== "no"
+    );
+
+    communicationsGrid.innerHTML = visible.slice(-5).map(item => `
+      <article class="comm-card">
+        <small>${esc(item.data || item.dataOra || "")}</small>
+        <b>${esc(item.tipo || item.titolo || item.stato || "Aggiornamento")}</b>
+        <p>${esc(item.messaggio || item.descrizione || "")}</p>
+      </article>
+    `).join("") || '<div class="comm-card"><b>Nessuna comunicazione pubblica disponibile.</b></div>';
+  }
+
+  function renderOutcome(items, report) {
+    const closing = [...(items || [])].reverse().find(item =>
+      /chiusura|risolta|archiviata/i.test(
+        [item.tipo, item.titolo, item.stato].join(" ")
+      )
+    );
+
+    if (closing) {
+      outcomeBox.innerHTML = `
+        <b>✓ Intervento concluso</b>
+        <p>${esc(closing.messaggio || closing.descrizione || "Pratica conclusa.")}</p>
+      `;
+      return;
+    }
+
+    if (/risolta|archiviata/i.test(report.stato || "")) {
+      outcomeBox.innerHTML = `
+        <b>✓ Pratica conclusa</b>
+        <p>La pratica è stata chiusa con esito positivo.</p>
+      `;
+    }
+  }
+
+  function renderReport(report, events, communications) {
+    currentReport = report;
+
     reportCode.textContent = report.id || "—";
+    reportCode2.textContent = report.id || "—";
     reportTitle.textContent = report.titolo || "Pratica";
-    reportSub.textContent = [
-      report.quartiere,
-      report.categoria
-    ].filter(Boolean).join(" · ") || "Dettagli pratica";
-
-    reportStatus.textContent = report.stato || "Stato non disponibile";
-    reportStatus.className =
-      "status-badge " + statusClass(report.stato);
-
     category.textContent = report.categoria || "—";
     district.textContent = report.quartiere || "—";
     priority.textContent = report.priorita || "Media";
-    openedAt.textContent = report.data || "—";
-    address.textContent = report.indirizzo || "—";
     referent.textContent = report.referenteNome || "Non assegnato";
+    office.textContent =
+      report.ufficioNome ||
+      report.ufficio ||
+      "Non indicato";
 
-    const publicEvents = (communications || []).filter(item =>
-      String(item.visibileCittadino || item["Visibile cittadino"] || "")
-        .toLowerCase() !== "no"
-    );
+    openedAt.textContent = report.data || "—";
+    openedAt2.textContent = report.data || "—";
+    closedAt.textContent =
+      /risolta|archiviata/i.test(report.stato || "")
+        ? (report.dataChiusura || "Conclusa")
+        : "—";
 
-    renderWorkflow(
-      report,
-      timelineEvents.length ? timelineEvents : publicEvents
-    );
+    categoryChip.textContent = report.categoria || "Categoria";
+    districtChip.textContent = report.quartiere || "Quartiere";
 
-    showMap(report);
+    reportStatus.textContent = report.stato || "Stato non disponibile";
+    reportStatus.className = "status-pill " + statusClass(report.stato);
+
+    renderTimeline(report, events);
+    renderMap(report);
+    renderCommunications(communications);
+    renderOutcome(communications, report);
 
     if (report.fotoUrl) {
       photoBox.innerHTML =
         '<a href="' + esc(report.fotoUrl) + '" target="_blank" rel="noopener">' +
-        '<img src="' + esc(report.fotoUrl) + '" alt="Foto allegata alla pratica">' +
+        '<img src="' + esc(report.fotoUrl) + '" alt="Foto allegata">' +
         '</a>';
     } else {
       photoBox.textContent = "Nessuna foto disponibile.";
-    }
-
-    const closingEvent = [...publicEvents].reverse().find(item =>
-      /chiusura|risolta|archiviata/i.test(
-        [
-          item.tipo,
-          item.titolo,
-          item.stato
-        ].join(" ")
-      )
-    );
-
-    if (
-      closingEvent &&
-      (closingEvent.messaggio || closingEvent.descrizione)
-    ) {
-      finalOutcome.classList.remove("hidden");
-      finalOutcomeText.textContent =
-        closingEvent.messaggio ||
-        closingEvent.descrizione;
-    } else {
-      finalOutcome.classList.add("hidden");
-      finalOutcomeText.textContent = "";
     }
 
     result.classList.add("show");
@@ -719,28 +876,24 @@
 
     try {
       if (!allReports.length) {
-        const reportsResult = await apiGet("listReports");
+        const reportResult = await apiGet("listReports");
 
-        if (!reportsResult.ok) {
-          throw new Error(
-            reportsResult.error ||
-            "Impossibile caricare le pratiche."
-          );
+        if (!reportResult.ok) {
+          throw new Error(reportResult.error || "Impossibile caricare le pratiche.");
         }
 
-        allReports = reportsResult.reports || [];
+        allReports = reportResult.reports || [];
       }
 
       const report = allReports.find(item =>
-        String(item.id || "").trim().toLowerCase() ===
-        String(code || "").trim().toLowerCase()
+        norm(item.id) === norm(code)
       );
 
       if (!report) {
         throw new Error("Codice pratica non trovato.");
       }
 
-      const [timelineResult, communicationsResult] = await Promise.all([
+      const [timelineResult, communicationResult] = await Promise.all([
         apiGet("getTimeline", {reportId:report.id})
           .catch(() => ({ok:false,timeline:[]})),
         apiGet("getCommunications", {
@@ -752,16 +905,15 @@
       renderReport(
         report,
         timelineResult.ok ? timelineResult.timeline || [] : [],
-        communicationsResult.ok
-          ? communicationsResult.comunicazioni || []
+        communicationResult.ok
+          ? communicationResult.comunicazioni || []
           : []
       );
 
       searchMessage.className = "message info";
-      searchMessage.textContent =
-        "Pratica trovata. Visualizzazione aggiornata.";
+      searchMessage.textContent = "Pratica trovata.";
 
-      const url = new URL(window.location.href);
+      const url = new URL(location.href);
       url.searchParams.set("id", report.id);
       history.replaceState(null, "", url);
 
@@ -772,7 +924,7 @@
 
     } finally {
       searchBtn.disabled = false;
-      searchBtn.textContent = "Cerca pratica";
+      searchBtn.textContent = "⌕ Cerca";
     }
   }
 
@@ -788,6 +940,15 @@
     }
 
     searchReport(code);
+  });
+
+  copyCodeBtn.addEventListener("click", () => {
+    if (!currentReport) return;
+
+    navigator.clipboard.writeText(currentReport.id || "").then(() => {
+      copyCodeBtn.textContent = "Codice copiato";
+      setTimeout(() => copyCodeBtn.textContent = "Copia codice", 1600);
+    });
   });
 
   const queryId = new URLSearchParams(location.search).get("id");
