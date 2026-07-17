@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Centro Notifiche PRO — FDI Ascolta IX CRM</title>
+<link rel="stylesheet" href="assets/css/crm-shell.css?v=201">
+<style>
+:root{
+  --blue:#082f6a;--blue2:#0b4c99;--gold:#e9b900;--bg:#f4f7fb;--line:#dfe6ef;
+  --text:#102342;--muted:#67758c;--green:#159447;--orange:#ef6c00;--red:#c62828;
+  --shadow:0 12px 34px rgba(15,36,69,.09)
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif}
+.topbar{min-height:74px;background:linear-gradient(135deg,#082f6a,#0b438b);border-bottom:4px solid var(--gold);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 28px}
+.brand strong{display:block;font-size:1.1rem}.brand small{display:block;margin-top:4px;color:#ffd91a;font-weight:900;letter-spacing:.08em}
+.version{padding:9px 13px;border-radius:999px;background:rgba(255,255,255,.12);font-size:.78rem;font-weight:900}
+.page{max-width:1300px;margin:auto;padding:24px}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:18px}
+.head h1{margin:0;color:var(--blue);font-size:1.8rem}.head p{margin:6px 0 0;color:var(--muted)}
+.actions{display:flex;gap:9px;flex-wrap:wrap}
+.btn{min-height:42px;padding:0 14px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--blue);font-weight:900;cursor:pointer}
+.btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow)}
+.kpi span{display:block;color:var(--muted);font-size:.74rem;font-weight:900;text-transform:uppercase}.kpi b{display:block;margin-top:7px;color:var(--blue);font-size:1.7rem}
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);gap:16px}
+.panel,.feed{background:#fff;border:1px solid var(--line);border-radius:17px;box-shadow:var(--shadow);overflow:hidden}
+.panel-head,.feed-head{padding:15px 16px;border-bottom:1px solid var(--line);color:var(--blue);font-weight:950}
+.filters{padding:12px;display:grid;gap:9px}
+.filter{width:100%;min-height:42px;border:1px solid var(--line);border-radius:10px;padding:0 11px;background:#fff;font:inherit}
+.filter-btn{text-align:left}
+.filter-btn.active{background:#eef4ff;border-color:#b8cff1}
+.feed-list{padding:10px;display:grid;gap:9px}
+.notice{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:12px;align-items:start;padding:14px;border:1px solid var(--line);border-radius:14px;background:#fff}
+.notice.unread{background:#f6f9ff;border-color:#c9d9ef}
+.dot{width:10px;height:10px;border-radius:50%;margin-top:5px;background:#b9c3d0}.notice.unread .dot{background:#0b4c99;box-shadow:0 0 0 4px rgba(11,76,153,.11)}
+.notice h3{margin:0;color:var(--blue);font-size:.9rem}.notice p{margin:5px 0;color:var(--muted);font-size:.8rem}.notice small{color:#8792a4}
+.notice-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.link{display:inline-flex;align-items:center;min-height:34px;padding:0 10px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--blue);text-decoration:none;font-size:.72rem;font-weight:900;cursor:pointer}
+.empty{padding:50px 20px;text-align:center;color:var(--muted)}
+.footer{padding:18px;text-align:center;color:var(--muted);font-size:.78rem}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.head{flex-direction:column}}
+@media(max-width:560px){.page{padding:16px 10px}.kpis{grid-template-columns:1fr}.notice{grid-template-columns:10px minmax(0,1fr)}.notice-actions{grid-column:2;justify-content:flex-start}.topbar{padding:14px}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><strong>FDI ASCOLTA IX CRM</strong><small>Centro Notifiche PRO · Municipio IX Roma</small></div>
+  <span class="version">Versione 1.0 RC1</span>
+</header>
+
+<main class="page">
+  <section class="head">
+    <div><h1>Centro Notifiche</h1><p>Aggiornamenti recenti delle pratiche, lettura rapida e apertura diretta.</p></div>
+    <div class="actions">
+      <button class="btn" id="refreshBtn">Aggiorna</button>
+      <button class="btn" id="readAllBtn">Segna tutte come lette</button>
+      <button class="btn primary" id="clearReadBtn">Ripristina non lette</button>
+    </div>
+  </section>
+
+  <section class="kpis">
+    <article class="kpi"><span>Totale notifiche</span><b id="kTotal">0</b></article>
+    <article class="kpi"><span>Non lette</span><b id="kUnread">0</b></article>
+    <article class="kpi"><span>Pratiche attive</span><b id="kActive">0</b></article>
+    <article class="kpi"><span>Aggiornate oggi</span><b id="kToday">0</b></article>
+  </section>
+
+  <section class="layout">
+    <aside class="panel">
+      <div class="panel-head">Filtri</div>
+      <div class="filters">
+        <input class="filter" id="search" placeholder="Cerca pratica o quartiere">
+        <button class="btn filter-btn active" data-filter="all">Tutte</button>
+        <button class="btn filter-btn" data-filter="unread">Non lette</button>
+        <button class="btn filter-btn" data-filter="active">Pratiche attive</button>
+        <button class="btn filter-btn" data-filter="closed">Risolte e archiviate</button>
+        <select class="filter" id="status"><option value="">Tutti gli stati</option></select>
+      </div>
+    </aside>
+
+    <section class="feed">
+      <div class="feed-head">Aggiornamenti recenti</div>
+      <div class="feed-list" id="feed"><div class="empty">Caricamento notifiche...</div></div>
+    </section>
+  </section>
+</main>
+
+<footer class="footer">FDI Ascolta IX CRM — Centro Notifiche PRO v1.0 RC1</footer>
+
+<script>
+const API_FALLBACK="https://script.google.com/macros/s/AKfycbydMX5t3F9r3sHQ3zM3tSH6edMBz_hqGnDiVvK_kisOrSz8kn1pbeoMG00fX_Ei6wd7HQ/exec";
+const READ_KEY="fdi_crm_notifications_read_v1";
+let reports=[],mode="all";
+
+function apiUrl(){return typeof CONFIG!=="undefined"&&CONFIG.API_URL&&CONFIG.API_URL.includes("/macros/s/")?CONFIG.API_URL:API_FALLBACK}
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+function group(s){const v=String(s||"").toLowerCase();if(v.includes("archiv"))return"arch";if(v.includes("risolt"))return"done";if(/presa|assegnata|attesa|ufficio|lavorazione|risposta/.test(v))return"work";return"open"}
+function isClosed(r){return["done","arch"].includes(group(r.stato))}
+function readSet(){try{return new Set(JSON.parse(localStorage.getItem(READ_KEY)||"[]"))}catch(_){return new Set()}}
+function saveRead(set){localStorage.setItem(READ_KEY,JSON.stringify([...set].slice(-500)))}
+function nid(r){return[r.id||"",r.stato||"",r.ultimoAggiornamento||r.dataAggiornamento||r.timestamp||r.dataCreazione||""].join("|")}
+function dateOf(r){for(const v of [r.ultimoAggiornamento,r.dataAggiornamento,r.timestamp,r.dataCreazione,r.data]){if(!v)continue;const d=new Date(v);if(!isNaN(d))return d}return null}
+function sameDay(a,b){return a&&b&&a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate()}
+function fmtDate(d){return d?new Intl.DateTimeFormat("it-IT",{dateStyle:"short",timeStyle:"short"}).format(d):"Data non disponibile"}
+
+function fillStatus(){
+  const vals=[...new Set(reports.map(r=>r.stato).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),"it"));
+  status.innerHTML='<option value="">Tutti gli stati</option>'+vals.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("")
+}
+
+function updateKpis(){
+  const read=readSet(),today=new Date();
+  kTotal.textContent=reports.length;
+  kUnread.textContent=reports.filter(r=>!read.has(nid(r))).length;
+  kActive.textContent=reports.filter(r=>!isClosed(r)).length;
+  kToday.textContent=reports.filter(r=>sameDay(dateOf(r),today)).length;
+}
+
+function markRead(id){
+  const set=readSet();set.add(id);saveRead(set);render()
+}
+
+function render(){
+  const read=readSet(),q=search.value.trim().toLowerCase(),st=status.value;
+  const data=reports.slice().sort((a,b)=>(dateOf(b)?.getTime()||0)-(dateOf(a)?.getTime()||0)).filter(r=>{
+    const unread=!read.has(nid(r));
+    const text=[r.id,r.titolo,r.quartiere,r.indirizzo,r.categoria,r.stato,r.referenteNome].join(" ").toLowerCase();
+    return(!q||text.includes(q))&&(!st||r.stato===st)&&
+      (mode==="all"||mode==="unread"&&unread||mode==="active"&&!isClosed(r)||mode==="closed"&&isClosed(r))
+  });
+
+  feed.innerHTML=data.length?data.map(r=>{
+    const id=nid(r),unread=!read.has(id);
+    return `<article class="notice ${unread?"unread":""}">
+      <span class="dot"></span>
+      <div>
+        <h3>${esc(r.id||"Pratica")} · ${esc(r.stato||"Aggiornamento")}</h3>
+        <p>${esc(r.titolo||r.categoria||"Segnalazione")} — ${esc(r.quartiere||r.indirizzo||"Municipio IX")}</p>
+        <small>${fmtDate(dateOf(r))}${r.referenteNome?" · "+esc(r.referenteNome):""}</small>
+      </div>
+      <div class="notice-actions">
+        ${unread?`<button class="link" onclick='markRead(${JSON.stringify(id)})'>Segna letta</button>`:""}
+        <a class="link" href="pratiche.html?open=${encodeURIComponent(r.id||"")}" onclick='markRead(${JSON.stringify(id)})'>Apri pratica</a>
+        <a class="link" href="tracking.html?id=${encodeURIComponent(r.id||"")}" onclick='markRead(${JSON.stringify(id)})'>Tracking</a>
+      </div>
+    </article>`
+  }).join(""):'<div class="empty">Nessuna notifica corrisponde ai filtri.</div>';
+  updateKpis()
+}
+
+async function load(){
+  refreshBtn.disabled=true;refreshBtn.textContent="Aggiornamento...";
+  try{
+    const u=new URL(apiUrl());u.searchParams.set("action","listReports");u.searchParams.set("_",Date.now());
+    const r=await fetch(u,{cache:"no-store",redirect:"follow"}),j=await r.json();
+    if(!r.ok||!j.ok)throw new Error(j.error||"Errore caricamento");
+    reports=j.reports||[];fillStatus();render()
+  }catch(e){feed.innerHTML=`<div class="empty">${esc(e.message)}</div>`}
+  finally{refreshBtn.disabled=false;refreshBtn.textContent="Aggiorna"}
+}
+
+document.querySelectorAll("[data-filter]").forEach(btn=>btn.onclick=()=>{
+  document.querySelectorAll("[data-filter]").forEach(x=>x.classList.remove("active"));
+  btn.classList.add("active");mode=btn.dataset.filter;render()
+});
+search.oninput=render;status.onchange=render;refreshBtn.onclick=load;
+readAllBtn.onclick=()=>{const set=readSet();reports.forEach(r=>set.add(nid(r)));saveRead(set);render()};
+clearReadBtn.onclick=()=>{localStorage.removeItem(READ_KEY);render()};
+load();setInterval(load,60000);
+</script>
+<script src="assets/js/crm-shell.js?v=203"></script>
+</body>
+</html>
