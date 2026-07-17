@@ -3,10 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mappa Operativa PRO v1.0 RC1 — FDI Ascolta IX CRM</title>
+<title>Sala Operativa PRO v1.1 RC1 — FDI Ascolta IX CRM</title>
 <link rel="stylesheet" href="assets/css/style.css">
 <link rel="stylesheet" href="assets/css/theme-fdi.css?v=140">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
 <style>
 :root{--blue:#082f6a;--blue2:#0b4c99;--gold:#d3a400;--bg:#f4f7fb;--card:#fff;--line:#dfe6ef;--ink:#102342;--muted:#67758c;--red:#c62828;--orange:#ef6c00;--green:#159447;--gray:#667085;--shadow:0 12px 32px rgba(15,36,69,.08)}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif}
@@ -25,16 +27,56 @@
 .custom-marker{width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 4px 12px rgba(0,0,0,.22);display:grid;place-items:center}.custom-marker span{transform:rotate(45deg);font-size:15px}
 .loading,.error{padding:20px;text-align:center;color:var(--muted)}.error{color:#a82323;background:#fff0f0}.footer{margin-top:18px;background:var(--blue);color:#fff;padding:14px;text-align:center}
 @media(max-width:1050px){.workspace{grid-template-columns:1fr}.map-wrap{height:540px}.kpis{grid-template-columns:repeat(2,1fr)}}@media(max-width:700px){.topbar{align-items:flex-start;flex-direction:column;padding:15px}.page{padding:14px}.kpis{grid-template-columns:1fr}.filter-actions{grid-template-columns:1fr}.map-wrap{height:460px}}
+
+.ops-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;padding:13px 15px;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+.ops-left,.ops-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.live-pill{display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:0 12px;border-radius:999px;background:#eaf8ee;color:#11763a;font-weight:950}
+.live-dot{width:9px;height:9px;border-radius:50%;background:#20a657;box-shadow:0 0 0 5px rgba(32,166,87,.12)}
+.tool-btn{min-height:40px;padding:0 13px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--blue);font-weight:900;cursor:pointer}
+.tool-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.refresh-label{color:var(--muted);font-size:.82rem}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px;border-top:1px solid var(--line)}
+.mini-stat{padding:12px;border:1px solid var(--line);border-radius:12px;background:#fbfcfe}
+.mini-stat b{display:block;color:var(--blue);font-size:1.1rem}.mini-stat span{color:var(--muted);font-size:.75rem}
+.category-bars{padding:14px;border-top:1px solid var(--line);display:grid;gap:10px}
+.category-row{display:grid;grid-template-columns:minmax(0,1fr) 38px;gap:8px;align-items:center}
+.category-label{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:.79rem}
+.category-track{height:7px;background:#edf1f6;border-radius:999px;overflow:hidden;margin-top:4px}
+.category-fill{height:100%;background:linear-gradient(90deg,var(--blue2),#3f7fc8);border-radius:999px}
+.cluster-icon{background:transparent;border:0}
+.cluster-bubble{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:var(--blue);color:#fff;border:4px solid rgba(255,255,255,.92);box-shadow:0 5px 16px rgba(8,47,106,.32);font-weight:950}
+.toast{position:fixed;right:20px;bottom:20px;z-index:2000;max-width:340px;padding:13px 16px;border-radius:13px;background:#102342;color:#fff;box-shadow:0 14px 34px rgba(0,0,0,.22);opacity:0;transform:translateY(10px);pointer-events:none;transition:.25s}
+.toast.show{opacity:1;transform:translateY(0)}
+@media(max-width:700px){.ops-toolbar{align-items:flex-start;flex-direction:column}.ops-right{width:100%}.tool-btn{flex:1}.stats-grid{grid-template-columns:1fr 1fr}}
+
 </style>
 </head>
 <body>
 <header class="topbar">
-<div class="brand"><strong>FDI ASCOLTA IX CRM</strong><small>Mappa Operativa · Municipio IX Roma</small></div>
-<div class="top-actions"><span class="version-pill">Versione 1.0 RC1</span><a class="nav-btn" href="dashboard.html">▦ Dashboard</a><a class="nav-btn" href="pratiche.html">▣ Pratiche</a><a class="nav-btn" href="uffici.html">🏛 Uffici</a></div>
+<div class="brand"><strong>FDI ASCOLTA IX CRM</strong><small>Sala Operativa · Municipio IX Roma</small></div>
+<div class="top-actions"><span class="version-pill">Versione 1.1 RC1</span><a class="nav-btn" href="dashboard.html">▦ Dashboard</a><a class="nav-btn" href="pratiche.html">▣ Pratiche</a><a class="nav-btn" href="uffici.html">🏛 Uffici</a></div>
 </header>
 
 <main class="page">
-<section class="page-head"><div class="title-icon">🗺</div><div><h1>Mappa Operativa</h1><p>Vista geografica delle segnalazioni del Municipio IX.</p></div></section>
+<section class="page-head"><div class="title-icon">🗺</div><div><h1>Sala Operativa</h1><p>Mappa, densità territoriale e aggiornamento automatico delle segnalazioni.</p></div></section>
+
+<section class="ops-toolbar">
+  <div class="ops-left">
+    <span class="live-pill"><span class="live-dot"></span> Sistema operativo</span>
+    <span class="refresh-label" id="lastRefresh">Ultimo aggiornamento: —</span>
+  </div>
+  <div class="ops-right">
+    <button class="tool-btn active" id="clusterBtn" type="button">Cluster attivi</button>
+    <button class="tool-btn" id="heatBtn" type="button">Heatmap</button>
+    <button class="tool-btn" id="refreshBtn" type="button">Aggiorna ora</button>
+    <select id="refreshInterval" class="tool-btn" aria-label="Intervallo aggiornamento">
+      <option value="0">Auto-refresh disattivato</option>
+      <option value="30000">Ogni 30 secondi</option>
+      <option value="60000" selected>Ogni 60 secondi</option>
+      <option value="120000">Ogni 2 minuti</option>
+    </select>
+  </div>
+</section>
 
 <section class="kpis">
 <div class="kpi open"><div class="kpi-icon">●</div><div><b id="kpiOpen">0</b><span>Aperte</span></div></div>
@@ -61,6 +103,15 @@
 <div class="legend-row"><span class="dot green"></span>Risolta</div>
 <div class="legend-row"><span class="dot gray"></span>Archiviata</div>
 </div>
+
+<div class="stats-grid">
+  <div class="mini-stat"><b id="geoCount">0</b><span>Con coordinate</span></div>
+  <div class="mini-stat"><b id="noGeoCount">0</b><span>Senza coordinate</span></div>
+  <div class="mini-stat"><b id="neighborhoodCount">0</b><span>Quartieri attivi</span></div>
+  <div class="mini-stat"><b id="priorityCount">0</b><span>Alta priorità</span></div>
+</div>
+
+<div class="category-bars" id="categoryBars"></div>
 </aside>
 
 <section>
@@ -73,34 +124,378 @@
 </section>
 </main>
 
-<footer class="footer">FDI Ascolta IX CRM — Mappa Operativa PRO v1.0 RC1</footer>
+<footer class="footer">FDI Ascolta IX CRM — Sala Operativa PRO v1.1 RC1</footer><div class="toast" id="toast"></div>
 
 <script src="assets/js/config.js?v=mappa140"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <script>
 const FALLBACK_API_URL="https://script.google.com/macros/s/AKfycbydMX5t3F9r3sHQ3zM3tSH6edMBz_hqGnDiVvK_kisOrSz8kn1pbeoMG00fX_Ei6wd7HQ/exec";
-let reports=[],filtered=[],map,markersLayer,selectedId=null;const markerById=new Map();
 
-function apiUrl(){return typeof CONFIG!=="undefined"&&CONFIG.API_URL&&CONFIG.API_URL.includes("/macros/s/")?CONFIG.API_URL:FALLBACK_API_URL}
-async function apiGet(action){const url=new URL(apiUrl());url.searchParams.set("action",action);url.searchParams.set("_",Date.now());const r=await fetch(url,{cache:"no-store",redirect:"follow"});if(!r.ok)throw new Error("Errore API HTTP "+r.status);return r.json()}
-function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
-function uniq(field){return [...new Set(reports.map(r=>r[field]).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),"it"))}
-function fill(id,values){const s=document.getElementById(id),first=s.options[0].outerHTML;s.innerHTML=first+values.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("")}
-function statusGroup(s){const v=String(s||"").toLowerCase();if(v.includes("archiv"))return"arch";if(v.includes("risolt"))return"done";if(/presa|assegnata|attesa|ufficio|lavorazione|risposta/.test(v))return"work";return"open"}
-function colorFor(s){return{open:"#c62828",work:"#ef6c00",done:"#159447",arch:"#667085"}[statusGroup(s)]}
-function iconFor(c){const v=String(c||"").toLowerCase();if(v.includes("buca")||v.includes("strad"))return"🕳";if(v.includes("verde"))return"🌳";if(v.includes("illumin"))return"💡";if(v.includes("rifiut"))return"🗑";if(v.includes("viabil"))return"🚧";if(v.includes("segnalet"))return"🚦";if(v.includes("scuol"))return"🏫";return"📍"}
-function markerIcon(r){return L.divIcon({className:"",html:`<div class="custom-marker" style="background:${colorFor(r.stato)}"><span>${iconFor(r.categoria)}</span></div>`,iconSize:[34,34],iconAnchor:[17,34],popupAnchor:[0,-30]})}
-function validCoords(r){const lat=Number(r.latitudine),lng=Number(r.longitudine);return Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=40&&lat<=43&&lng>=10&&lng<=15}
-function popupHtml(r){return `<div class="popup"><h3>${esc(r.titolo||"Pratica")}</h3><p><b>${esc(r.id)}</b></p><p>${esc(r.indirizzo||r.quartiere||"Posizione non indicata")}</p><p><b>Stato:</b> ${esc(r.stato||"—")}</p><p><b>Priorità:</b> ${esc(r.priorita||"Media")}</p><p><b>Consigliere:</b> ${esc(r.referenteNome||"Non assegnato")}</p><div class="popup-actions"><a class="open-link" href="pratiche.html?open=${encodeURIComponent(r.id)}">Apri pratica</a><a class="track-link" href="tracking.html?id=${encodeURIComponent(r.id)}">Tracking</a></div></div>`}
-function initMap(){map=L.map("map").setView([41.79,12.47],12);L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"&copy; OpenStreetMap"}).addTo(map);markersLayer=L.layerGroup().addTo(map)}
-function renderMap(){markersLayer.clearLayers();markerById.clear();const bounds=[];filtered.filter(validCoords).forEach(r=>{const lat=Number(r.latitudine),lng=Number(r.longitudine),m=L.marker([lat,lng],{icon:markerIcon(r)}).bindPopup(popupHtml(r));m.on("click",()=>{selectedId=r.id;renderTable()});m.addTo(markersLayer);markerById.set(r.id,m);bounds.push([lat,lng])});if(bounds.length)map.fitBounds(bounds,{padding:[30,30],maxZoom:15});setTimeout(()=>map.invalidateSize(),100)}
-function renderTable(){tableBody.innerHTML=filtered.map(r=>`<tr class="${selectedId===r.id?"selected":""}" onclick="focusReport('${esc(r.id)}')"><td>${esc(r.id)}</td><td>${esc(r.titolo||"—")}</td><td>${esc(r.quartiere||"—")}</td><td>${esc(r.categoria||"—")}</td><td><span class="status ${statusGroup(r.stato)}">${esc(r.stato||"—")}</span></td><td>${esc(r.priorita||"Media")}</td></tr>`).join("")||'<tr><td colspan="6">Nessuna pratica trovata.</td></tr>';tableCount.textContent=filtered.length;visibleCount.textContent=filtered.length}
-function updateKpis(){const count=g=>reports.filter(r=>statusGroup(r.stato)===g).length;kpiOpen.textContent=count("open");kpiWork.textContent=count("work");kpiDone.textContent=count("done");kpiArch.textContent=count("arch")}
-function applyFilters(){const query=q.value.trim().toLowerCase();filtered=reports.filter(r=>{const text=[r.id,r.titolo,r.indirizzo,r.quartiere,r.categoria,r.stato,r.priorita,r.referenteNome].join(" ").toLowerCase();return(!query||text.includes(query))&&(!fStato.value||r.stato===fStato.value)&&(!fCategoria.value||r.categoria===fCategoria.value)&&(!fQuartiere.value||r.quartiere===fQuartiere.value)&&(!fPriorita.value||r.priorita===fPriorita.value)&&(!fReferente.value||r.referenteNome===fReferente.value)});selectedId=null;renderMap();renderTable()}
-function resetFilters(){q.value="";[fStato,fCategoria,fQuartiere,fPriorita,fReferente].forEach(s=>s.value="");applyFilters()}
-function focusReport(id){selectedId=id;const m=markerById.get(id),r=filtered.find(x=>x.id===id);if(m&&r){map.setView([Number(r.latitudine),Number(r.longitudine)],16);m.openPopup()}renderTable()}
-async function boot(){initMap();try{const result=await apiGet("listReports");if(!result.ok)throw new Error(result.error||"Errore caricamento pratiche");reports=result.reports||[];filtered=reports.slice();fill("fStato",uniq("stato"));fill("fCategoria",uniq("categoria"));fill("fQuartiere",uniq("quartiere"));fill("fPriorita",uniq("priorita"));fill("fReferente",uniq("referenteNome"));updateKpis();renderMap();renderTable()}catch(e){tableBody.innerHTML=`<tr><td colspan="6"><div class="error">${esc(e.message)}</div></td></tr>`}}
-q.addEventListener("input",applyFilters);[fStato,fCategoria,fQuartiere,fPriorita,fReferente].forEach(s=>s.addEventListener("change",applyFilters));applyBtn.addEventListener("click",applyFilters);resetBtn.addEventListener("click",resetFilters);boot();
+let reports=[];
+let filtered=[];
+let map;
+let clusterLayer;
+let heatLayer;
+let selectedId=null;
+let refreshTimer=null;
+let clusterEnabled=true;
+let heatEnabled=false;
+let firstLoad=true;
+const markerById=new Map();
+
+function apiUrl(){
+  return typeof CONFIG!=="undefined"&&CONFIG.API_URL&&CONFIG.API_URL.includes("/macros/s/")
+    ? CONFIG.API_URL
+    : FALLBACK_API_URL;
+}
+
+async function apiGet(action){
+  const url=new URL(apiUrl());
+  url.searchParams.set("action",action);
+  url.searchParams.set("_",Date.now());
+  const r=await fetch(url,{cache:"no-store",redirect:"follow"});
+  if(!r.ok) throw new Error("Errore API HTTP "+r.status);
+  return r.json();
+}
+
+function esc(v){
+  return String(v??"").replace(/[&<>"']/g,c=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[c]));
+}
+
+function uniq(field){
+  return [...new Set(reports.map(r=>r[field]).filter(Boolean))]
+    .sort((a,b)=>String(a).localeCompare(String(b),"it"));
+}
+
+function fill(id,values){
+  const s=document.getElementById(id);
+  const current=s.value;
+  const first=s.options[0].outerHTML;
+  s.innerHTML=first+values.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("");
+  if([...s.options].some(o=>o.value===current)) s.value=current;
+}
+
+function statusGroup(s){
+  const v=String(s||"").toLowerCase();
+  if(v.includes("archiv")) return "arch";
+  if(v.includes("risolt")) return "done";
+  if(/presa|assegnata|attesa|ufficio|lavorazione|risposta/.test(v)) return "work";
+  return "open";
+}
+
+function colorFor(s){
+  return {open:"#c62828",work:"#ef6c00",done:"#159447",arch:"#667085"}[statusGroup(s)];
+}
+
+function iconFor(c){
+  const v=String(c||"").toLowerCase();
+  if(v.includes("buca")||v.includes("strad")) return "🕳";
+  if(v.includes("verde")) return "🌳";
+  if(v.includes("illumin")) return "💡";
+  if(v.includes("rifiut")) return "🗑";
+  if(v.includes("viabil")) return "🚧";
+  if(v.includes("segnalet")) return "🚦";
+  if(v.includes("scuol")) return "🏫";
+  return "📍";
+}
+
+function markerIcon(r){
+  return L.divIcon({
+    className:"",
+    html:`<div class="custom-marker" style="background:${colorFor(r.stato)}"><span>${iconFor(r.categoria)}</span></div>`,
+    iconSize:[34,34],
+    iconAnchor:[17,34],
+    popupAnchor:[0,-30]
+  });
+}
+
+function validCoords(r){
+  const lat=Number(r.latitudine);
+  const lng=Number(r.longitudine);
+  return Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=40&&lat<=43&&lng>=10&&lng<=15;
+}
+
+function popupHtml(r){
+  return `<div class="popup">
+    <h3>${esc(r.titolo||"Pratica")}</h3>
+    <p><b>${esc(r.id)}</b></p>
+    <p>${esc(r.indirizzo||r.quartiere||"Posizione non indicata")}</p>
+    <p><b>Stato:</b> ${esc(r.stato||"—")}</p>
+    <p><b>Priorità:</b> ${esc(r.priorita||"Media")}</p>
+    <p><b>Consigliere:</b> ${esc(r.referenteNome||"Non assegnato")}</p>
+    <div class="popup-actions">
+      <a class="open-link" href="pratiche.html?open=${encodeURIComponent(r.id)}">Apri pratica</a>
+      <a class="track-link" href="tracking.html?id=${encodeURIComponent(r.id)}">Tracking</a>
+    </div>
+  </div>`;
+}
+
+function initMap(){
+  map=L.map("map").setView([41.79,12.47],12);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+    attribution:"&copy; OpenStreetMap"
+  }).addTo(map);
+
+  clusterLayer=L.markerClusterGroup({
+    showCoverageOnHover:false,
+    spiderfyOnMaxZoom:true,
+    disableClusteringAtZoom:17,
+    maxClusterRadius:54,
+    iconCreateFunction(cluster){
+      return L.divIcon({
+        html:`<div class="cluster-bubble">${cluster.getChildCount()}</div>`,
+        className:"cluster-icon",
+        iconSize:[46,46]
+      });
+    }
+  });
+
+  heatLayer=L.heatLayer([],{
+    radius:28,
+    blur:22,
+    maxZoom:16,
+    minOpacity:.3
+  });
+}
+
+function renderMap({fit=true}={}){
+  clusterLayer.clearLayers();
+  markerById.clear();
+
+  if(map.hasLayer(clusterLayer)) map.removeLayer(clusterLayer);
+  if(map.hasLayer(heatLayer)) map.removeLayer(heatLayer);
+
+  const bounds=[];
+  const heatPoints=[];
+
+  filtered.filter(validCoords).forEach(r=>{
+    const lat=Number(r.latitudine);
+    const lng=Number(r.longitudine);
+    const marker=L.marker([lat,lng],{icon:markerIcon(r)}).bindPopup(popupHtml(r));
+
+    marker.on("click",()=>{
+      selectedId=r.id;
+      renderTable();
+      const row=document.querySelector(`tr[data-id="${CSS.escape(String(r.id))}"]`);
+      if(row) row.scrollIntoView({behavior:"smooth",block:"nearest"});
+    });
+
+    markerById.set(String(r.id),marker);
+    clusterLayer.addLayer(marker);
+    bounds.push([lat,lng]);
+
+    const weight=statusGroup(r.stato)==="open"?1:
+      statusGroup(r.stato)==="work"?.8:
+      statusGroup(r.stato)==="done"?.45:.25;
+
+    heatPoints.push([lat,lng,weight]);
+  });
+
+  heatLayer.setLatLngs(heatPoints);
+
+  if(clusterEnabled) clusterLayer.addTo(map);
+  if(heatEnabled) heatLayer.addTo(map);
+
+  if(fit&&bounds.length){
+    map.fitBounds(bounds,{padding:[30,30],maxZoom:15});
+  }
+
+  setTimeout(()=>map.invalidateSize(),100);
+}
+
+function renderTable(){
+  tableBody.innerHTML=filtered.map(r=>`
+    <tr data-id="${esc(r.id)}" class="${selectedId===r.id?"selected":""}" onclick="focusReport('${esc(r.id)}')">
+      <td>${esc(r.id)}</td>
+      <td>${esc(r.titolo||"—")}</td>
+      <td>${esc(r.quartiere||"—")}</td>
+      <td>${esc(r.categoria||"—")}</td>
+      <td><span class="status ${statusGroup(r.stato)}">${esc(r.stato||"—")}</span></td>
+      <td>${esc(r.priorita||"Media")}</td>
+    </tr>
+  `).join("")||'<tr><td colspan="6">Nessuna pratica trovata.</td></tr>';
+
+  tableCount.textContent=filtered.length;
+  visibleCount.textContent=filtered.length;
+}
+
+function updateKpis(){
+  const count=g=>reports.filter(r=>statusGroup(r.stato)===g).length;
+  kpiOpen.textContent=count("open");
+  kpiWork.textContent=count("work");
+  kpiDone.textContent=count("done");
+  kpiArch.textContent=count("arch");
+
+  geoCount.textContent=reports.filter(validCoords).length;
+  noGeoCount.textContent=reports.filter(r=>!validCoords(r)).length;
+  neighborhoodCount.textContent=new Set(reports.map(r=>r.quartiere).filter(Boolean)).size;
+  priorityCount.textContent=reports.filter(r=>/alta|urgente|critica/i.test(String(r.priorita||""))).length;
+
+  renderCategoryBars();
+}
+
+function renderCategoryBars(){
+  const counts={};
+  reports.forEach(r=>{
+    const key=String(r.categoria||"Altro").trim()||"Altro";
+    counts[key]=(counts[key]||0)+1;
+  });
+
+  const top=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const max=top[0]?.[1]||1;
+
+  categoryBars.innerHTML=top.length
+    ? `<div style="font-weight:950;color:var(--blue);font-size:.82rem">Categorie principali</div>`+
+      top.map(([name,count])=>`
+        <div class="category-row">
+          <div>
+            <div class="category-label"><span>${esc(name)}</span><span>${count}</span></div>
+            <div class="category-track"><div class="category-fill" style="width:${Math.round(count/max*100)}%"></div></div>
+          </div>
+          <div style="text-align:right;font-weight:900;color:var(--blue)">${iconFor(name)}</div>
+        </div>
+      `).join("")
+    : '<div class="loading">Nessuna categoria disponibile.</div>';
+}
+
+function applyFilters({fit=true}={}){
+  const query=q.value.trim().toLowerCase();
+
+  filtered=reports.filter(r=>{
+    const text=[
+      r.id,r.titolo,r.indirizzo,r.quartiere,r.categoria,
+      r.stato,r.priorita,r.referenteNome
+    ].join(" ").toLowerCase();
+
+    return (!query||text.includes(query)) &&
+      (!fStato.value||r.stato===fStato.value) &&
+      (!fCategoria.value||r.categoria===fCategoria.value) &&
+      (!fQuartiere.value||r.quartiere===fQuartiere.value) &&
+      (!fPriorita.value||r.priorita===fPriorita.value) &&
+      (!fReferente.value||r.referenteNome===fReferente.value);
+  });
+
+  selectedId=null;
+  renderMap({fit});
+  renderTable();
+}
+
+function resetFilters(){
+  q.value="";
+  [fStato,fCategoria,fQuartiere,fPriorita,fReferente].forEach(s=>s.value="");
+  applyFilters();
+}
+
+function focusReport(id){
+  selectedId=id;
+  const marker=markerById.get(String(id));
+  const r=filtered.find(x=>String(x.id)===String(id));
+
+  if(marker&&r){
+    map.setView([Number(r.latitudine),Number(r.longitudine)],16);
+    if(clusterEnabled) clusterLayer.zoomToShowLayer(marker,()=>marker.openPopup());
+    else marker.openPopup();
+  } else {
+    showToast("Questa pratica non dispone di coordinate geografiche.");
+  }
+
+  renderTable();
+}
+
+function showToast(message){
+  toast.textContent=message;
+  toast.classList.add("show");
+  clearTimeout(showToast.timer);
+  showToast.timer=setTimeout(()=>toast.classList.remove("show"),3000);
+}
+
+function updateRefreshLabel(){
+  lastRefresh.textContent="Ultimo aggiornamento: "+new Intl.DateTimeFormat("it-IT",{
+    hour:"2-digit",minute:"2-digit",second:"2-digit"
+  }).format(new Date());
+}
+
+function configureAutoRefresh(){
+  clearInterval(refreshTimer);
+  const delay=Number(refreshInterval.value);
+  if(delay>0){
+    refreshTimer=setInterval(()=>loadReports(false),delay);
+  }
+}
+
+async function loadReports(fit=true){
+  refreshBtn.disabled=true;
+  refreshBtn.textContent="Aggiornamento...";
+
+  try{
+    const result=await apiGet("listReports");
+    if(!result.ok) throw new Error(result.error||"Errore caricamento pratiche");
+
+    const previousIds=new Set(reports.map(r=>String(r.id)));
+    const nextReports=result.reports||[];
+    const newItems=firstLoad?[]:nextReports.filter(r=>!previousIds.has(String(r.id)));
+
+    reports=nextReports;
+
+    fill("fStato",uniq("stato"));
+    fill("fCategoria",uniq("categoria"));
+    fill("fQuartiere",uniq("quartiere"));
+    fill("fPriorita",uniq("priorita"));
+    fill("fReferente",uniq("referenteNome"));
+
+    updateKpis();
+    applyFilters({fit:firstLoad?true:fit});
+    updateRefreshLabel();
+
+    if(newItems.length){
+      showToast(`${newItems.length} nuova${newItems.length===1?" pratica":" pratiche"} rilevata${newItems.length===1?"":"e"}.`);
+    }else if(!firstLoad){
+      showToast("Dati aggiornati.");
+    }
+
+    firstLoad=false;
+  }catch(e){
+    tableBody.innerHTML=`<tr><td colspan="6"><div class="error">${esc(e.message)}</div></td></tr>`;
+    showToast("Aggiornamento non riuscito.");
+  }finally{
+    refreshBtn.disabled=false;
+    refreshBtn.textContent="Aggiorna ora";
+  }
+}
+
+function toggleCluster(){
+  clusterEnabled=!clusterEnabled;
+  clusterBtn.classList.toggle("active",clusterEnabled);
+  clusterBtn.textContent=clusterEnabled?"Cluster attivi":"Cluster disattivi";
+  renderMap({fit:false});
+}
+
+function toggleHeat(){
+  heatEnabled=!heatEnabled;
+  heatBtn.classList.toggle("active",heatEnabled);
+  heatBtn.textContent=heatEnabled?"Heatmap attiva":"Heatmap";
+  renderMap({fit:false});
+}
+
+q.addEventListener("input",()=>applyFilters({fit:false}));
+[fStato,fCategoria,fQuartiere,fPriorita,fReferente].forEach(
+  s=>s.addEventListener("change",()=>applyFilters())
+);
+applyBtn.addEventListener("click",()=>applyFilters());
+resetBtn.addEventListener("click",resetFilters);
+clusterBtn.addEventListener("click",toggleCluster);
+heatBtn.addEventListener("click",toggleHeat);
+refreshBtn.addEventListener("click",()=>loadReports(false));
+refreshInterval.addEventListener("change",configureAutoRefresh);
+
+initMap();
+loadReports(true);
+configureAutoRefresh();
 </script>
 </body>
 </html>
