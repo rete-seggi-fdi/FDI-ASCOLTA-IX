@@ -6,6 +6,7 @@
     ["dashboard.html","▦","Dashboard"],
     ["pratiche.html","▣","Pratiche"],
     ["mappa.html","🗺","Sala Operativa"],
+    ["analytics.html","◔","Analytics"],
     ["uffici.html","🏛","Uffici"],
     ["configurazione.html","⚙","Configurazione"]
   ];
