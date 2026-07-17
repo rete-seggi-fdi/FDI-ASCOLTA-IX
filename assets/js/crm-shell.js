@@ -7,6 +7,7 @@
     ["pratiche.html","▣","Pratiche"],
     ["mappa.html","🗺","Sala Operativa"],
     ["analytics.html","◔","Analytics"],
+    ["notifiche.html","🔔","Notifiche"],
     ["uffici.html","🏛","Uffici"],
     ["configurazione.html","⚙","Configurazione"]
   ];
@@ -129,24 +130,96 @@
       const reports=await ensureData();
       const badge=document.getElementById("crmOpenBadge");
       if(badge) badge.textContent=reports.filter(r=>isOpen(r.stato)).length;
+      updateNotifyBadge(reports);
     }catch(_){}
+  }
+
+  const NOTIFY_READ_KEY="fdi_crm_notifications_read_v1";
+  const NOTIFY_SNAPSHOT_KEY="fdi_crm_notifications_snapshot_v1";
+
+  function readSet(){
+    try{return new Set(JSON.parse(localStorage.getItem(NOTIFY_READ_KEY)||"[]"))}
+    catch(_){return new Set()}
+  }
+
+  function saveReadSet(set){
+    localStorage.setItem(NOTIFY_READ_KEY,JSON.stringify([...set].slice(-500)));
+  }
+
+  function notificationId(r){
+    return [
+      r.id||"",
+      r.stato||"",
+      r.ultimoAggiornamento||r.dataAggiornamento||r.timestamp||r.dataCreazione||""
+    ].join("|");
+  }
+
+  function notificationDate(r){
+    const raw=r.ultimoAggiornamento||r.dataAggiornamento||r.timestamp||r.dataCreazione||r.data||"";
+    const d=new Date(raw);
+    return isNaN(d)?null:d;
+  }
+
+  function notificationItems(data){
+    return data.slice().sort((a,b)=>{
+      const da=notificationDate(a),db=notificationDate(b);
+      return (db?db.getTime():0)-(da?da.getTime():0);
+    });
+  }
+
+  function updateNotifyBadge(data){
+    const read=readSet();
+    const unread=notificationItems(data).filter(r=>!read.has(notificationId(r))).length;
+    const dot=document.querySelector(".crm-alert-dot");
+    if(dot){
+      dot.style.display=unread?"block":"none";
+      dot.title=unread+" notifiche non lette";
+    }
+    const sidebarLink=[...document.querySelectorAll(".crm-nav a")].find(a=>a.getAttribute("href")==="notifiche.html");
+    if(sidebarLink){
+      let badge=sidebarLink.querySelector(".crm-nav-badge");
+      if(unread&&!badge){
+        badge=document.createElement("span");
+        badge.className="crm-nav-badge";
+        sidebarLink.appendChild(badge);
+      }
+      if(badge){
+        badge.textContent=unread>99?"99+":String(unread);
+        badge.style.display=unread?"grid":"none";
+      }
+    }
+    return unread;
   }
 
   async function renderNotifications(){
     const box=document.getElementById("crmNotifyList");
     try{
-      const data=(await ensureData())
-        .slice()
-        .sort((a,b)=>String(b.dataCreazione||b.timestamp||"").localeCompare(String(a.dataCreazione||a.timestamp||"")))
-        .slice(0,8);
+      const data=notificationItems(await ensureData()).slice(0,10);
+      const read=readSet();
+      updateNotifyBadge(cache);
 
       box.innerHTML=data.length
-        ? data.map(r=>`
-          <div class="crm-notify-item">
-            <b>${esc(r.id||"Nuova pratica")} · ${esc(r.stato||"Aggiornamento")}</b>
-            <p>${esc(r.titolo||r.categoria||"Segnalazione")} — ${esc(r.quartiere||r.indirizzo||"Municipio IX")}</p>
-          </div>`).join("")
+        ? data.map(r=>{
+            const nid=notificationId(r);
+            const unread=!read.has(nid);
+            return `
+              <a class="crm-notify-item" data-notification-id="${esc(nid)}"
+                 href="pratiche.html?open=${encodeURIComponent(r.id||"")}"
+                 style="display:block;text-decoration:none;background:${unread?"#f6f9ff":"#fff"}">
+                <b>${unread?"● ":""}${esc(r.id||"Nuova pratica")} · ${esc(r.stato||"Aggiornamento")}</b>
+                <p>${esc(r.titolo||r.categoria||"Segnalazione")} — ${esc(r.quartiere||r.indirizzo||"Municipio IX")}</p>
+              </a>`;
+          }).join("")+
+          '<div style="padding:12px;text-align:center"><a href="notifiche.html" style="font-weight:900;color:#082f6a;text-decoration:none">Apri Centro Notifiche →</a></div>'
         : '<div class="crm-empty">Nessuna notifica disponibile.</div>';
+
+      box.querySelectorAll("[data-notification-id]").forEach(link=>{
+        link.addEventListener("click",()=>{
+          const set=readSet();
+          set.add(link.dataset.notificationId);
+          saveReadSet(set);
+        });
+      });
     }catch(_){
       box.innerHTML='<div class="crm-empty">Impossibile caricare le notifiche.</div>';
     }
@@ -222,4 +295,11 @@
   }catch(_){}
 
   loadBadge();
+
+  setInterval(async()=>{
+    try{
+      cache=await getReports();
+      loadBadge();
+    }catch(_){}
+  },60000);
 })();
