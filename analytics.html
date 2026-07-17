@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Analytics PRO — FDI Ascolta IX CRM</title>
+<link rel="stylesheet" href="assets/css/crm-shell.css?v=201">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --blue:#082f6a;--blue2:#0b4c99;--gold:#e9b900;--bg:#f4f7fb;--line:#dfe6ef;
+  --text:#102342;--muted:#67758c;--green:#159447;--orange:#ef6c00;--red:#c62828;
+  --shadow:0 12px 34px rgba(15,36,69,.09)
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif}
+.topbar{min-height:74px;background:linear-gradient(135deg,#082f6a,#0b438b);border-bottom:4px solid var(--gold);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 28px}
+.brand strong{display:block;font-size:1.1rem}.brand small{display:block;margin-top:4px;color:#ffd91a;font-weight:900;letter-spacing:.08em}
+.version{padding:9px 13px;border-radius:999px;background:rgba(255,255,255,.12);font-size:.78rem;font-weight:900}
+.page{max-width:1520px;margin:auto;padding:24px}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:18px}
+.head h1{margin:0;color:var(--blue);font-size:1.8rem}.head p{margin:6px 0 0;color:var(--muted)}
+.actions{display:flex;gap:9px;flex-wrap:wrap}
+.btn{min-height:42px;padding:0 14px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--blue);font-weight:900;cursor:pointer}
+.btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.filters{display:grid;grid-template-columns:1.3fr repeat(4,minmax(150px,1fr)) auto;gap:10px;padding:14px;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);margin-bottom:16px}
+.filters input,.filters select{width:100%;min-height:42px;border:1px solid var(--line);border-radius:10px;padding:0 11px;background:#fff;color:var(--text);font:inherit}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.kpi{position:relative;overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow)}
+.kpi::after{content:"";position:absolute;right:-20px;bottom:-24px;width:80px;height:80px;border-radius:50%;background:rgba(11,76,153,.06)}
+.kpi span{display:block;color:var(--muted);font-size:.75rem;font-weight:850;text-transform:uppercase;letter-spacing:.04em}
+.kpi b{display:block;margin-top:8px;color:var(--blue);font-size:1.75rem}.kpi small{display:block;margin-top:5px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;margin-bottom:16px}
+.card{background:#fff;border:1px solid var(--line);border-radius:17px;box-shadow:var(--shadow);overflow:hidden}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 17px;border-bottom:1px solid var(--line)}
+.card-head h2{margin:0;color:var(--blue);font-size:1rem}.card-head span{color:var(--muted);font-size:.76rem}
+.card-body{padding:16px;min-height:330px}
+.chart-wrap{position:relative;height:300px}
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:760px}
+th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;font-size:.82rem}
+th{color:var(--blue);font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;background:#f8fafd;position:sticky;top:0}
+.progress{height:7px;border-radius:999px;background:#edf1f6;overflow:hidden}.progress i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#0b4c99,#3f7fc8)}
+.status{display:inline-flex;padding:5px 8px;border-radius:999px;font-size:.68rem;font-weight:950}
+.status.open{background:#fdeaea;color:#a91d1d}.status.work{background:#fff1e5;color:#b95100}.status.done{background:#e8f7ed;color:#0e7837}.status.arch{background:#edf0f4;color:#526174}
+.loading{display:grid;place-items:center;min-height:220px;color:var(--muted)}
+.footer{padding:18px;text-align:center;color:var(--muted);font-size:.78rem}
+@media(max-width:1280px){.kpis{grid-template-columns:repeat(3,1fr)}.filters{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:900px){.grid{grid-template-columns:1fr}.head{flex-direction:column}.filters{grid-template-columns:1fr 1fr}.kpis{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.page{padding:16px 10px}.filters{grid-template-columns:1fr}.kpis{grid-template-columns:1fr}.topbar{padding:14px}.actions{width:100%}.btn{flex:1}}
+@media print{
+  .crm-sidebar,.crm-top-tools,.crm-mobile-toggle,.actions,.filters{display:none!important}
+  html.crm-shell-ready body{padding-left:0!important}
+  body{background:#fff}.page{max-width:none;padding:0}.card,.kpi{box-shadow:none;break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><strong>FDI ASCOLTA IX CRM</strong><small>Analytics PRO · Municipio IX Roma</small></div>
+  <span class="version">Versione 1.0 RC1</span>
+</header>
+
+<main class="page">
+  <section class="head">
+    <div><h1>Analytics PRO</h1><p>Indicatori territoriali, performance operative e distribuzione delle pratiche.</p></div>
+    <div class="actions">
+      <button class="btn" id="refreshBtn">Aggiorna</button>
+      <button class="btn" id="csvBtn">Esporta CSV</button>
+      <button class="btn primary" onclick="window.print()">Esporta PDF</button>
+    </div>
+  </section>
+
+  <section class="filters">
+    <input id="search" placeholder="Cerca codice, titolo, quartiere, categoria...">
+    <select id="period"><option value="all">Tutto il periodo</option><option value="30">Ultimi 30 giorni</option><option value="90">Ultimi 90 giorni</option><option value="365">Ultimi 12 mesi</option></select>
+    <select id="quartiere"><option value="">Tutti i quartieri</option></select>
+    <select id="categoria"><option value="">Tutte le categorie</option></select>
+    <select id="referente"><option value="">Tutti i consiglieri</option></select>
+    <button class="btn" id="resetBtn">Azzera</button>
+  </section>
+
+  <section class="kpis">
+    <article class="kpi"><span>Totale pratiche</span><b id="kTotal">0</b><small>nel periodo selezionato</small></article>
+    <article class="kpi"><span>Pratiche attive</span><b id="kActive">0</b><small>non concluse</small></article>
+    <article class="kpi"><span>Tasso chiusura</span><b id="kClosure">0%</b><small>risolte e archiviate</small></article>
+    <article class="kpi"><span>Tempo medio chiusura</span><b id="kCloseTime">—</b><small>giorni medi stimati</small></article>
+    <article class="kpi"><span>Alta priorità</span><b id="kPriority">0</b><small>urgenti o critiche</small></article>
+    <article class="kpi"><span>Quartieri coinvolti</span><b id="kAreas">0</b><small>territori con segnalazioni</small></article>
+  </section>
+
+  <section class="grid">
+    <article class="card"><div class="card-head"><h2>Andamento mensile</h2><span>Pratiche ricevute e chiuse</span></div><div class="card-body"><div class="chart-wrap"><canvas id="trendChart"></canvas></div></div></article>
+    <article class="card"><div class="card-head"><h2>Distribuzione per stato</h2><span>Situazione corrente</span></div><div class="card-body"><div class="chart-wrap"><canvas id="statusChart"></canvas></div></div></article>
+  </section>
+
+  <section class="grid">
+    <article class="card"><div class="card-head"><h2>Pratiche per quartiere</h2><span>Top 10 territori</span></div><div class="card-body"><div class="chart-wrap"><canvas id="areaChart"></canvas></div></div></article>
+    <article class="card"><div class="card-head"><h2>Pratiche per categoria</h2><span>Top 8 categorie</span></div><div class="card-body"><div class="chart-wrap"><canvas id="categoryChart"></canvas></div></div></article>
+  </section>
+
+  <section class="grid">
+    <article class="card"><div class="card-head"><h2>Carico per consigliere</h2><span>Pratiche assegnate e attive</span></div><div class="card-body"><div class="chart-wrap"><canvas id="advisorChart"></canvas></div></div></article>
+    <article class="card"><div class="card-head"><h2>Priorità</h2><span>Distribuzione operativa</span></div><div class="card-body"><div class="chart-wrap"><canvas id="priorityChart"></canvas></div></div></article>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>Performance per consigliere</h2><span id="tableInfo">0 record</span></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Consigliere</th><th>Totale</th><th>Attive</th><th>Chiuse</th><th>Tasso chiusura</th><th>Carico relativo</th></tr></thead>
+        <tbody id="advisorTable"><tr><td colspan="6"><div class="loading">Caricamento dati...</div></td></tr></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">FDI Ascolta IX CRM — Analytics PRO v1.0 RC1</footer>
+
+<script>
+const API_FALLBACK="https://script.google.com/macros/s/AKfycbydMX5t3F9r3sHQ3zM3tSH6edMBz_hqGnDiVvK_kisOrSz8kn1pbeoMG00fX_Ei6wd7HQ/exec";
+let reports=[],filtered=[],charts={};
+
+function apiUrl(){return typeof CONFIG!=="undefined"&&CONFIG.API_URL&&CONFIG.API_URL.includes("/macros/s/")?CONFIG.API_URL:API_FALLBACK}
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+function group(s){const v=String(s||"").toLowerCase();if(v.includes("archiv"))return"arch";if(v.includes("risolt"))return"done";if(/presa|assegnata|attesa|ufficio|lavorazione|risposta/.test(v))return"work";return"open"}
+function dateOf(r){
+  const vals=[r.dataCreazione,r.timestamp,r.data,r.createdAt,r.dataSegnalazione];
+  for(const v of vals){if(!v)continue;const d=new Date(v);if(!isNaN(d))return d}
+  const m=String(r.id||"").match(/IX-(\d{4})(\d{2})(\d{2})/);return m?new Date(+m[1],+m[2]-1,+m[3]):null
+}
+function closeDateOf(r){
+  for(const v of [r.dataChiusura,r.closedAt,r.dataRisoluzione,r.ultimoAggiornamento]){if(!v)continue;const d=new Date(v);if(!isNaN(d))return d}
+  return null
+}
+function uniq(field){return [...new Set(reports.map(r=>r[field]).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),"it"))}
+function fill(id,values){const s=document.getElementById(id),current=s.value,first=s.options[0].outerHTML;s.innerHTML=first+values.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("");if([...s.options].some(o=>o.value===current))s.value=current}
+function countsBy(arr,field,fallback="Non indicato"){const o={};arr.forEach(r=>{const k=String(r[field]||fallback).trim()||fallback;o[k]=(o[k]||0)+1});return o}
+function destroy(name){if(charts[name])charts[name].destroy()}
+function makeChart(name,config){destroy(name);charts[name]=new Chart(document.getElementById(name),config)}
+function baseOptions(indexAxis="x"){return{responsive:true,maintainAspectRatio:false,indexAxis,plugins:{legend:{labels:{boxWidth:12,usePointStyle:true,font:{weight:"bold"}}}},scales:indexAxis==="y"?{x:{beginAtZero:true,grid:{color:"#edf1f6"}},y:{grid:{display:false}}}:{x:{grid:{display:false}},y:{beginAtZero:true,grid:{color:"#edf1f6"}}}}}
+
+function apply(){
+  const q=search.value.trim().toLowerCase(),days=period.value,cut=days==="all"?null:new Date(Date.now()-Number(days)*86400000);
+  filtered=reports.filter(r=>{
+    const d=dateOf(r);
+    const text=[r.id,r.titolo,r.quartiere,r.categoria,r.stato,r.priorita,r.referenteNome,r.indirizzo].join(" ").toLowerCase();
+    return(!q||text.includes(q))&&(!cut||!d||d>=cut)&&(!quartiere.value||r.quartiere===quartiere.value)&&(!categoria.value||r.categoria===categoria.value)&&(!referente.value||r.referenteNome===referente.value)
+  });
+  render();
+}
+
+function render(){
+  const total=filtered.length,closed=filtered.filter(r=>["done","arch"].includes(group(r.stato))).length;
+  kTotal.textContent=total;kActive.textContent=total-closed;kClosure.textContent=total?Math.round(closed/total*100)+"%":"0%";
+  kPriority.textContent=filtered.filter(r=>/alta|urgente|critica/i.test(String(r.priorita||""))).length;
+  kAreas.textContent=new Set(filtered.map(r=>r.quartiere).filter(Boolean)).size;
+  const durations=filtered.map(r=>{const a=dateOf(r),b=closeDateOf(r);return a&&b&&b>=a?(b-a)/86400000:null}).filter(v=>v!==null);
+  kCloseTime.textContent=durations.length?(durations.reduce((a,b)=>a+b,0)/durations.length).toFixed(1)+" gg":"—";
+  renderCharts();renderTable();
+}
+
+function renderCharts(){
+  const monthMap={};
+  filtered.forEach(r=>{const d=dateOf(r);if(!d)return;const key=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");monthMap[key]??={received:0,closed:0};monthMap[key].received++;if(["done","arch"].includes(group(r.stato)))monthMap[key].closed++});
+  const months=Object.keys(monthMap).sort().slice(-12);
+  makeChart("trendChart",{type:"line",data:{labels:months.map(x=>x.split("-").reverse().join("/")),datasets:[{label:"Ricevute",data:months.map(x=>monthMap[x].received),borderColor:"#0b4c99",backgroundColor:"rgba(11,76,153,.12)",fill:true,tension:.35},{label:"Chiuse",data:months.map(x=>monthMap[x].closed),borderColor:"#159447",backgroundColor:"rgba(21,148,71,.08)",fill:true,tension:.35}]},options:baseOptions()});
+
+  const st={Aperte:0,"In lavorazione":0,Risolte:0,Archiviate:0};
+  filtered.forEach(r=>{const g=group(r.stato);st[g==="open"?"Aperte":g==="work"?"In lavorazione":g==="done"?"Risolte":"Archiviate"]++});
+  makeChart("statusChart",{type:"doughnut",data:{labels:Object.keys(st),datasets:[{data:Object.values(st),backgroundColor:["#c62828","#ef6c00","#159447","#667085"],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:"68%",plugins:{legend:{position:"bottom",labels:{usePointStyle:true,font:{weight:"bold"}}}}}});
+
+  const top=(obj,n)=>Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,n);
+  const areas=top(countsBy(filtered,"quartiere"),10);
+  makeChart("areaChart",{type:"bar",data:{labels:areas.map(x=>x[0]),datasets:[{label:"Pratiche",data:areas.map(x=>x[1]),backgroundColor:"#0b4c99",borderRadius:7}]},options:baseOptions("y")});
+
+  const cats=top(countsBy(filtered,"categoria"),8);
+  makeChart("categoryChart",{type:"bar",data:{labels:cats.map(x=>x[0]),datasets:[{label:"Pratiche",data:cats.map(x=>x[1]),backgroundColor:"#d3a400",borderRadius:7}]},options:baseOptions("y")});
+
+  const adv=top(countsBy(filtered,"referenteNome","Non assegnato"),8);
+  makeChart("advisorChart",{type:"bar",data:{labels:adv.map(x=>x[0]),datasets:[{label:"Totale",data:adv.map(x=>x[1]),backgroundColor:"#6b3bc1",borderRadius:7}]},options:baseOptions("y")});
+
+  const pri=countsBy(filtered,"priorita","Media");
+  makeChart("priorityChart",{type:"polarArea",data:{labels:Object.keys(pri),datasets:[{data:Object.values(pri),backgroundColor:["#c62828","#ef6c00","#e9b900","#159447","#0b4c99","#667085"]}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{usePointStyle:true,font:{weight:"bold"}}}}}});
+}
+
+function renderTable(){
+  const map={};
+  filtered.forEach(r=>{const k=r.referenteNome||"Non assegnato";map[k]??={total:0,active:0,closed:0};map[k].total++;if(["done","arch"].includes(group(r.stato)))map[k].closed++;else map[k].active++});
+  const rows=Object.entries(map).sort((a,b)=>b[1].total-a[1].total),max=rows[0]?.[1].total||1;
+  tableInfo.textContent=rows.length+" consiglieri";
+  advisorTable.innerHTML=rows.length?rows.map(([name,v])=>`<tr><td><b>${esc(name)}</b></td><td>${v.total}</td><td>${v.active}</td><td>${v.closed}</td><td>${v.total?Math.round(v.closed/v.total*100):0}%</td><td><div class="progress"><i style="width:${Math.round(v.total/max*100)}%"></i></div></td></tr>`).join(""):'<tr><td colspan="6"><div class="loading">Nessun dato disponibile.</div></td></tr>'
+}
+
+function exportCsv(){
+  const headers=["ID","Titolo","Quartiere","Categoria","Stato","Priorità","Consigliere"];
+  const rows=filtered.map(r=>[r.id,r.titolo,r.quartiere,r.categoria,r.stato,r.priorita,r.referenteNome].map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(";"));
+  const blob=new Blob(["\ufeff"+headers.join(";")+"\n"+rows.join("\n")],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="analytics-fdi-ascolta-ix.csv";a.click();URL.revokeObjectURL(a.href)
+}
+
+async function load(){
+  refreshBtn.disabled=true;refreshBtn.textContent="Aggiornamento...";
+  try{
+    const u=new URL(apiUrl());u.searchParams.set("action","listReports");u.searchParams.set("_",Date.now());
+    const r=await fetch(u,{cache:"no-store",redirect:"follow"}),j=await r.json();
+    if(!r.ok||!j.ok)throw new Error(j.error||"Errore caricamento");
+    reports=j.reports||[];
+    fill("quartiere",uniq("quartiere"));fill("categoria",uniq("categoria"));fill("referente",uniq("referenteNome"));
+    apply()
+  }catch(e){advisorTable.innerHTML=`<tr><td colspan="6"><div class="loading">${esc(e.message)}</div></td></tr>`}
+  finally{refreshBtn.disabled=false;refreshBtn.textContent="Aggiorna"}
+}
+[search,period,quartiere,categoria,referente].forEach(el=>el.addEventListener(el.tagName==="INPUT"?"input":"change",apply));
+resetBtn.onclick=()=>{search.value="";period.value="all";quartiere.value="";categoria.value="";referente.value="";apply()};
+refreshBtn.onclick=load;csvBtn.onclick=exportCsv;
+load();
+</script>
+<script src="assets/js/crm-shell.js?v=202"></script>
+</body>
+</html>
