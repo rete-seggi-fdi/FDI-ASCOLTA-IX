@@ -114,6 +114,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,
 @media(max-width:1250px){.workspace{grid-template-columns:300px minmax(0,1fr)}.action-panel{grid-column:1/-1;position:static;display:grid;grid-template-columns:1fr 1fr}.action-section{border-right:1px solid var(--line)}.toolbar{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:850px){.page{padding:14px}.toolbar,.kpi-strip,.workspace,.info,.action-panel{grid-template-columns:1fr}.list{max-height:420px}.topbar{align-items:flex-start;flex-direction:column}.action-section{border-right:0}.close-modal-actions{flex-direction:column}.close-modal-actions .btn{width:100%}}
 </style>
+<link rel="stylesheet" href="assets/css/crm-shell.css?v=200">
 </head>
 <body>
 
@@ -384,5 +385,6 @@ function updateMiniKpis(){
 const originalApply=apply;
 apply=function(){originalApply();updateMiniKpis();};
 </script>
+<script src="assets/js/crm-shell.js?v=200"></script>
 </body>
 </html>
