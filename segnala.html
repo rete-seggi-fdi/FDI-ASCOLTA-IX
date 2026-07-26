@@ -320,17 +320,11 @@
       </label>
 
       <label class="check">
-        <input required type="checkbox" name="consenso" />
+        <input required type="checkbox" />
         <span>
           Confermo che i dati inseriti sono corretti e autorizzo l’uso per la gestione
           della segnalazione.
         </span>
-      </label>
-
-
-      <label aria-hidden="true" style="position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden">
-        Sito web
-        <input name="website" type="text" tabindex="-1" autocomplete="off">
       </label>
 
       <button class="btn btn-primary full" type="submit">
@@ -346,8 +340,8 @@
   FDI Ascolta IX — Sistema di gestione delle segnalazioni territoriali
 </footer>
 
-<script src="assets/js/config.js?v=2"></script>
-<script src="assets/js/api.js?v=2"></script>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/api.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
@@ -363,6 +357,12 @@
 
   let gpsMap = null;
   let gpsMarker = null;
+
+  function getApiUrl() {
+    if (typeof CONFIG !== "undefined" && CONFIG.API_URL) return CONFIG.API_URL;
+    if (window.CONFIG && window.CONFIG.API_URL) return window.CONFIG.API_URL;
+    throw new Error("API_URL non configurato");
+  }
 
   async function loadQuartieri() {
     try {
@@ -471,15 +471,6 @@
     );
   });
 
-  function getClientId() {
-    let id = localStorage.getItem(CONFIG.CLIENT_ID_KEY);
-    if (!id) {
-      id = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random());
-      localStorage.setItem(CONFIG.CLIENT_ID_KEY, id);
-    }
-    return id;
-  }
-
   function fileToBase64(file) {
     return new Promise(function(resolve, reject) {
       if (!file) return resolve(null);
@@ -513,28 +504,13 @@
     const lat = Number(latInput.value);
     const lng = Number(lngInput.value);
 
-    const bounds = CONFIG.COORD_BOUNDS;
-    if (!Number.isFinite(lat) || !Number.isFinite(lng) ||
-        lat < bounds.minLat || lat > bounds.maxLat ||
-        lng < bounds.minLng || lng > bounds.maxLng) {
-      showNotice("error", "La posizione deve trovarsi nell’area del Municipio IX.");
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < 41.65 || lat > 42.05 || lng < 12.25 || lng > 12.75) {
+      showNotice("error", "Coordinate non valide. Premi di nuovo Usa GPS.");
       return;
     }
 
-    const photoFile = document.getElementById("foto").files[0];
-    if (photoFile) {
-      if (photoFile.size > CONFIG.MAX_PHOTO_BYTES) {
-        showNotice("error", "La foto supera il limite di 5 MB.");
-        return;
-      }
-      if (!/^image\/(jpeg|png|gif|webp)$/i.test(photoFile.type)) {
-        showNotice("error", "Sono ammesse solo immagini JPEG, PNG, GIF o WebP.");
-        return;
-      }
-    }
-
     try {
-      const foto = await fileToBase64(photoFile);
+      const foto = await fileToBase64(document.getElementById("foto").files[0]);
 
       const payload = {
         action: "createReport",
@@ -549,18 +525,17 @@
         indirizzo: fd.get("indirizzo"),
         latitudine: latInput.value,
         longitudine: lngInput.value,
-        foto: foto,
-        consenso: fd.get("consenso") === "on",
-        website: fd.get("website") || "",
-        clientId: getClientId()
+        foto: foto
       };
 
       const result = await API.createReport(payload);
 
       if (!result.ok) throw new Error(result.error || "Errore durante l’invio.");
 
-      showNotice("success", "Segnalazione inviata. Codice pratica: " + result.id +
-        (result.warning ? " " + result.warning : " Controlla l’email per il link personale di tracking."));
+      showNotice(
+        "success",
+        "Segnalazione inviata correttamente. Codice pratica: " + result.id
+      );
 
       form.reset();
       loadQuartieri();
