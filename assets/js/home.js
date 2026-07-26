@@ -1,1 +1,12 @@
-(async function(){try{const data=await API.listReports();const reports=data.reports||[];document.getElementById('statReceived').textContent=reports.length;document.getElementById('statForwarded').textContent=reports.filter(r=>String(r.stato).toLowerCase().includes('inviata')).length;document.getElementById('statClosed').textContent=reports.filter(r=>String(r.stato).toLowerCase().includes('risolta')||String(r.stato).toLowerCase().includes('chiusa')).length;document.getElementById('statDistricts').textContent=new Set(reports.map(r=>r.quartiere).filter(Boolean)).size;}catch(e){console.warn(e)}})();
+(async function () {
+  try {
+    const data = await API.getPublicStats();
+    const stats = data.stats || {};
+    document.getElementById("statReceived").textContent = stats.received ?? 0;
+    document.getElementById("statForwarded").textContent = stats.forwarded ?? 0;
+    document.getElementById("statClosed").textContent = stats.closed ?? 0;
+    document.getElementById("statDistricts").textContent = stats.districts ?? 0;
+  } catch (error) {
+    console.warn("Statistiche pubbliche non disponibili", error);
+  }
+})();

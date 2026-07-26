@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
   <title>Tracking PRO v1.3 RC1 — FDI Ascolta IX</title>
 
   <link rel="stylesheet" href="assets/css/style.css">
@@ -142,7 +143,7 @@
 
     .search-row{
       display:grid;
-      grid-template-columns:1fr 140px;
+      grid-template-columns:minmax(0,1fr) minmax(0,1fr) 140px;
       gap:10px;
     }
 
@@ -525,17 +526,23 @@
     </div>
 
     <div class="search-panel">
-      <label for="trackingCode">Inserisci il codice della tua pratica</label>
+      <label for="trackingCode">Codice pratica o link personale</label>
       <form id="trackingForm" class="search-row">
         <input
           id="trackingCode"
           required
           autocomplete="off"
-          placeholder="Es. IX-20260706-084042-962"
+          placeholder="Codice pratica o token personale"
+        >
+        <input
+          id="trackingEmail"
+          type="email"
+          autocomplete="email"
+          placeholder="Email usata nella segnalazione"
         >
         <button id="searchBtn" type="submit">⌕ Cerca</button>
       </form>
-      <div class="search-help">Il codice è composto da lettere e numeri.</div>
+      <div class="search-help">Con il vecchio codice IX-… è necessario inserire anche l’email. Il link personale ricevuto via email non la richiede.</div>
       <div id="searchMessage" class="message info">
         Inserisci il codice ricevuto nell’email di conferma.
       </div>
@@ -625,60 +632,11 @@
   <span>© 2026 — Tutti i diritti riservati</span>
 </footer>
 
-<script src="assets/js/config.js?v=tracking130"></script>
+<script src="assets/js/config.js?v=2"></script>
+<script src="assets/js/api.js?v=2"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-  const FALLBACK_API_URL =
-    "https://script.google.com/macros/s/AKfycbydMX5t3F9r3sHQ3zM3tSH6edMBz_hqGnDiVvK_kisOrSz8kn1pbeoMG00fX_Ei6wd7HQ/exec";
-
-  const WORKFLOW = [
-    "Segnalazione ricevuta",
-    "Presa in carico dal Gruppo Consiliare",
-    "Assegnata al consigliere",
-    "Inviata dal consigliere all’ufficio municipale competente",
-    "In attesa di risposta dall’ufficio municipale competente",
-    "Risposta ricevuta",
-    "In lavorazione",
-    "Risolta",
-    "Archiviata"
-  ];
-
-  let allReports = [];
-  let trackingMap = null;
-  let currentReport = null;
-
-  function apiUrl() {
-    if (
-      typeof CONFIG !== "undefined" &&
-      CONFIG.API_URL &&
-      CONFIG.API_URL.includes("/macros/s/")
-    ) {
-      return CONFIG.API_URL;
-    }
-    return FALLBACK_API_URL;
-  }
-
-  async function apiGet(action, params = {}) {
-    const url = new URL(apiUrl());
-    url.searchParams.set("action", action);
-    url.searchParams.set("_", Date.now());
-
-    Object.entries(params).forEach(([key, value]) => {
-      url.searchParams.set(key, value);
-    });
-
-    const response = await fetch(url.toString(), {
-      cache:"no-store",
-      redirect:"follow"
-    });
-
-    if (!response.ok) {
-      throw new Error("Errore API HTTP " + response.status);
-    }
-
-    return await response.json();
-  }
 
   function esc(value) {
     return String(value ?? "").replace(/[&<>"']/g, char => ({
@@ -761,8 +719,8 @@
     if (
       !Number.isFinite(lat) ||
       !Number.isFinite(lng) ||
-      lat < 40 || lat > 43 ||
-      lng < 10 || lng > 15
+      lat < CONFIG.COORD_BOUNDS.minLat || lat > CONFIG.COORD_BOUNDS.maxLat ||
+      lng < CONFIG.COORD_BOUNDS.minLng || lng > CONFIG.COORD_BOUNDS.maxLng
     ) {
       document.querySelector(".map-box").innerHTML =
         '<div class="photo-box">Posizione non disponibile.</div>';
@@ -855,14 +813,9 @@
     renderCommunications(communications);
     renderOutcome(communications, report);
 
-    if (report.fotoUrl) {
-      photoBox.innerHTML =
-        '<a href="' + esc(report.fotoUrl) + '" target="_blank" rel="noopener">' +
-        '<img src="' + esc(report.fotoUrl) + '" alt="Foto allegata">' +
-        '</a>';
-    } else {
-      photoBox.textContent = "Nessuna foto disponibile.";
-    }
+    photoBox.textContent = report.fotoDisponibile
+      ? "Foto acquisita e disponibile agli operatori autorizzati."
+      : "Nessuna foto disponibile.";
 
     result.classList.add("show");
     result.scrollIntoView({behavior:"smooth", block:"start"});
@@ -875,45 +828,19 @@
     searchBtn.textContent = "Ricerca...";
 
     try {
-      if (!allReports.length) {
-        const reportResult = await apiGet("listReports");
-
-        if (!reportResult.ok) {
-          throw new Error(reportResult.error || "Impossibile caricare le pratiche.");
-        }
-
-        allReports = reportResult.reports || [];
+      const response = await API.getPublicReport(code, trackingEmail.value.trim());
+      if (!response.ok) {
+        throw new Error(response.error || "Pratica non trovata.");
       }
 
-      const report = allReports.find(item =>
-        norm(item.id) === norm(code)
-      );
-
-      if (!report) {
-        throw new Error("Codice pratica non trovato.");
-      }
-
-      const [timelineResult, communicationResult] = await Promise.all([
-        apiGet("getTimeline", {reportId:report.id})
-          .catch(() => ({ok:false,timeline:[]})),
-        apiGet("getCommunications", {
-          reportId:report.id,
-          publicOnly:"true"
-        }).catch(() => ({ok:false,comunicazioni:[]}))
-      ]);
-
-      renderReport(
-        report,
-        timelineResult.ok ? timelineResult.timeline || [] : [],
-        communicationResult.ok
-          ? communicationResult.comunicazioni || []
-          : []
-      );
+      const report = response.report;
+      renderReport(report, response.timeline || [], response.comunicazioni || []);
 
       searchMessage.className = "message info";
       searchMessage.textContent = "Pratica trovata.";
 
       const url = new URL(location.href);
+      url.search = "";
       url.searchParams.set("id", report.id);
       history.replaceState(null, "", url);
 
@@ -951,11 +878,16 @@
     });
   });
 
-  const queryId = new URLSearchParams(location.search).get("id");
+  const query = new URLSearchParams(location.search);
+  const queryToken = query.get("token");
+  const queryId = query.get("id");
 
-  if (queryId) {
+  if (queryToken) {
+    trackingCode.value = queryToken;
+    searchReport(queryToken);
+  } else if (queryId) {
     trackingCode.value = queryId;
-    searchReport(queryId);
+    searchMessage.textContent = "Inserisci anche l’email usata nella segnalazione.";
   }
 </script>
 </body>

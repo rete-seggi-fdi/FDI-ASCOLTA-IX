@@ -127,38 +127,16 @@
 
 <footer class="footer">FDI Ascolta IX CRM — Sala Operativa PRO v1.1 RC1</footer><div class="toast" id="toast"></div>
 
-<script src="assets/js/config.js?v=mappa140"></script>
+<script src="assets/js/config.js?v=2"></script>
+<script src="assets/js/auth.js?v=2"></script>
+<script src="assets/js/api.js?v=2"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <script>
-const FALLBACK_API_URL="https://script.google.com/macros/s/AKfycbydMX5t3F9r3sHQ3zM3tSH6edMBz_hqGnDiVvK_kisOrSz8kn1pbeoMG00fX_Ei6wd7HQ/exec";
-
-let reports=[];
-let filtered=[];
-let map;
-let clusterLayer;
-let heatLayer;
-let selectedId=null;
-let refreshTimer=null;
-let clusterEnabled=true;
-let heatEnabled=false;
-let firstLoad=true;
-const markerById=new Map();
-
-function apiUrl(){
-  return typeof CONFIG!=="undefined"&&CONFIG.API_URL&&CONFIG.API_URL.includes("/macros/s/")
-    ? CONFIG.API_URL
-    : FALLBACK_API_URL;
-}
-
+Auth.requireAuth();
 async function apiGet(action){
-  const url=new URL(apiUrl());
-  url.searchParams.set("action",action);
-  url.searchParams.set("_",Date.now());
-  const r=await fetch(url,{cache:"no-store",redirect:"follow"});
-  if(!r.ok) throw new Error("Errore API HTTP "+r.status);
-  return r.json();
+  return API.call(action);
 }
 
 function esc(v){
@@ -217,7 +195,7 @@ function markerIcon(r){
 function validCoords(r){
   const lat=Number(r.latitudine);
   const lng=Number(r.longitudine);
-  return Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=40&&lat<=43&&lng>=10&&lng<=15;
+  const c=CONFIG.COORD_BOUNDS;return Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=c.minLat&&lat<=c.maxLat&&lng>=c.minLng&&lng<=c.maxLng;
 }
 
 function popupHtml(r){

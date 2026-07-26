@@ -827,37 +827,13 @@
   <span>Backend: Online <b class="backend-dot">●</b></span>
 </footer>
 
-<script src="assets/js/config.js?v=config120"></script>
+<script src="assets/js/config.js?v=2"></script>
+<script src="assets/js/auth.js?v=2"></script>
+<script src="assets/js/api.js?v=2"></script>
 <script>
-  const FALLBACK_API_URL =
-    "https://script.google.com/macros/s/AKfycbydMX5t3F9r3sHQ3zM3tSH6edMBz_hqGnDiVvK_kisOrSz8kn1pbeoMG00fX_Ei6wd7HQ/exec";
-
-  function apiUrl() {
-    if (
-      typeof CONFIG !== "undefined" &&
-      CONFIG.API_URL &&
-      CONFIG.API_URL.includes("/macros/s/")
-    ) {
-      return CONFIG.API_URL;
-    }
-    return FALLBACK_API_URL;
-  }
-
+Auth.requireAuth();
   async function get(action) {
-    const url = new URL(apiUrl());
-    url.searchParams.set("action", action);
-    url.searchParams.set("_", Date.now());
-
-    const response = await fetch(url.toString(), {
-      cache: "no-store",
-      redirect: "follow"
-    });
-
-    if (!response.ok) {
-      throw new Error("Errore API HTTP " + response.status);
-    }
-
-    return await response.json();
+    return API.call(action);
   }
 
   function esc(value) {
@@ -890,11 +866,7 @@
 
   function loadOperator() {
     try {
-      const raw =
-        localStorage.getItem("fdi_ascolta_ix_user") ||
-        localStorage.getItem("fdi_ascolta_user");
-
-      const user = JSON.parse(raw || "null");
+      const user = Auth.getUser();
 
       operatorName.textContent =
         user && (user.nome || user.name || user.email)
@@ -906,9 +878,7 @@
   }
 
   function logout() {
-    localStorage.removeItem("fdi_ascolta_ix_user");
-    localStorage.removeItem("fdi_ascolta_user");
-    window.location.href = "login.html";
+    Auth.logout();
   }
 
   async function loadData() {

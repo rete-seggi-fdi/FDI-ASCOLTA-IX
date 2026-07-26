@@ -1,6 +1,5 @@
 
 (function(){
-  const API_FALLBACK="https://script.google.com/macros/s/AKfycbydMX5t3F9r3sHQ3zM3tSH6edMBz_hqGnDiVvK_kisOrSz8kn1pbeoMG00fX_Ei6wd7HQ/exec";
   const page=(location.pathname.split("/").pop()||"dashboard.html").toLowerCase();
   const items=[
     ["dashboard.html","▦","Dashboard"],
@@ -14,23 +13,10 @@
 
   document.documentElement.classList.add("crm-shell-ready");
 
-  function apiUrl(){
-    return typeof CONFIG!=="undefined"&&CONFIG.API_URL&&CONFIG.API_URL.includes("/macros/s/")
-      ? CONFIG.API_URL
-      : API_FALLBACK;
-  }
-
   async function getReports(){
-    const u=new URL(apiUrl());
-    u.searchParams.set("action","listReports");
-    u.searchParams.set("_",Date.now());
-
-    const r=await fetch(u,{cache:"no-store",redirect:"follow"});
-    if(!r.ok) throw new Error("HTTP "+r.status);
-
-    const j=await r.json();
-    if(!j.ok) throw new Error(j.error||"Errore API");
-    return j.reports||[];
+    const result=await API.listReports();
+    if(!result.ok) throw new Error(result.error||"Errore API");
+    return result.reports||[];
   }
 
   function esc(v){
@@ -67,8 +53,10 @@
           <span>Municipio IX Roma</span>
         </div>
       </div>
+      <button id="crmLogoutBtn" type="button" style="width:100%;margin-top:10px;border:1px solid rgba(255,255,255,.28);background:transparent;color:#fff;border-radius:10px;padding:9px;font-weight:900;cursor:pointer">Esci</button>
     </div>`;
   document.body.prepend(sidebar);
+  document.getElementById("crmLogoutBtn").onclick=()=>Auth.logout();
 
   const mobile=document.createElement("button");
   mobile.className="crm-mobile-toggle";
@@ -289,7 +277,7 @@
   });
 
   try{
-    const saved=JSON.parse(localStorage.getItem("fdiUser")||localStorage.getItem("user")||"null");
+    const saved=Auth.getUser();
     const name=saved&&(saved.nome||saved.name||saved.email);
     if(name) document.getElementById("crmUserName").textContent=name;
   }catch(_){}

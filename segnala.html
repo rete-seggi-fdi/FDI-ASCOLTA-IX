@@ -320,11 +320,17 @@
       </label>
 
       <label class="check">
-        <input required type="checkbox" />
+        <input required type="checkbox" name="consenso" />
         <span>
           Confermo che i dati inseriti sono corretti e autorizzo l’uso per la gestione
           della segnalazione.
         </span>
+      </label>
+
+
+      <label aria-hidden="true" style="position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden">
+        Sito web
+        <input name="website" type="text" tabindex="-1" autocomplete="off">
       </label>
 
       <button class="btn btn-primary full" type="submit">
@@ -340,7 +346,8 @@
   FDI Ascolta IX — Sistema di gestione delle segnalazioni territoriali
 </footer>
 
-<script src="assets/js/config.js"></script>
+<script src="assets/js/config.js?v=2"></script>
+<script src="assets/js/api.js?v=2"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
@@ -357,19 +364,9 @@
   let gpsMap = null;
   let gpsMarker = null;
 
-  function getApiUrl() {
-    if (typeof CONFIG !== "undefined" && CONFIG.API_URL) return CONFIG.API_URL;
-    if (window.CONFIG && window.CONFIG.API_URL) return window.CONFIG.API_URL;
-    throw new Error("API_URL non configurato");
-  }
-
   async function loadQuartieri() {
     try {
-      const url = new URL(getApiUrl());
-      url.searchParams.set("action", "listQuartieri");
-
-      const response = await fetch(url.toString());
-      const data = await response.json();
+      const data = await API.listQuartieri();
 
       if (!data.ok) {
         throw new Error(data.error || "Errore caricamento quartieri");
@@ -474,6 +471,15 @@
     );
   });
 
+  function getClientId() {
+    let id = localStorage.getItem(CONFIG.CLIENT_ID_KEY);
+    if (!id) {
+      id = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random());
+      localStorage.setItem(CONFIG.CLIENT_ID_KEY, id);
+    }
+    return id;
+  }
+
   function fileToBase64(file) {
     return new Promise(function(resolve, reject) {
       if (!file) return resolve(null);
@@ -507,13 +513,28 @@
     const lat = Number(latInput.value);
     const lng = Number(lngInput.value);
 
-    if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < 40 || lat > 43 || lng < 10 || lng > 15) {
-      showNotice("error", "Coordinate non valide. Premi di nuovo Usa GPS.");
+    const bounds = CONFIG.COORD_BOUNDS;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) ||
+        lat < bounds.minLat || lat > bounds.maxLat ||
+        lng < bounds.minLng || lng > bounds.maxLng) {
+      showNotice("error", "La posizione deve trovarsi nell’area del Municipio IX.");
       return;
     }
 
+    const photoFile = document.getElementById("foto").files[0];
+    if (photoFile) {
+      if (photoFile.size > CONFIG.MAX_PHOTO_BYTES) {
+        showNotice("error", "La foto supera il limite di 5 MB.");
+        return;
+      }
+      if (!/^image\/(jpeg|png|gif|webp)$/i.test(photoFile.type)) {
+        showNotice("error", "Sono ammesse solo immagini JPEG, PNG, GIF o WebP.");
+        return;
+      }
+    }
+
     try {
-      const foto = await fileToBase64(document.getElementById("foto").files[0]);
+      const foto = await fileToBase64(photoFile);
 
       const payload = {
         action: "createReport",
@@ -528,22 +549,18 @@
         indirizzo: fd.get("indirizzo"),
         latitudine: latInput.value,
         longitudine: lngInput.value,
-        foto: foto
+        foto: foto,
+        consenso: fd.get("consenso") === "on",
+        website: fd.get("website") || "",
+        clientId: getClientId()
       };
 
-      const response = await fetch(getApiUrl(), {
-        method: "POST",
-        body: JSON.stringify(payload)
-      });
-
-      const result = await response.json();
+      const result = await API.createReport(payload);
 
       if (!result.ok) throw new Error(result.error || "Errore durante l’invio.");
 
-      showNotice(
-        "success",
-        "Segnalazione inviata correttamente. Codice pratica: " + result.id
-      );
+      showNotice("success", "Segnalazione inviata. Codice pratica: " + result.id +
+        (result.warning ? " " + result.warning : " Controlla l’email per il link personale di tracking."));
 
       form.reset();
       loadQuartieri();
