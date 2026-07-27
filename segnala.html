@@ -375,8 +375,8 @@
   FDI Ascolta IX — Sistema di gestione delle segnalazioni territoriali
 </footer>
 
-<script src="assets/js/config.js?v=212"></script>
-<script src="assets/js/api.js?v=212"></script>
+<script src="assets/js/config.js?v=213"></script>
+<script src="assets/js/api.js?v=213"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
@@ -619,10 +619,51 @@
 
   let recaptchaPromise = null;
   let publicConfigPromise = null;
+  let recaptchaClient = null;
+  let recaptchaProvider = "";
+  let recaptchaProviderIndex = 0;
 
-  function setRecaptchaStatus(type, text) {
+  const RECAPTCHA_PROVIDERS = [
+    {
+      label: "recaptcha.net",
+      baseUrl: "https://www.recaptcha.net"
+    },
+    {
+      label: "google.com",
+      baseUrl: "https://www.google.com"
+    }
+  ];
+
+  function setRecaptchaStatus(type, text, showRetry) {
     recaptchaStatus.className = "notice " + type;
-    recaptchaStatus.textContent = text;
+    recaptchaStatus.replaceChildren();
+
+    const message = document.createElement("span");
+    message.textContent = text;
+    recaptchaStatus.appendChild(message);
+
+    if (showRetry) {
+      const retry = document.createElement("button");
+      retry.type = "button";
+      retry.textContent = "Riprova controllo";
+      retry.style.display = "block";
+      retry.style.marginTop = "10px";
+      retry.style.minHeight = "38px";
+      retry.style.padding = "0 14px";
+      retry.style.borderRadius = "10px";
+      retry.style.border = "1px solid currentColor";
+      retry.style.background = "#fff";
+      retry.style.fontWeight = "900";
+      retry.style.cursor = "pointer";
+
+      retry.addEventListener("click", function() {
+        resetRecaptchaClient();
+        initializeRecaptcha();
+      });
+
+      recaptchaStatus.appendChild(retry);
+    }
+
     recaptchaStatus.classList.remove("hidden");
   }
 
@@ -643,9 +684,16 @@
   async function loadPublicSecurityConfig() {
     if (publicConfigPromise) return publicConfigPromise;
 
-    publicConfigPromise = API.getPublicConfig().then(function(result) {
+    publicConfigPromise = withTimeout(
+      API.getPublicConfig(),
+      20000,
+      "Il server non ha restituito la configurazione anti-spam."
+    ).then(function(result) {
       if (!result || !result.ok) {
-        throw new Error((result && result.error) || "Configurazione anti-spam non disponibile");
+        throw new Error(
+          (result && result.error) ||
+          "Configurazione anti-spam non disponibile"
+        );
       }
 
       const recaptcha = result.recaptcha || {};
@@ -653,41 +701,168 @@
       recaptchaSiteKey = String(recaptcha.siteKey || "").trim();
 
       if (recaptchaRequired && (!recaptcha.configured || !recaptchaSiteKey)) {
-        throw new Error("Protezione anti-spam non configurata dall’amministratore");
+        throw new Error(
+          "Protezione anti-spam non configurata dall’amministratore"
+        );
       }
 
       return recaptcha;
+    }).catch(function(error) {
+      publicConfigPromise = null;
+      throw error;
     });
 
     return publicConfigPromise;
   }
 
-  function loadRecaptcha() {
+  function clearRecaptchaGlobals() {
+    document
+      .querySelectorAll('script[data-fdi-recaptcha="true"]')
+      .forEach(function(script) {
+        script.remove();
+      });
+
+    document
+      .querySelectorAll(
+        'iframe[src*="/recaptcha/"], iframe[src*="recaptcha.net"]'
+      )
+      .forEach(function(frame) {
+        frame.remove();
+      });
+
+    try {
+      window.grecaptcha = undefined;
+    } catch (_) {}
+
+    try {
+      window.___grecaptcha_cfg = undefined;
+    } catch (_) {}
+  }
+
+  function resetRecaptchaClient() {
+    recaptchaPromise = null;
+    recaptchaClient = null;
+    recaptchaProvider = "";
+    securityReady = false;
+    clearRecaptchaGlobals();
+  }
+
+  function loadRecaptchaScript(provider) {
+    return new Promise(function(resolve, reject) {
+      const script = document.createElement("script");
+      const timeoutId = window.setTimeout(function() {
+        script.remove();
+        reject(
+          new Error(
+            "Caricamento da " + provider.label + " scaduto"
+          )
+        );
+      }, 12000);
+
+      script.dataset.fdiRecaptcha = "true";
+      script.src =
+        provider.baseUrl +
+        "/recaptcha/api.js?render=" +
+        encodeURIComponent(recaptchaSiteKey);
+      script.async = true;
+      script.defer = true;
+
+      script.onload = function() {
+        window.clearTimeout(timeoutId);
+        resolve();
+      };
+
+      script.onerror = function() {
+        window.clearTimeout(timeoutId);
+        script.remove();
+        reject(
+          new Error(
+            "Impossibile caricare reCAPTCHA da " + provider.label
+          )
+        );
+      };
+
+      document.head.appendChild(script);
+    });
+  }
+
+  function waitForRecaptchaReady(client, providerLabel) {
+    if (
+      !client ||
+      typeof client.ready !== "function" ||
+      typeof client.execute !== "function"
+    ) {
+      return Promise.reject(
+        new Error(
+          "Libreria reCAPTCHA non valida da " + providerLabel
+        )
+      );
+    }
+
+    return withTimeout(
+      new Promise(function(resolve) {
+        client.ready(resolve);
+      }),
+      9000,
+      "reCAPTCHA caricato da " +
+        providerLabel +
+        " ma non inizializzato. Verifica che la chiave sia reCAPTCHA v3 standard."
+    );
+  }
+
+  async function loadRecaptcha(startIndex) {
     if (!recaptchaSiteKey) {
       return recaptchaRequired
-        ? Promise.reject(new Error("Site key reCAPTCHA non disponibile"))
+        ? Promise.reject(
+            new Error("Site key reCAPTCHA non disponibile")
+          )
         : Promise.resolve(null);
     }
 
-    if (window.grecaptcha) return Promise.resolve(window.grecaptcha);
+    if (recaptchaClient) return recaptchaClient;
     if (recaptchaPromise) return recaptchaPromise;
 
-    recaptchaPromise = new Promise(function(resolve, reject) {
-      const script = document.createElement("script");
-      script.src = "https://www.google.com/recaptcha/api.js?render=" + encodeURIComponent(recaptchaSiteKey);
-      script.async = true;
-      script.defer = true;
-      script.onload = function() {
-        if (!window.grecaptcha) {
-          reject(new Error("Libreria anti-spam non inizializzata"));
-          return;
+    const initialIndex =
+      Number.isInteger(startIndex) ? startIndex : recaptchaProviderIndex;
+
+    recaptchaPromise = (async function() {
+      const errors = [];
+
+      for (let offset = 0; offset < RECAPTCHA_PROVIDERS.length; offset++) {
+        const index =
+          (initialIndex + offset) % RECAPTCHA_PROVIDERS.length;
+        const provider = RECAPTCHA_PROVIDERS[index];
+
+        clearRecaptchaGlobals();
+
+        try {
+          await loadRecaptchaScript(provider);
+
+          const client = window.grecaptcha;
+          await waitForRecaptchaReady(client, provider.label);
+
+          recaptchaClient = client;
+          recaptchaProvider = provider.label;
+          recaptchaProviderIndex = index;
+
+          return client;
+        } catch (error) {
+          errors.push(error.message || String(error));
         }
-        resolve(window.grecaptcha);
-      };
-      script.onerror = function() {
-        reject(new Error("Impossibile caricare il controllo anti-spam"));
-      };
-      document.head.appendChild(script);
+      }
+
+      throw new Error(
+        "reCAPTCHA non disponibile. " +
+        errors.join(" | ") +
+        ". Controlla che la chiave sia di tipo reCAPTCHA v3 standard e che il dominio " +
+        window.location.hostname +
+        " sia autorizzato."
+      );
+    })().catch(function(error) {
+      recaptchaPromise = null;
+      recaptchaClient = null;
+      recaptchaProvider = "";
+      throw error;
     });
 
     return recaptchaPromise;
@@ -698,39 +873,112 @@
     submitReport.textContent = "Verifica anti-spam in corso...";
 
     try {
+      if (window.location.protocol === "file:") {
+        throw new Error(
+          "Il modulo deve essere aperto dal sito pubblicato, non come file locale."
+        );
+      }
+
       await loadPublicSecurityConfig();
       await loadRecaptcha();
+
       securityReady = true;
-      setRecaptchaStatus("success", "Protezione anti-spam attiva.");
+      setRecaptchaStatus(
+        "success",
+        "Protezione anti-spam attiva tramite " +
+          recaptchaProvider +
+          ".",
+        false
+      );
       submitReport.disabled = false;
       submitReport.textContent = "Invia segnalazione";
     } catch (error) {
       securityReady = false;
-      setRecaptchaStatus("error", error.message || "Protezione anti-spam non disponibile");
+      setRecaptchaStatus(
+        "error",
+        error.message || "Protezione anti-spam non disponibile",
+        true
+      );
       submitReport.disabled = true;
-      submitReport.textContent = "Invio temporaneamente non disponibile";
+      submitReport.textContent =
+        "Invio temporaneamente non disponibile";
       console.error("Configurazione reCAPTCHA:", error);
     }
   }
 
+  async function executeRecaptcha(client, providerLabel) {
+    await waitForRecaptchaReady(client, providerLabel);
+
+    const token = await withTimeout(
+      client.execute(recaptchaSiteKey, {
+        action: "create_report"
+      }),
+      15000,
+      "La verifica tramite " +
+        providerLabel +
+        " non ha restituito un token."
+    );
+
+    if (!token || typeof token !== "string") {
+      throw new Error(
+        "Il servizio anti-spam non ha restituito un token valido."
+      );
+    }
+
+    return token;
+  }
+
   async function getRecaptchaToken() {
     if (!securityReady) {
-      throw new Error("Protezione anti-spam non pronta. Ricarica la pagina.");
+      throw new Error(
+        "Protezione anti-spam non pronta. Premi “Riprova controllo”."
+      );
     }
+
     if (!recaptchaSiteKey && !recaptchaRequired) return "";
 
-    const grecaptcha = await loadRecaptcha();
-    if (!grecaptcha) return "";
+    let firstError = null;
 
-    return new Promise(function(resolve, reject) {
-      grecaptcha.ready(function() {
-        grecaptcha.execute(recaptchaSiteKey, { action: "create_report" })
-          .then(resolve)
-          .catch(function() {
-            reject(new Error("Verifica anti-spam non riuscita"));
-          });
-      });
-    });
+    try {
+      const client = await loadRecaptcha();
+      return await executeRecaptcha(client, recaptchaProvider);
+    } catch (error) {
+      firstError = error;
+    }
+
+    // Secondo tentativo automatico usando l'altro dominio.
+    const nextIndex =
+      (recaptchaProviderIndex + 1) % RECAPTCHA_PROVIDERS.length;
+
+    resetRecaptchaClient();
+
+    try {
+      const client = await loadRecaptcha(nextIndex);
+      return await executeRecaptcha(client, recaptchaProvider);
+    } catch (secondError) {
+      securityReady = false;
+
+      const message =
+        "Il controllo anti-spam non è riuscito. " +
+        "Primo tentativo: " +
+        (firstError && firstError.message
+          ? firstError.message
+          : "errore sconosciuto") +
+        " Secondo tentativo: " +
+        (secondError && secondError.message
+          ? secondError.message
+          : "errore sconosciuto");
+
+      setRecaptchaStatus("error", message, true);
+
+      throw new Error(
+        message +
+        ". Verifica che la chiave sia reCAPTCHA v3 standard, non v2 o Enterprise, " +
+        "e che " +
+        window.location.hostname +
+        " sia tra i domini autorizzati."
+      );
+    }
   }
 
   function validateClientPhoto(file) {
@@ -816,11 +1064,7 @@
       );
 
       submitReport.textContent = "Verifica anti-spam...";
-      const recaptchaToken = await withTimeout(
-        getRecaptchaToken(),
-        15000,
-        "Il controllo anti-spam non ha risposto. Disattiva eventuali blocchi privacy e ricarica la pagina."
-      );
+      const recaptchaToken = await getRecaptchaToken();
 
       const payload = {
         action: "createReport",
