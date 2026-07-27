@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Pratiche PRO v1.1 RC2 — FDI Ascolta IX CRM</title>
+<title>Pratiche PRO v1.1 RC3 — FDI Ascolta IX CRM</title>
 
 <link rel="stylesheet" href="assets/css/style.css">
 <link rel="stylesheet" href="assets/css/theme-fdi.css?v=111">
@@ -124,7 +124,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,
     <small>Pratiche PRO · Municipio IX Roma</small>
   </div>
   <div class="top-actions">
-    <span class="version">Versione 1.1 RC2</span>
+    <span class="version">Versione 1.1 RC3</span>
     <button class="nav-btn" id="refreshPractices" type="button">↻ Aggiorna</button>
     <a class="nav-btn" href="dashboard.html">▦ Dashboard</a>
     <a class="nav-btn" href="uffici.html">🏛 Uffici</a>
@@ -195,6 +195,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,
           <h3>📍 Localizzazione</h3>
           <div id="caseMapWrap"><div id="caseMap"></div></div>
           <p id="coords" class="muted"></p>
+          <button class="btn secondary" id="fixLocation" type="button">📍 Posiziona sulla via indicata</button>
+          <p class="muted">Usa questa funzione per correggere le vecchie pratiche salvate con la posizione del dispositivo.</p>
         </div>
 
         <div class="tabpane" id="foto">
@@ -261,8 +263,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,
   </div>
 </main>
 
-<footer class="footer">FDI Ascolta IX CRM — Pratiche PRO v1.1 RC2</footer>
-<script src="assets/js/config.js?v=12"></script><script src="assets/js/auth.js?v=12"></script><script src="assets/js/api.js?v=12"></script><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<footer class="footer">FDI Ascolta IX CRM — Pratiche PRO v1.1 RC3</footer>
+<script src="assets/js/config.js?v=14"></script><script src="assets/js/auth.js?v=14"></script><script src="assets/js/api.js?v=14"></script><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 Auth.requireAuth();
 const WORKFLOW=[['1','Segnalazione ricevuta','La segnalazione è stata registrata dal sistema FDI Ascolta IX.'],['2','Presa in carico dal Gruppo Consiliare','La pratica è stata presa in carico dal Gruppo Consiliare.'],['3','Assegnata al consigliere','La pratica è stata assegnata al consigliere competente.'],['4','Inviata dal consigliere all’ufficio municipale competente','La pratica è stata trasmessa all’ufficio municipale competente.'],['5','In attesa di risposta dall’ufficio municipale competente','La pratica è in attesa di riscontro da parte dell’ufficio competente.'],['6','Risposta ricevuta','È stata ricevuta una risposta relativa alla pratica.'],['7','In lavorazione','La pratica risulta in lavorazione.'],['8','Risolta','La criticità segnalata risulta risolta.'],['9','Archiviata','La pratica è stata archiviata.']];
@@ -285,6 +287,55 @@ function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&l
     setTimeout(()=>cMap.invalidateSize(),200);
   },80);
 }
+const fixLocation=document.getElementById('fixLocation');
+async function correctSelectedLocation(){
+  if(!selected)return alert('Seleziona una pratica');
+  if(!selected.indirizzo)return alert('Indirizzo mancante');
+
+  fixLocation.disabled=true;
+  fixLocation.textContent='📍 Ricerca indirizzo...';
+  try{
+    const search=await API.geocodeAddress(selected.indirizzo,selected.quartiere||'');
+    if(!search.ok)throw new Error(search.error||'Ricerca indirizzo non riuscita');
+    const matches=Array.isArray(search.risultati)?search.risultati:[];
+    if(!matches.length)throw new Error('Nessun indirizzo compatibile trovato nel Municipio IX');
+
+    const choices=matches.map((item,index)=>(index+1)+'. '+item.indirizzo).join('\n');
+    const answer=prompt('Scegli il risultato da usare:\n\n'+choices,'1');
+    if(answer===null)return;
+    const index=Number(answer)-1;
+    if(!Number.isInteger(index)||!matches[index])throw new Error('Scelta non valida');
+    const chosen=matches[index];
+
+    const confirmed=confirm('Aggiornare la pratica con questa posizione?\n\n'+chosen.indirizzo);
+    if(!confirmed)return;
+
+    const result=await API.updateReportLocation({
+      reportId:selected.id,
+      latitudine:chosen.latitudine,
+      longitudine:chosen.longitudine,
+      indirizzoRisolto:chosen.indirizzo
+    });
+    if(!result.ok)throw new Error(result.error||'Aggiornamento posizione non riuscito');
+
+    selected.latitudine=result.latitudine;
+    selected.longitudine=result.longitudine;
+    const row=reports.find(item=>item.id===selected.id);
+    if(row){row.latitudine=result.latitudine;row.longitudine=result.longitudine;}
+    coords.textContent=result.latitudine+', '+result.longitudine;
+    renderCaseMap();
+    renderGeneralMap();
+    await renderTimeline();
+    alert('Posizione aggiornata correttamente.');
+  }catch(error){
+    alert(error.message||'Errore durante la correzione della posizione');
+  }finally{
+    fixLocation.disabled=false;
+    fixLocation.textContent='📍 Posiziona sulla via indicata';
+  }
+}
+fixLocation.onclick=correctSelectedLocation;
+
 function renderWorkflow(){workflow.innerHTML=WORKFLOW.map(w=>`<button class="btn secondary" onclick="setStatus('${w[0]}')">${w[0]}. ${esc(w[1])}</button>`).join('')}async function setStatus(f){
   if(!selected)return alert('Seleziona pratica');
   if(String(f)==='8'){openCloseModal();return;}
