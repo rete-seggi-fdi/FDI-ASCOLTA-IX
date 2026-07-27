@@ -50,7 +50,26 @@ const API = Object.freeze({
     return this.call("login", { email, password }, { publicAction: true });
   },
   logout() { return this.call("logout"); },
-  createReport(data) { return this.call("createReport", data, { publicAction: true }); },
+  getClientId() {
+    let id = localStorage.getItem(CONFIG.CLIENT_ID_KEY);
+    if (!id) {
+      id = (globalThis.crypto && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : "client-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+      localStorage.setItem(CONFIG.CLIENT_ID_KEY, id);
+    }
+    return id;
+  },
+  createReport(data) {
+    return this.call("createReport", { ...data, clientId: this.getClientId() }, { publicAction: true });
+  },
+  geocodeAddress(indirizzo, quartiere = "") {
+    return this.call(
+      "geocodeAddress",
+      { indirizzo, quartiere, clientId: this.getClientId() },
+      { publicAction: true }
+    );
+  },
   listQuartieri() { return this.call("listQuartieri", {}, { publicAction: true }); },
   getPublicStats() { return this.call("getPublicStats", {}, { publicAction: true }); },
   getPublicReport(code, email = "") {
@@ -62,6 +81,7 @@ const API = Object.freeze({
   getTimeline(reportId) { return this.call("getTimeline", { reportId }); },
   getCommunications(reportId) { return this.call("getCommunications", { reportId }); },
   updateReportStatus(data) { return this.call("updateReportStatus", data); },
+  updateReportLocation(data) { return this.call("updateReportLocation", data); },
   sendToReferente(data) { return this.call("sendToReferente", data); },
   sendToUfficio(data) { return this.call("sendToUfficio", data); },
   closeReport(data) { return this.call("closeReport", data); }
