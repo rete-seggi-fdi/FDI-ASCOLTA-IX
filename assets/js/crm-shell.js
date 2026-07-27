@@ -1,7 +1,9 @@
 
 (function(){
   const page=(location.pathname.split("/").pop()||"dashboard.html").toLowerCase();
-  const items=[
+  const user=Auth.getUser()||{};
+  const isAdmin=Auth.isAdmin();
+  const items=isAdmin ? [
     ["dashboard.html","▦","Dashboard"],
     ["pratiche.html","▣","Pratiche"],
     ["mappa.html","🗺","Sala Operativa"],
@@ -9,6 +11,10 @@
     ["notifiche.html","🔔","Notifiche"],
     ["uffici.html","🏛","Uffici"],
     ["configurazione.html","⚙","Configurazione"]
+  ] : [
+    ["dashboard.html","▦","Dashboard personale"],
+    ["pratiche.html","▣","Le mie pratiche"],
+    ["notifiche.html","🔔","Notifiche"]
   ];
 
   document.documentElement.classList.add("crm-shell-ready");
@@ -49,8 +55,8 @@
       <div class="crm-user">
         <div class="crm-avatar">IX</div>
         <div class="crm-user-meta">
-          <b id="crmUserName">Operatore CRM</b>
-          <span>Municipio IX Roma</span>
+          <b id="crmUserName">${esc(user.nome||"Operatore CRM")}</b>
+          <span>${esc(user.ruolo||"Municipio IX Roma")}</span>
         </div>
       </div>
       <button id="crmLogoutBtn" type="button" style="width:100%;margin-top:10px;border:1px solid rgba(255,255,255,.28);background:transparent;color:#fff;border-radius:10px;padding:9px;font-weight:900;cursor:pointer">Esci</button>

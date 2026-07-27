@@ -481,3 +481,20 @@ tbody tr:hover {
     min-height: 44px;
   }
 }
+
+/* Sprint 1 — correzione contrasto navigazione pubblica */
+.site-header .main-nav a:hover,
+.site-header .main-nav a:focus-visible {
+  background:#eef4ff !important;
+  color:#082f6a !important;
+}
+.site-header .main-nav a.nav-pill:hover,
+.site-header .main-nav a.nav-pill:focus-visible {
+  background:#082f6a !important;
+  color:#ffffff !important;
+}
+.hero .btn-light:hover,
+.hero .btn-light:focus-visible {
+  background:#eef4ff !important;
+  color:#082f6a !important;
+}

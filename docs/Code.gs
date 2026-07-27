@@ -229,17 +229,19 @@ function doPost(e) {
     const user = requireAuth(body);
 
     if (action === 'logout') return json(logoutUser(body));
-    if (action === 'listReports') return json({ ok: true, reports: listReports() });
-    if (action === 'listReferenti') return json({ ok: true, referenti: listReferenti() });
+    if (action === 'listReports') return json({ ok: true, reports: listReports(user) });
+    if (action === 'listReferenti') { requireAdmin(user); return json({ ok: true, referenti: listReferenti() }); }
     if (action === 'listUffici') return json({ ok: true, uffici: listUffici() });
     if (action === 'updateReportStatus') return json(updateReportStatus(body, user));
     if (action === 'sendToReferente') return json(sendToReferente(body, user));
     if (action === 'sendToUfficio') return json(sendToUfficio(body, user));
     if (action === 'closeReport') return json(closeReport(body, user));
     if (action === 'getTimeline') {
+      requireReportAccess(body.reportId, user);
       return json({ ok: true, timeline: getTimeline(body.reportId, false) });
     }
     if (action === 'getCommunications') {
+      requireReportAccess(body.reportId, user);
       return json({ ok: true, comunicazioni: getCommunications(body.reportId, false) });
     }
 
@@ -356,6 +358,40 @@ function publicUser(row) {
     email: normalizeEmail(row.Email),
     ruolo: cleanOutput(row.Ruolo)
   };
+}
+
+
+function normalizedRole(user) {
+  return String(user && user.ruolo || '').trim().toLowerCase();
+}
+
+function isAdminUser(user) {
+  return /amministratore|admin/.test(normalizedRole(user));
+}
+
+function isConsigliereUser(user) {
+  return /consigliere/.test(normalizedRole(user));
+}
+
+function requireAdmin(user) {
+  if (!isAdminUser(user)) throw new Error('Operazione riservata agli amministratori');
+  return true;
+}
+
+function canAccessReportRow(row, user) {
+  if (isAdminUser(user)) return true;
+  if (isConsigliereUser(user)) {
+    return normalizeEmail(row['Email referente']) === normalizeEmail(user.email);
+  }
+  return false;
+}
+
+function requireReportAccess(reportId, user) {
+  const id = cleanText(reportId, 80, false);
+  const report = findRow(SHEETS.REPORTS, row => String(row.ID || '') === id);
+  if (!report) throw new Error('Pratica non trovata');
+  if (!canAccessReportRow(report.data, user)) throw new Error('Accesso negato alla pratica');
+  return report;
 }
 
 function hashPassword(password, salt) {
@@ -612,10 +648,10 @@ function listQuartieri() {
  * API private
  * ========================= */
 
-function listReports() {
+function listReports(user) {
   return readRows(SHEETS.REPORTS)
     .map(item => item.data)
-    .filter(row => row.ID)
+    .filter(row => row.ID && canAccessReportRow(row, user))
     .map(row => ({
       id: cleanOutput(row.ID),
       data: formatDate(row.Data),
@@ -679,6 +715,7 @@ function listUffici() {
 }
 
 function updateReportStatus(body, user) {
+  requireReportAccess(body.reportId, user);
   const report = requireReport(body.reportId);
   const status = requiredText(body.stato, 'Stato', 160);
   const description = cleanText(body.descrizione, 2000, true) || ('Stato aggiornato a: ' + status);
@@ -696,6 +733,7 @@ function updateReportStatus(body, user) {
 }
 
 function sendToReferente(body, user) {
+  requireAdmin(user);
   enforceRateLimit('mail:user:' + shortHash(user.id || user.email), 30, 3600);
   const report = requireReport(body.reportId);
   const refId = requiredText(body.referenteId, 'Referente', 80);
@@ -727,6 +765,7 @@ function sendToReferente(body, user) {
 }
 
 function sendToUfficio(body, user) {
+  requireReportAccess(body.reportId, user);
   enforceRateLimit('mail:user:' + shortHash(user.id || user.email), 30, 3600);
   const report = requireReport(body.reportId);
   const officeId = requiredText(body.ufficioId, 'Ufficio', 80);
@@ -758,6 +797,7 @@ function sendToUfficio(body, user) {
 }
 
 function closeReport(body, user) {
+  requireReportAccess(body.reportId, user);
   const report = requireReport(body.reportId);
   const outcome = requiredText(body.esito || 'Risolta', 'Esito', 120);
   const notes = requiredText(body.noteFinali, 'Note finali', 3000);

@@ -35,6 +35,42 @@ const Auth = Object.freeze({
     return session && session.user ? session.user : null;
   },
 
+
+  getRole() {
+    const user = this.getUser();
+    return String(user && user.ruolo || "").trim().toLowerCase();
+  },
+
+  isAdmin() {
+    return /amministratore|admin/.test(this.getRole());
+  },
+
+  isConsigliere() {
+    return /consigliere/.test(this.getRole());
+  },
+
+  homeForRole() {
+    return this.isConsigliere() ? "pratiche.html" : "dashboard.html";
+  },
+
+  canOpenPage(pageName) {
+    const page = String(pageName || "").split("?")[0].toLowerCase();
+    if (this.isAdmin()) return true;
+    if (this.isConsigliere()) {
+      return ["dashboard.html","pratiche.html","notifiche.html"].includes(page);
+    }
+    return ["dashboard.html","pratiche.html","notifiche.html"].includes(page);
+  },
+
+  enforcePageAccess() {
+    const page = (location.pathname.split("/").pop() || "dashboard.html").toLowerCase();
+    if (!this.canOpenPage(page)) {
+      location.replace(this.homeForRole());
+      return false;
+    }
+    return true;
+  },
+
   clearLegacyKeys() {
     ["fdi_user", "fdi_ascolta_user", "fdi_ascolta_ix_user", "fdiUser", "user", "undefined"]
       .forEach(key => localStorage.removeItem(key));
@@ -58,7 +94,7 @@ const Auth = Object.freeze({
       location.replace("login.html?next=" + next);
       return false;
     }
-    return true;
+    return this.enforcePageAccess();
   },
 
   async logout() {
