@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Uffici PRO v1.3 RC1 — FDI Ascolta IX CRM</title>
+  <title>Uffici PRO v1.3 RC2 — FDI Ascolta IX CRM</title>
 
   <link rel="stylesheet" href="assets/css/style.css">
-  <link rel="stylesheet" href="assets/css/theme-fdi.css?v=130">
+  <link rel="stylesheet" href="assets/css/theme-fdi.css?v=20">
 
   <style>
     :root{
@@ -72,6 +72,8 @@
     .version-pill{background:#114fa6;color:#fff;border-radius:999px}
     .nav-btn{
       border:1px solid rgba(255,255,255,.45);
+      cursor:pointer;
+      font:inherit;
       color:#fff;
       text-decoration:none;
       background:rgba(255,255,255,.06);
@@ -373,7 +375,7 @@
       .filters{grid-template-columns:1fr}
     }
   </style>
-<link rel="stylesheet" href="assets/css/crm-shell.css?v=200">
+<link rel="stylesheet" href="assets/css/crm-shell.css?v=20">
 </head>
 <body>
 
@@ -384,7 +386,8 @@
   </div>
 
   <div class="top-actions">
-    <span class="version-pill">Versione 1.3 RC1</span>
+    <span class="version-pill">Versione 1.3 RC2</span>
+    <button class="nav-btn" id="refreshOffices" type="button">↻ Aggiorna</button>
     <a class="nav-btn" href="dashboard.html">▦ Dashboard</a>
     <a class="nav-btn" href="pratiche.html">▣ Pratiche</a>
     <a class="nav-btn" href="configurazione.html">⚙ Configurazione</a>
@@ -494,218 +497,358 @@
 
 <div id="toast" class="toast">Copiato negli appunti.</div>
 
-<footer class="footer">FDI Ascolta IX CRM — Uffici PRO v1.3 RC1</footer>
+<footer class="footer">FDI Ascolta IX CRM — Uffici PRO v1.3 RC2</footer>
 
-<script src="assets/js/config.js?v=2"></script>
-<script src="assets/js/auth.js?v=2"></script>
-<script src="assets/js/api.js?v=2"></script>
+<script src="assets/js/config.js?v=20"></script>
+<script src="assets/js/auth.js?v=20"></script>
+<script src="assets/js/api.js?v=20"></script>
 <script>
-Auth.requireAuth();
-async function get(action) {
-  return API.call(action);
-}
+let offices = [];
+let filteredOffices = [];
+let selectedOffice = null;
+let officesLoading = false;
 
-function esc(value) {
+const elements = {
+  query: document.getElementById("q"),
+  activeFilter: document.getElementById("fAttivo"),
+  list: document.getElementById("list"),
+  officeCount: document.getElementById("officeCount"),
+  tableBody: document.getElementById("tableBody"),
+  empty: document.getElementById("empty"),
+  detail: document.getElementById("detail"),
+  activeBadge: document.getElementById("activeBadge"),
+  officeName: document.getElementById("officeName"),
+  officeSector: document.getElementById("officeSector"),
+  officeId: document.getElementById("officeId"),
+  officeEmail: document.getElementById("officeEmail"),
+  officePhone: document.getElementById("officePhone"),
+  officeActive: document.getElementById("officeActive"),
+  officeNotes: document.getElementById("officeNotes"),
+  contactActions: document.getElementById("contactActions"),
+  kpiTotal: document.getElementById("kpiTotal"),
+  kpiActive: document.getElementById("kpiActive"),
+  kpiEmail: document.getElementById("kpiEmail"),
+  kpiPhone: document.getElementById("kpiPhone"),
+  toast: document.getElementById("toast"),
+  refresh: document.getElementById("refreshOffices")
+};
+
+function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, char => ({
-    "&":"&amp;",
-    "<":"&lt;",
-    ">":"&gt;",
-    '"':"&quot;",
-    "'":"&#039;"
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
   }[char]));
 }
 
-function officeName(item) {
-  return item.ufficio || item.Ufficio || item.nome || "-";
+function getOfficeName(item) {
+  return item.ufficio || item.nome || item.Ufficio || "-";
 }
 
-function officeSector(item) {
+function getOfficeSector(item) {
   return item.settore || item.Settore || "";
 }
 
-function officeEmail(item) {
+function getOfficeEmail(item) {
   return item.email || item.Email || "";
 }
 
-function officePhone(item) {
+function getOfficePhone(item) {
   return item.telefono || item.Telefono || "";
 }
 
-function officeActive(item) {
+function getOfficeActive(item) {
   return item.attivo || item.Attivo || "";
 }
 
-function isActive(item) {
-  return String(officeActive(item)).trim().toLowerCase() === "sì";
+function isOfficeActive(item) {
+  const value = String(getOfficeActive(item)).trim().toLowerCase();
+  return value === "sì" || value === "si" || value === "true";
 }
 
-function apply() {
-  const query = q.value.trim().toLowerCase();
-  const activeFilter = fAttivo.value.trim().toLowerCase();
+function applyFilters() {
+  const query = elements.query.value.trim().toLowerCase();
+  const activeFilter = elements.activeFilter.value.trim().toLowerCase();
 
-  filtered = uffici.filter(item => {
-    const text = [
+  filteredOffices = offices.filter(item => {
+    const searchable = [
       item.id,
-      officeName(item),
-      officeSector(item),
-      officeEmail(item),
-      officePhone(item),
+      getOfficeName(item),
+      getOfficeSector(item),
+      getOfficeEmail(item),
+      getOfficePhone(item),
       item.note,
       item.Note
     ].join(" ").toLowerCase();
 
-    const status = String(officeActive(item)).toLowerCase();
+    const activeValue = isOfficeActive(item) ? "sì" : "no";
 
     return (
-      (!query || text.includes(query)) &&
-      (!activeFilter || status === activeFilter)
+      (!query || searchable.includes(query)) &&
+      (!activeFilter || activeValue === activeFilter)
     );
   });
 
+  if (
+    selectedOffice &&
+    !filteredOffices.some(item => String(item.id) === String(selectedOffice.id))
+  ) {
+    selectedOffice = null;
+    elements.detail.classList.add("hidden");
+    elements.empty.classList.remove("hidden");
+  }
+
+  renderKpis();
   renderList();
   renderTable();
-  renderKpis();
-
-  officeCount.textContent = filtered.length;
+  elements.officeCount.textContent = filteredOffices.length;
 }
 
 function renderKpis() {
-  kpiTotal.textContent = uffici.length;
-  kpiActive.textContent = uffici.filter(isActive).length;
-  kpiEmail.textContent = uffici.filter(item => officeEmail(item)).length;
-  kpiPhone.textContent = uffici.filter(item => officePhone(item)).length;
+  elements.kpiTotal.textContent = offices.length;
+  elements.kpiActive.textContent = offices.filter(isOfficeActive).length;
+  elements.kpiEmail.textContent = offices.filter(item => Boolean(getOfficeEmail(item))).length;
+  elements.kpiPhone.textContent = offices.filter(item => Boolean(getOfficePhone(item))).length;
 }
 
 function renderList() {
-  list.innerHTML = filtered.map(item => `
-    <div
-      class="office-item ${selected && selected.id === item.id ? "active" : ""}"
-      onclick="openOffice('${esc(item.id)}')"
-      role="button"
-      tabindex="0"
-      onkeydown="if(event.key==='Enter')openOffice('${esc(item.id)}')"
+  elements.list.innerHTML = filteredOffices.map(item => `
+    <button
+      class="office-item ${selectedOffice && String(selectedOffice.id) === String(item.id) ? "active" : ""}"
+      type="button"
+      data-office-id="${escapeHtml(item.id)}"
+      style="width:100%;text-align:left;font:inherit"
     >
-      <div>
-        <b>${esc(officeName(item))}</b>
-        <span>${esc(officeSector(item) || "Settore non indicato")}</span>
-        <small>${esc(officeEmail(item) || officePhone(item) || "Contatti non disponibili")}</small>
-      </div>
-      <span class="office-state ${isActive(item) ? "on" : "off"}" title="${isActive(item) ? "Attivo" : "Non attivo"}"></span>
-    </div>
+      <span>
+        <b>${escapeHtml(getOfficeName(item))}</b>
+        <span>${escapeHtml(getOfficeSector(item) || "Settore non indicato")}</span>
+        <small>${escapeHtml(getOfficeEmail(item) || getOfficePhone(item) || "Contatti non disponibili")}</small>
+      </span>
+      <span
+        class="office-state ${isOfficeActive(item) ? "on" : "off"}"
+        title="${isOfficeActive(item) ? "Attivo" : "Non attivo"}"
+      ></span>
+    </button>
   `).join("") || '<div class="muted">Nessun ufficio trovato.</div>';
 }
 
 function renderTable() {
-  tableBody.innerHTML = filtered.map(item => `
+  elements.tableBody.innerHTML = filteredOffices.map(item => `
     <tr
-      class="${selected && selected.id === item.id ? "selected" : ""}"
-      onclick="openOffice('${esc(item.id)}')"
+      data-office-id="${escapeHtml(item.id)}"
+      class="${selectedOffice && String(selectedOffice.id) === String(item.id) ? "selected" : ""}"
+      tabindex="0"
     >
-      <td>${esc(item.id)}</td>
-      <td>${esc(officeName(item))}</td>
-      <td>${esc(officeSector(item))}</td>
-      <td>${esc(officeEmail(item))}</td>
-      <td>${esc(officePhone(item))}</td>
-      <td>${esc(officeActive(item))}</td>
+      <td>${escapeHtml(item.id)}</td>
+      <td>${escapeHtml(getOfficeName(item))}</td>
+      <td>${escapeHtml(getOfficeSector(item))}</td>
+      <td>${escapeHtml(getOfficeEmail(item))}</td>
+      <td>${escapeHtml(getOfficePhone(item))}</td>
+      <td>${escapeHtml(getOfficeActive(item))}</td>
     </tr>
   `).join("") || '<tr><td colspan="6">Nessun ufficio trovato.</td></tr>';
 }
 
-function copyText(value) {
+async function copyText(value) {
   if (!value) return;
 
-  navigator.clipboard.writeText(value).then(() => {
-    toast.classList.add("show");
-    setTimeout(() => toast.classList.remove("show"), 1800);
-  }).catch(() => {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(value);
+    } else {
+      const area = document.createElement("textarea");
+      area.value = value;
+      area.style.position = "fixed";
+      area.style.opacity = "0";
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand("copy");
+      area.remove();
+    }
+
+    elements.toast.textContent = "Copiato negli appunti.";
+    elements.toast.classList.add("show");
+    window.setTimeout(() => elements.toast.classList.remove("show"), 1800);
+  } catch (_) {
     alert("Impossibile copiare automaticamente.");
-  });
+  }
 }
 
-function openOffice(id) {
-  selected = uffici.find(item => item.id === id);
-  if (!selected) return;
+function makeContactButton(label, className, handler) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = className;
+  button.textContent = label;
+  button.addEventListener("click", handler);
+  return button;
+}
 
-  empty.classList.add("hidden");
-  detail.classList.remove("hidden");
+function openOffice(id, scrollToDetail = false) {
+  selectedOffice = offices.find(item => String(item.id) === String(id));
 
-  const active = isActive(selected);
-  const email = officeEmail(selected);
-  const phone = officePhone(selected);
+  if (!selectedOffice) {
+    return false;
+  }
 
-  document.getElementById("officeName").textContent = officeName(selected);
-  officeSector.textContent = officeSector(selected) || "Settore non indicato";
-  officeId.textContent = selected.id || "-";
-  officeEmail.textContent = email || "-";
-  officePhone.textContent = phone || "-";
-  officeActive.textContent = officeActive(selected) || "-";
-  officeNotes.textContent =
-    selected.note ||
-    selected.Note ||
+  const active = isOfficeActive(selectedOffice);
+  const email = getOfficeEmail(selectedOffice);
+  const phone = getOfficePhone(selectedOffice);
+
+  elements.empty.classList.add("hidden");
+  elements.detail.classList.remove("hidden");
+
+  elements.officeName.textContent = getOfficeName(selectedOffice);
+  elements.officeSector.textContent =
+    getOfficeSector(selectedOffice) || "Settore non indicato";
+  elements.officeId.textContent = selectedOffice.id || "-";
+  elements.officeEmail.textContent = email || "-";
+  elements.officePhone.textContent = phone || "-";
+  elements.officeActive.textContent = active ? "Sì" : "No";
+  elements.officeNotes.textContent =
+    selectedOffice.note ||
+    selectedOffice.Note ||
     "Nessuna nota operativa inserita.";
 
-  activeBadge.textContent = active ? "● Attivo" : "● Non attivo";
-  activeBadge.classList.toggle("off", !active);
+  elements.activeBadge.textContent = active ? "● Attivo" : "● Non attivo";
+  elements.activeBadge.classList.toggle("off", !active);
 
-  const actions = [];
+  elements.contactActions.replaceChildren();
 
   if (email) {
-    actions.push(
-      '<a class="mail-btn" href="mailto:' + esc(email) + '">✉ Scrivi email</a>'
-    );
-    actions.push(
-      '<button class="copy-btn" type="button" onclick="copyText(\'' + esc(email) + '\')">Copia email</button>'
+    const emailLink = document.createElement("a");
+    emailLink.className = "mail-btn";
+    emailLink.href = "mailto:" + email;
+    emailLink.textContent = "✉ Scrivi email";
+    elements.contactActions.appendChild(emailLink);
+
+    elements.contactActions.appendChild(
+      makeContactButton("Copia email", "copy-btn", () => copyText(email))
     );
   }
 
   if (phone) {
-    actions.push(
-      '<a class="phone-btn" href="tel:' + esc(phone) + '">☎ Chiama</a>'
-    );
-    actions.push(
-      '<button class="copy-btn" type="button" onclick="copyText(\'' + esc(phone) + '\')">Copia telefono</button>'
+    const phoneLink = document.createElement("a");
+    phoneLink.className = "phone-btn";
+    phoneLink.href = "tel:" + phone;
+    phoneLink.textContent = "☎ Chiama";
+    elements.contactActions.appendChild(phoneLink);
+
+    elements.contactActions.appendChild(
+      makeContactButton("Copia telefono", "copy-btn", () => copyText(phone))
     );
   }
 
-  contactActions.innerHTML =
-    actions.join("") ||
-    '<span class="muted">Nessun contatto rapido disponibile.</span>';
+  if (!email && !phone) {
+    const emptyContact = document.createElement("span");
+    emptyContact.className = "muted";
+    emptyContact.textContent = "Nessun contatto rapido disponibile.";
+    elements.contactActions.appendChild(emptyContact);
+  }
 
   renderList();
   renderTable();
+
+  if (scrollToDetail) {
+    window.requestAnimationFrame(() => {
+      elements.detail.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
+  return true;
 }
 
-async function boot() {
+async function loadOffices(preserveSelection = false) {
+  if (officesLoading) return;
+
+  officesLoading = true;
+  const previousId =
+    preserveSelection && selectedOffice ? String(selectedOffice.id) : "";
+
+  elements.refresh.disabled = true;
+  elements.refresh.textContent = "↻ Aggiornamento...";
+  elements.list.innerHTML = '<div class="muted">Caricamento uffici...</div>';
+
   try {
-    const result = await get("listUffici");
+    const result = await API.listUffici();
 
-    if (!result.ok) {
-      throw new Error(result.error || "Errore caricamento uffici");
+    if (!result || !result.ok) {
+      throw new Error((result && result.error) || "Errore caricamento uffici");
     }
 
-    uffici = result.uffici || [];
-    apply();
+    offices = Array.isArray(result.uffici) ? result.uffici : [];
+    applyFilters();
 
-    if (uffici[0]) {
-      openOffice(uffici[0].id);
+    const nextId =
+      previousId && offices.some(item => String(item.id) === previousId)
+        ? previousId
+        : offices[0]
+          ? offices[0].id
+          : "";
+
+    if (nextId) {
+      openOffice(nextId, false);
+    } else {
+      selectedOffice = null;
+      elements.detail.classList.add("hidden");
+      elements.empty.classList.remove("hidden");
     }
-
   } catch (error) {
-    list.innerHTML =
-      '<div style="padding:14px;color:#a82323;background:#fff0f0;border-radius:12px">' +
-      esc(error.message) +
-      '</div>';
+    console.error(error);
 
-    tableBody.innerHTML =
-      '<tr><td colspan="6">' + esc(error.message) + '</td></tr>';
+    elements.list.innerHTML = `
+      <div style="padding:14px;color:#a82323;background:#fff0f0;border-radius:12px">
+        ${escapeHtml(error.message)}
+      </div>
+    `;
+
+    elements.tableBody.innerHTML = `
+      <tr><td colspan="6">${escapeHtml(error.message)}</td></tr>
+    `;
+  } finally {
+    officesLoading = false;
+    elements.refresh.disabled = false;
+    elements.refresh.textContent = "↻ Aggiorna";
   }
 }
 
-q.addEventListener("input", apply);
-fAttivo.addEventListener("change", apply);
+elements.query.addEventListener("input", applyFilters);
+elements.activeFilter.addEventListener("change", applyFilters);
+elements.refresh.addEventListener("click", () => loadOffices(true));
 
-boot();
+elements.list.addEventListener("click", event => {
+  const button = event.target.closest("[data-office-id]");
+  if (button) {
+    openOffice(button.dataset.officeId, true);
+  }
+});
+
+elements.tableBody.addEventListener("click", event => {
+  const row = event.target.closest("tr[data-office-id]");
+  if (row) {
+    openOffice(row.dataset.officeId, true);
+  }
+});
+
+elements.tableBody.addEventListener("keydown", event => {
+  const row = event.target.closest("tr[data-office-id]");
+  if (row && (event.key === "Enter" || event.key === " ")) {
+    event.preventDefault();
+    openOffice(row.dataset.officeId, true);
+  }
+});
+
+async function startOfficesPage() {
+  if (!Auth.requireAuth()) {
+    return;
+  }
+
+  await loadOffices(false);
+}
+
+startOfficesPage();
 </script>
-<script src="assets/js/crm-shell.js?v=200"></script>
+<script src="assets/js/crm-shell.js?v=20"></script>
 </body>
 </html>
