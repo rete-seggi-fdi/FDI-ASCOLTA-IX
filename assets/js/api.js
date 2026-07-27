@@ -141,5 +141,11 @@ const API = Object.freeze({
   },
   addReportNote(reportId, note, visibileCittadino = false) {
     return this.call("addReportNote", { reportId, note, visibileCittadino });
+  },
+  startReportWork(reportId, note) {
+    return this.call("startReportWork", { reportId, note });
+  },
+  recordOfficeResponse(reportId, response) {
+    return this.call("recordOfficeResponse", { reportId, response });
   }
 });

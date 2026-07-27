@@ -155,7 +155,7 @@ body.detail-mode #case{
 
 .councillor-tools{display:none}
 body.councillor-mode .councillor-tools{display:block}
-body.councillor-mode .admin-tools{display:none!important}
+body.councillor-mode .admin-tools,body.councillor-mode .workflow-admin-only{display:none!important}
 .quick-actions{display:grid;gap:10px}
 .quick-actions .btn{width:100%;text-align:left}
 .note-box textarea{width:100%;min-height:120px;box-sizing:border-box}
@@ -269,7 +269,7 @@ body.councillor-mode .role-banner{display:block}
         <div class="tabpane" id="ufficio">
           <h3>🏛 Invio all'ufficio competente</h3>
           <select id="uffSelect"></select><br><br>
-          <textarea id="uffMsg" placeholder="Messaggio opzionale per l'ufficio"></textarea><br><br>
+          <textarea id="uffMsg" placeholder="Messaggio per l'ufficio competente"></textarea><br><br>
           <button class="btn" id="sendUff">Invia all'ufficio</button>
         </div>
       </div>
@@ -283,28 +283,32 @@ body.councillor-mode .role-banner{display:block}
         <button class="btn" id="sendRef">Assegna e invia</button>
       </div>
 
-      <div class="action-section">
+      <div class="action-section workflow-admin-only">
         <h3>⚙ Workflow pratica</h3>
         <div id="workflow"></div>
       </div>
 
       <div class="action-section councillor-tools note-box">
-        <h3>📝 Aggiungi nota</h3>
-        <textarea id="councillorNote" placeholder="Scrivi un aggiornamento operativo..."></textarea>
-        <label class="note-options">
-          <input type="checkbox" id="noteVisibleCitizen">
-          <span>Rendi l’aggiornamento visibile anche al cittadino</span>
-        </label>
-        <button class="btn" id="saveCouncillorNote" type="button">Salva nota</button>
+        <h3>1. ▶ Segna in lavorazione</h3>
+        <textarea id="workStartNote" placeholder="Nota obbligatoria: descrivi la presa in carico e cosa farai sulla pratica."></textarea>
+        <button class="btn" id="takeChargeBtn" type="button">Segna in lavorazione</button>
       </div>
 
       <div class="action-section councillor-tools">
-        <h3>⚡ Azioni rapide</h3>
-        <div class="quick-actions">
-          <button class="btn secondary" id="takeChargeBtn" type="button">▶ Segna in lavorazione</button>
-          <button class="btn secondary" id="waitingOfficeBtn" type="button">🏛 In attesa ufficio</button>
-          <button class="btn" id="resolveCouncillorBtn" type="button">✅ Chiudi come risolta</button>
-        </div>
+        <h3>2. 🏛 Ufficio competente</h3>
+        <p class="muted">Se necessario, inoltra la pratica all’ufficio municipale competente.</p>
+        <button class="btn secondary" id="openOfficeTabBtn" type="button">Inoltra all’ufficio</button>
+      </div>
+
+      <div class="action-section councillor-tools note-box">
+        <h3>3. 📩 Risposta ricevuta</h3>
+        <textarea id="officeResponseText" placeholder="Incolla o riassumi la risposta ricevuta dall’ufficio."></textarea>
+        <button class="btn secondary" id="responseReceivedBtn" type="button">Salva risposta ricevuta</button>
+      </div>
+
+      <div class="action-section councillor-tools">
+        <h3>4. ✅ Conclusione</h3>
+        <button class="btn" id="resolveCouncillorBtn" type="button">Segna come risolta</button>
       </div>
     </aside>
   </section>
@@ -664,7 +668,7 @@ function renderWorkflow(){workflow.innerHTML=WORKFLOW.map(w=>`<button class="btn
     openCase(selected.id);
   }else alert(res.error||'Errore aggiornamento stato');
 }
-function renderRefs(){refSelect.innerHTML='<option value="">Seleziona consigliere</option>'+referenti.map(r=>`<option value="${esc(r.id)}">${esc(r.nome)}</option>`).join('')}function renderUffici(){const activeOffices=uffici.filter(u=>!/^(no|false|0)$/i.test(String(u.attivo||'Sì').trim()));uffSelect.innerHTML='<option value="">Seleziona ufficio</option>'+activeOffices.map(u=>`<option value="${esc(u.id)}">${esc(u.ufficio||u.nome)} — ${esc(u.settore||'')}</option>`).join('')}sendRef.onclick=async()=>{if(!selected)return alert('Seleziona pratica');if(!refSelect.value)return alert('Seleziona consigliere');const res=await post({action:'sendToReferente',reportId:selected.id,referenteId:refSelect.value,messaggio:refMsg.value});if(res.ok){alert('Inviata al consigliere');location.reload()}else alert(res.error)};sendUff.onclick=async()=>{if(!selected)return alert('Seleziona pratica');if(!uffSelect.value)return alert('Seleziona ufficio');const res=await post({action:'sendToUfficio',reportId:selected.id,ufficioId:uffSelect.value,messaggio:uffMsg.value});if(res.ok){alert('Inviata all’ufficio');location.reload()}else alert(res.error||'Funzione sendToUfficio non disponibile')};async function renderTimeline(){const res=await get('getTimeline',{reportId:selected.id});const arr=res.ok?(res.timeline||[]):[];timeline.innerHTML=arr.map(t=>`<div><b>${esc(t.titolo)}</b><br><small>${esc(t.data)}</small><br>${esc(t.descrizione)}</div>`).join('')||'<p class="muted">Timeline non disponibile.</p>'}
+function renderRefs(){refSelect.innerHTML='<option value="">Seleziona consigliere</option>'+referenti.map(r=>`<option value="${esc(r.id)}">${esc(r.nome)}</option>`).join('')}function renderUffici(){const activeOffices=uffici.filter(u=>!/^(no|false|0)$/i.test(String(u.attivo||'Sì').trim()));uffSelect.innerHTML='<option value="">Seleziona ufficio</option>'+activeOffices.map(u=>`<option value="${esc(u.id)}">${esc(u.ufficio||u.nome)} — ${esc(u.settore||'')}</option>`).join('')}sendRef.onclick=async()=>{if(!selected)return alert('Seleziona pratica');if(!refSelect.value)return alert('Seleziona consigliere');const res=await post({action:'sendToReferente',reportId:selected.id,referenteId:refSelect.value,messaggio:refMsg.value});if(res.ok){alert('Inviata al consigliere');location.reload()}else alert(res.error)};sendUff.onclick=async()=>{if(!selected)return alert('Seleziona pratica');if(!uffSelect.value)return alert('Seleziona ufficio');const message=(uffMsg.value||'').trim();if(message.length<10)return alert('Inserisci un messaggio per l’ufficio di almeno 10 caratteri');const res=await post({action:'sendToUfficio',reportId:selected.id,ufficioId:uffSelect.value,messaggio:message});if(res.ok){selected.stato='In attesa di risposta dall’ufficio municipale competente';const item=reports.find(r=>r.id===selected.id);if(item)item.stato=selected.stato;uffMsg.value='';apply();await openCase(selected.id);alert('Pratica inoltrata. Ora è in attesa di risposta dall’ufficio.')}else alert(res.error||'Funzione sendToUfficio non disponibile')};async function renderTimeline(){const res=await get('getTimeline',{reportId:selected.id});const arr=res.ok?(res.timeline||[]):[];timeline.innerHTML=arr.map(t=>`<div><b>${esc(t.titolo)}</b><br><small>${esc(t.data)}</small><br>${esc(t.descrizione)}</div>`).join('')||'<p class="muted">Timeline non disponibile.</p>'}
 const closeModal=document.getElementById('closeModal');
 const closeModalX=document.getElementById('closeModalX');
 const closeCancel=document.getElementById('closeCancel');
@@ -718,64 +722,74 @@ if(!Auth.isAdmin()){
 }
 
 
-const councillorNote=document.getElementById('councillorNote');
-const noteVisibleCitizen=document.getElementById('noteVisibleCitizen');
-const saveCouncillorNote=document.getElementById('saveCouncillorNote');
+const workStartNote=document.getElementById('workStartNote');
 const takeChargeBtn=document.getElementById('takeChargeBtn');
-const waitingOfficeBtn=document.getElementById('waitingOfficeBtn');
+const openOfficeTabBtn=document.getElementById('openOfficeTabBtn');
+const officeResponseText=document.getElementById('officeResponseText');
+const responseReceivedBtn=document.getElementById('responseReceivedBtn');
 const resolveCouncillorBtn=document.getElementById('resolveCouncillorBtn');
 
-async function saveOperationalNote(){
+async function startWorkWithRequiredNote(){
   if(!selected)return alert('Seleziona una pratica');
-  const note=(councillorNote.value||'').trim();
-  if(note.length<3)return alert('Inserisci una nota di almeno 3 caratteri');
-  saveCouncillorNote.disabled=true;
-  saveCouncillorNote.textContent='Salvataggio...';
+  const note=(workStartNote.value||'').trim();
+  if(note.length<10){
+    workStartNote.focus();
+    return alert('La nota è obbligatoria e deve contenere almeno 10 caratteri.');
+  }
+  takeChargeBtn.disabled=true;
+  takeChargeBtn.textContent='Aggiornamento...';
   try{
-    const result=await API.addReportNote(
-      selected.id,
-      note,
-      noteVisibleCitizen.checked
-    );
-    if(!result.ok)throw new Error(result.error||'Nota non salvata');
-    councillorNote.value='';
-    noteVisibleCitizen.checked=false;
-    await renderTimeline();
-    alert('Nota salvata correttamente.');
+    const result=await API.startReportWork(selected.id,note);
+    if(!result.ok)throw new Error(result.error||'Aggiornamento non riuscito');
+    workStartNote.value='';
+    selected.stato='In lavorazione';
+    const item=reports.find(report=>report.id===selected.id);
+    if(item)item.stato='In lavorazione';
+    apply();
+    await openCase(selected.id);
+    alert('Pratica segnata in lavorazione.');
   }catch(error){
-    alert(error.message||'Errore durante il salvataggio');
+    alert(error.message||'Errore durante l’aggiornamento');
   }finally{
-    saveCouncillorNote.disabled=false;
-    saveCouncillorNote.textContent='Salva nota';
+    takeChargeBtn.disabled=false;
+    takeChargeBtn.textContent='Segna in lavorazione';
   }
 }
 
-async function setCouncillorStatus(status, description){
+async function saveOfficeResponse(){
   if(!selected)return alert('Seleziona una pratica');
-  const result=await post({
-    action:'updateReportStatus',
-    reportId:selected.id,
-    stato:status,
-    descrizione:description,
-    visibileCittadino:'Sì'
-  });
-  if(!result.ok)return alert(result.error||'Aggiornamento non riuscito');
-  selected.stato=status;
-  const item=reports.find(report=>report.id===selected.id);
-  if(item)item.stato=status;
-  apply();
-  await openCase(selected.id);
+  const response=(officeResponseText.value||'').trim();
+  if(response.length<10){
+    officeResponseText.focus();
+    return alert('Inserisci la risposta ricevuta, almeno 10 caratteri.');
+  }
+  responseReceivedBtn.disabled=true;
+  responseReceivedBtn.textContent='Salvataggio...';
+  try{
+    const result=await API.recordOfficeResponse(selected.id,response);
+    if(!result.ok)throw new Error(result.error||'Risposta non salvata');
+    officeResponseText.value='';
+    selected.stato='Risposta ricevuta';
+    const item=reports.find(report=>report.id===selected.id);
+    if(item)item.stato='Risposta ricevuta';
+    apply();
+    await openCase(selected.id);
+    alert('Risposta ricevuta registrata.');
+  }catch(error){
+    alert(error.message||'Errore durante il salvataggio');
+  }finally{
+    responseReceivedBtn.disabled=false;
+    responseReceivedBtn.textContent='Salva risposta ricevuta';
+  }
 }
 
-if(saveCouncillorNote)saveCouncillorNote.onclick=saveOperationalNote;
-if(takeChargeBtn)takeChargeBtn.onclick=()=>setCouncillorStatus(
-  'In lavorazione',
-  'La pratica è stata presa in lavorazione dal consigliere assegnato.'
-);
-if(waitingOfficeBtn)waitingOfficeBtn.onclick=()=>setCouncillorStatus(
-  'In attesa di risposta dall’ufficio municipale competente',
-  'La pratica è in attesa di riscontro da parte dell’ufficio municipale competente.'
-);
+if(takeChargeBtn)takeChargeBtn.onclick=startWorkWithRequiredNote;
+if(openOfficeTabBtn)openOfficeTabBtn.onclick=()=>{
+  if(!selected)return alert('Seleziona una pratica');
+  activateTab('ufficio');
+  setTimeout(()=>uffSelect.focus(),80);
+};
+if(responseReceivedBtn)responseReceivedBtn.onclick=saveOfficeResponse;
 if(resolveCouncillorBtn)resolveCouncillorBtn.onclick=openCloseModal;
 
 let practicesLoading=false;
