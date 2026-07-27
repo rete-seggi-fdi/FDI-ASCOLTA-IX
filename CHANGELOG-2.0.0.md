@@ -1,4 +1,4 @@
-# Changelog 2.0.0
+# Changelog 2.1.0
 
 - ripristinato il vero modulo pubblico `segnala.html`;
 - aggiunti geocoding e correzione coordinate pratica;

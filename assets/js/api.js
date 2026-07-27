@@ -46,6 +46,7 @@ const API = Object.freeze({
   },
 
   health() { return this.call("health", {}, { publicAction: true }); },
+  getPublicConfig() { return this.call("getPublicConfig", {}, { publicAction: true }); },
   login(email, password) {
     return this.call("login", { email, password }, { publicAction: true });
   },

@@ -7,7 +7,7 @@
 
   <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="assets/css/style.css" />
-  <link rel="stylesheet" href="assets/css/theme-fdi.css?v=200">
+  <link rel="stylesheet" href="assets/css/theme-fdi.css?v=210">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
   <style>
@@ -360,8 +360,10 @@
         <input name="website" type="text" tabindex="-1" autocomplete="off" />
       </label>
 
-      <button class="btn btn-primary full" id="submitReport" type="submit">
-        Invia segnalazione
+      <div id="recaptchaStatus" class="notice hidden" role="status"></div>
+
+      <button class="btn btn-primary full" id="submitReport" type="submit" disabled>
+        Verifica anti-spam in corso...
       </button>
 
       <div id="formMessage" class="notice hidden"></div>
@@ -373,8 +375,8 @@
   FDI Ascolta IX — Sistema di gestione delle segnalazioni territoriali
 </footer>
 
-<script src="assets/js/config.js?v=200"></script>
-<script src="assets/js/api.js?v=200"></script>
+<script src="assets/js/config.js?v=210"></script>
+<script src="assets/js/api.js?v=210"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
@@ -392,11 +394,15 @@
   const quartiereSelect = document.getElementById("quartiere");
   const photoInput = document.getElementById("foto");
   const submitReport = document.getElementById("submitReport");
+  const recaptchaStatus = document.getElementById("recaptchaStatus");
 
   let gpsMap = null;
   let gpsMarker = null;
   let positionSource = "";
   let resolvedAddressValue = "";
+  let recaptchaSiteKey = "";
+  let recaptchaRequired = true;
+  let securityReady = false;
 
 
   async function loadQuartieri() {
@@ -596,34 +602,103 @@
   });
 
   let recaptchaPromise = null;
+  let publicConfigPromise = null;
+
+  function setRecaptchaStatus(type, text) {
+    recaptchaStatus.className = "notice " + type;
+    recaptchaStatus.textContent = text;
+    recaptchaStatus.classList.remove("hidden");
+  }
+
+  async function loadPublicSecurityConfig() {
+    if (publicConfigPromise) return publicConfigPromise;
+
+    publicConfigPromise = API.getPublicConfig().then(function(result) {
+      if (!result || !result.ok) {
+        throw new Error((result && result.error) || "Configurazione anti-spam non disponibile");
+      }
+
+      const recaptcha = result.recaptcha || {};
+      recaptchaRequired = recaptcha.required !== false;
+      recaptchaSiteKey = String(recaptcha.siteKey || "").trim();
+
+      if (recaptchaRequired && (!recaptcha.configured || !recaptchaSiteKey)) {
+        throw new Error("Protezione anti-spam non configurata dall’amministratore");
+      }
+
+      return recaptcha;
+    });
+
+    return publicConfigPromise;
+  }
 
   function loadRecaptcha() {
-    const siteKey = String(CONFIG.RECAPTCHA_SITE_KEY || "").trim();
-    if (!siteKey) return Promise.resolve(null);
+    if (!recaptchaSiteKey) {
+      return recaptchaRequired
+        ? Promise.reject(new Error("Site key reCAPTCHA non disponibile"))
+        : Promise.resolve(null);
+    }
+
     if (window.grecaptcha) return Promise.resolve(window.grecaptcha);
     if (recaptchaPromise) return recaptchaPromise;
 
     recaptchaPromise = new Promise(function(resolve, reject) {
       const script = document.createElement("script");
-      script.src = "https://www.google.com/recaptcha/api.js?render=" + encodeURIComponent(siteKey);
+      script.src = "https://www.google.com/recaptcha/api.js?render=" + encodeURIComponent(recaptchaSiteKey);
       script.async = true;
       script.defer = true;
-      script.onload = function() { resolve(window.grecaptcha); };
-      script.onerror = function() { reject(new Error("Impossibile caricare il controllo anti-spam")); };
+      script.onload = function() {
+        if (!window.grecaptcha) {
+          reject(new Error("Libreria anti-spam non inizializzata"));
+          return;
+        }
+        resolve(window.grecaptcha);
+      };
+      script.onerror = function() {
+        reject(new Error("Impossibile caricare il controllo anti-spam"));
+      };
       document.head.appendChild(script);
     });
+
     return recaptchaPromise;
   }
 
+  async function initializeRecaptcha() {
+    submitReport.disabled = true;
+    submitReport.textContent = "Verifica anti-spam in corso...";
+
+    try {
+      await loadPublicSecurityConfig();
+      await loadRecaptcha();
+      securityReady = true;
+      setRecaptchaStatus("success", "Protezione anti-spam attiva.");
+      submitReport.disabled = false;
+      submitReport.textContent = "Invia segnalazione";
+    } catch (error) {
+      securityReady = false;
+      setRecaptchaStatus("error", error.message || "Protezione anti-spam non disponibile");
+      submitReport.disabled = true;
+      submitReport.textContent = "Invio temporaneamente non disponibile";
+      console.error("Configurazione reCAPTCHA:", error);
+    }
+  }
+
   async function getRecaptchaToken() {
-    const siteKey = String(CONFIG.RECAPTCHA_SITE_KEY || "").trim();
-    if (!siteKey) return "";
+    if (!securityReady) {
+      throw new Error("Protezione anti-spam non pronta. Ricarica la pagina.");
+    }
+    if (!recaptchaSiteKey && !recaptchaRequired) return "";
+
     const grecaptcha = await loadRecaptcha();
+    if (!grecaptcha) return "";
+
     return new Promise(function(resolve, reject) {
       grecaptcha.ready(function() {
-        grecaptcha.execute(siteKey, { action: "create_report" })
+        grecaptcha.execute(recaptchaSiteKey, { action: "create_report" })
           .then(resolve)
-          .catch(function() { reject(new Error("Verifica anti-spam non riuscita")); });
+          .catch(function() {
+            reject(new Error("Verifica anti-spam non riuscita"));
+          });
       });
     });
   }
@@ -661,6 +736,11 @@
 
   form.addEventListener("submit", async function(event) {
     event.preventDefault();
+
+    if (!securityReady) {
+      showNotice("error", "Protezione anti-spam non pronta. Ricarica la pagina.");
+      return;
+    }
 
     const fd = new FormData(form);
 
@@ -750,15 +830,15 @@
     } catch (err) {
       showNotice("error", err.message);
     } finally {
-      submitReport.disabled = false;
-      submitReport.textContent = "Invia segnalazione";
+      submitReport.disabled = !securityReady;
+      submitReport.textContent = securityReady
+        ? "Invia segnalazione"
+        : "Invio temporaneamente non disponibile";
     }
   });
 
   loadQuartieri();
-  loadRecaptcha().catch(function(error) {
-    console.warn(error.message);
-  });
+  initializeRecaptcha();
 </script>
 
 </body>

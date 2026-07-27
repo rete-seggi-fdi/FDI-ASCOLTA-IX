@@ -1,4 +1,4 @@
-# FDI Ascolta IX CRM — versione 2.0.0
+# FDI Ascolta IX CRM — versione 2.1.0
 
 Applicazione statica + Google Apps Script per la raccolta e la gestione delle segnalazioni territoriali del Municipio IX.
 
@@ -76,7 +76,7 @@ URL_WEB_APP?action=listQuartieri
 
 Pubblicare l'intera cartella sul ramo/cartella usati da GitHub Pages. L'URL Apps Script deve comparire soltanto in `assets/js/config.js`.
 
-Dopo la pubblicazione aprire il sito in finestra anonima o forzare il refresh. Tutti gli asset usano il parametro cache `v=200`.
+Dopo la pubblicazione aprire il sito in finestra anonima o forzare il refresh. Tutti gli asset usano il parametro cache `v=210`.
 
 ## Test di accettazione
 
@@ -92,3 +92,8 @@ Dopo la pubblicazione aprire il sito in finestra anonima o forzare il refresh. T
 ## Fonti dati iniziali
 
 L'elenco iniziale dei 34 quartieri deriva dalla pagina istituzionale “I quartieri di Roma — Municipio IX” di Roma Capitale. I contatti di referenti e uffici non vengono inventati: devono essere inseriti e verificati dall'amministratore prima di impostare `Attivo = Sì`.
+
+
+## reCAPTCHA obbligatorio
+
+Dalla versione 2.1.0 reCAPTCHA v3 è fail-closed. Configurare le Proprietà script e seguire `CONFIGURA-RECAPTCHA.md` prima di rendere pubblico il modulo.

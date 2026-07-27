@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Analytics PRO v2.0.0 — FDI Ascolta IX CRM</title>
-<link rel="stylesheet" href="assets/css/crm-shell.css?v=200">
+<title>Analytics PRO v2.1.0 — FDI Ascolta IX CRM</title>
+<link rel="stylesheet" href="assets/css/crm-shell.css?v=210">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <style>
 :root{
@@ -58,7 +58,7 @@ th{color:var(--blue);font-size:.7rem;text-transform:uppercase;letter-spacing:.04
 <body>
 <header class="topbar">
   <div class="brand"><strong>FDI ASCOLTA IX CRM</strong><small>Analytics PRO · Municipio IX Roma</small></div>
-  <span class="version">Versione 2.0.0</span>
+  <span class="version">Versione 2.1.0</span>
 </header>
 
 <main class="page">
@@ -115,11 +115,11 @@ th{color:var(--blue);font-size:.7rem;text-transform:uppercase;letter-spacing:.04
   </section>
 </main>
 
-<footer class="footer">FDI Ascolta IX CRM — Analytics PRO v2.0.0</footer>
+<footer class="footer">FDI Ascolta IX CRM — Analytics PRO v2.1.0</footer>
 
-<script src="assets/js/config.js?v=200"></script>
-<script src="assets/js/auth.js?v=200"></script>
-<script src="assets/js/api.js?v=200"></script>
+<script src="assets/js/config.js?v=210"></script>
+<script src="assets/js/auth.js?v=210"></script>
+<script src="assets/js/api.js?v=210"></script>
 <script>
 const authenticated=Auth.requireAuth();
 let reports=[],filtered=[],charts={};
@@ -249,6 +249,6 @@ resetBtn.onclick=()=>{search.value="";period.value="all";quartiere.value="";cate
 refreshBtn.onclick=load;csvBtn.onclick=exportCsv;
 load();
 </script>
-<script src="assets/js/crm-shell.js?v=200"></script>
+<script src="assets/js/crm-shell.js?v=210"></script>
 </body>
 </html>

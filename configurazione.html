@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Configurazione PRO v2.0.0 — FDI Ascolta IX CRM</title>
+  <title>Configurazione PRO v2.1.0 — FDI Ascolta IX CRM</title>
   <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/css/theme-fdi.css?v=200">
-  <link rel="stylesheet" href="assets/css/crm-shell.css?v=200">
+  <link rel="stylesheet" href="assets/css/theme-fdi.css?v=210">
+  <link rel="stylesheet" href="assets/css/crm-shell.css?v=210">
   <style>
     :root{--blue:#082f6a;--blue2:#0b4c99;--gold:#e9b900;--bg:#f4f7fb;--line:#dfe6ef;--text:#102342;--muted:#67758c;--green:#168447;--red:#b42318;--shadow:0 12px 34px rgba(15,36,69,.09)}
     *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif}
@@ -22,7 +22,7 @@
   </style>
 </head>
 <body>
-<header class="topbar"><div class="brand"><strong>FDI ASCOLTA IX CRM</strong><small>Configurazione amministrativa</small></div><span class="version">Versione 2.0.0</span></header>
+<header class="topbar"><div class="brand"><strong>FDI ASCOLTA IX CRM</strong><small>Configurazione amministrativa</small></div><span class="version">Versione 2.1.0</span></header>
 <main class="page">
   <section class="head"><div><h1>Configurazione</h1><p>Gestione reale dei dati salvati nel Google Sheet. Le modifiche richiedono un account Amministratore.</p></div><div class="actions"><button class="btn" id="refreshBtn" type="button">↻ Aggiorna</button><a class="btn" href="dashboard.html">Dashboard</a></div></section>
   <div class="status" id="statusBox">Connessione al backend in corso…</div>
@@ -44,11 +44,11 @@
   <form class="form" id="editorForm"><input type="hidden" id="itemType"><div class="grid" id="formFields"></div><div class="message" id="formMessage"></div></form>
   <div class="modal-actions"><button class="btn" id="cancelBtn" type="button">Annulla</button><button class="btn primary" id="saveBtn" type="button">Salva</button></div>
 </dialog>
-<footer class="footer">FDI Ascolta IX CRM — Configurazione PRO v2.0.0</footer>
+<footer class="footer">FDI Ascolta IX CRM — Configurazione PRO v2.1.0</footer>
 
-<script src="assets/js/config.js?v=200"></script>
-<script src="assets/js/auth.js?v=200"></script>
-<script src="assets/js/api.js?v=200"></script>
+<script src="assets/js/config.js?v=210"></script>
+<script src="assets/js/auth.js?v=210"></script>
+<script src="assets/js/api.js?v=210"></script>
 <script>
 const authenticated=Auth.requireAuth();
 const statusBox=document.getElementById("statusBox");
@@ -122,6 +122,6 @@ document.addEventListener("click",event=>{const add=event.target.closest("[data-
 refreshBtn.onclick=loadData;saveBtn.onclick=save;cancelBtn.onclick=()=>editorDialog.close();dialogClose.onclick=()=>editorDialog.close();
 loadData();
 </script>
-<script src="assets/js/crm-shell.js?v=200"></script>
+<script src="assets/js/crm-shell.js?v=210"></script>
 </body>
 </html>

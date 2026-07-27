@@ -1,4 +1,4 @@
-# Security review — versione 2.0.0
+# Security review — versione 2.1.0
 
 ## Controlli implementati
 

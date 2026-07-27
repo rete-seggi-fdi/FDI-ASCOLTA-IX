@@ -1,4 +1,4 @@
-# Installazione e migrazione 2.0.0
+# Installazione e migrazione 2.1.0
 
 ## Prima del deploy
 
@@ -26,3 +26,8 @@ Dopo ogni modifica a `Code.gs`, aggiornare la distribuzione con **Nuova versione
 ## Diagnostica
 
 Aprire l'endpoint `health`. Se la versione non è `2026-07-complete-1`, il deploy sta ancora eseguendo codice precedente.
+
+
+## Passaggio obbligatorio: reCAPTCHA
+
+Prima del deploy definitivo configurare `RECAPTCHA_SITE_KEY`, `RECAPTCHA_SECRET`, `RECAPTCHA_REQUIRED=true`, quindi eseguire `setupRecaptcha`. Vedere `CONFIGURA-RECAPTCHA.md`.

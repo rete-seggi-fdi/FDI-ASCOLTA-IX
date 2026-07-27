@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Pratiche PRO v2.0.0 — FDI Ascolta IX CRM</title>
+<title>Pratiche PRO v2.1.0 — FDI Ascolta IX CRM</title>
 
 <link rel="stylesheet" href="assets/css/style.css">
-<link rel="stylesheet" href="assets/css/theme-fdi.css?v=200">
+<link rel="stylesheet" href="assets/css/theme-fdi.css?v=210">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
 <style>
@@ -153,7 +153,7 @@ body.detail-mode #case{
 @media(max-width:1250px){.workspace{grid-template-columns:300px minmax(0,1fr)}.action-panel{grid-column:1/-1;position:static;display:grid;grid-template-columns:1fr 1fr}.action-section{border-right:1px solid var(--line)}.toolbar{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:850px){.page{padding:14px}.toolbar,.kpi-strip,.workspace,.info,.action-panel{grid-template-columns:1fr}.list{max-height:420px}.topbar{align-items:flex-start;flex-direction:column}.action-section{border-right:0}.close-modal-actions{flex-direction:column}.close-modal-actions .btn{width:100%}}
 </style>
-<link rel="stylesheet" href="assets/css/crm-shell.css?v=200">
+<link rel="stylesheet" href="assets/css/crm-shell.css?v=210">
 </head>
 <body>
 
@@ -163,7 +163,7 @@ body.detail-mode #case{
     <small>Pratiche PRO · Municipio IX Roma</small>
   </div>
   <div class="top-actions">
-    <span class="version">Versione 2.0.0</span>
+    <span class="version">Versione 2.1.0</span>
     <button class="nav-btn" id="refreshPractices" type="button">↻ Aggiorna</button>
     <a class="nav-btn" href="dashboard.html">▦ Dashboard</a>
     <a class="nav-btn" href="uffici.html">🏛 Uffici</a>
@@ -305,8 +305,8 @@ body.detail-mode #case{
   </div>
 </main>
 
-<footer class="footer">FDI Ascolta IX CRM — Pratiche PRO v2.0.0</footer>
-<script src="assets/js/config.js?v=200"></script><script src="assets/js/auth.js?v=200"></script><script src="assets/js/api.js?v=200"></script><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<footer class="footer">FDI Ascolta IX CRM — Pratiche PRO v2.1.0</footer>
+<script src="assets/js/config.js?v=210"></script><script src="assets/js/auth.js?v=210"></script><script src="assets/js/api.js?v=210"></script><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 Auth.requireAuth();
 const WORKFLOW=[['1','Segnalazione ricevuta','La segnalazione è stata registrata dal sistema FDI Ascolta IX.'],['2','Presa in carico dal Gruppo Consiliare','La pratica è stata presa in carico dal Gruppo Consiliare.'],['3','Assegnata al consigliere','La pratica è stata assegnata al consigliere competente.'],['4','Inviata dal consigliere all’ufficio municipale competente','La pratica è stata trasmessa all’ufficio municipale competente.'],['5','In attesa di risposta dall’ufficio municipale competente','La pratica è in attesa di riscontro da parte dell’ufficio competente.'],['6','Risposta ricevuta','È stata ricevuta una risposta relativa alla pratica.'],['7','In lavorazione','La pratica risulta in lavorazione.'],['8','Risolta','La criticità segnalata risulta risolta.'],['9','Archiviata','La pratica è stata archiviata.']];
@@ -757,6 +757,6 @@ function updateMiniKpis(){
 const originalApply=apply;
 apply=function(){originalApply();updateMiniKpis();};
 </script>
-<script src="assets/js/crm-shell.js?v=200"></script>
+<script src="assets/js/crm-shell.js?v=210"></script>
 </body>
 </html>
