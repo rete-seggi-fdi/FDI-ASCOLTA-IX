@@ -648,7 +648,19 @@
     }[char]));
   }
 
-  function norm(value) {
+  const WORKFLOW = Object.freeze([
+  "Segnalazione ricevuta",
+  "Presa in carico dal Gruppo Consiliare",
+  "Assegnata al consigliere",
+  "Inviata dal consigliere all’ufficio municipale competente",
+  "In attesa di risposta dall’ufficio municipale competente",
+  "Risposta ricevuta",
+  "In lavorazione",
+  "Risolta",
+  "Archiviata"
+]);
+
+function norm(value) {
     return String(value || "").trim().toLowerCase();
   }
 

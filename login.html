@@ -41,7 +41,8 @@ const showPassEl = document.getElementById("showPass");
 
 function destinationAfterLogin() {
   const params = new URLSearchParams(location.search);
-  return Auth.safeNext(params.get("next"), "dashboard.html");
+  const requested = Auth.safeNext(params.get("next"), Auth.homeForRole());
+  return Auth.canOpenPage(requested) ? requested : Auth.homeForRole();
 }
 
 if (Auth.getToken()) {
