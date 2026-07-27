@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Sala Operativa PRO v1.2 RC2 — FDI Ascolta IX CRM</title>
+<title>Sala Operativa PRO v2.0.0 — FDI Ascolta IX CRM</title>
 <link rel="stylesheet" href="assets/css/style.css">
-<link rel="stylesheet" href="assets/css/theme-fdi.css?v=140">
+<link rel="stylesheet" href="assets/css/theme-fdi.css?v=200">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
@@ -55,7 +55,7 @@
 <body>
 <header class="topbar">
 <div class="brand"><strong>FDI ASCOLTA IX CRM</strong><small>Sala Operativa · Municipio IX Roma</small></div>
-<div class="top-actions"><span class="version-pill">Versione 1.2 RC2</span><a class="nav-btn" href="dashboard.html">▦ Dashboard</a><a class="nav-btn" href="pratiche.html">▣ Pratiche</a><a class="nav-btn" href="uffici.html">🏛 Uffici</a></div>
+<div class="top-actions"><span class="version-pill">Versione 2.0.0</span><a class="nav-btn" href="dashboard.html">▦ Dashboard</a><a class="nav-btn" href="pratiche.html">▣ Pratiche</a><a class="nav-btn" href="uffici.html">🏛 Uffici</a></div>
 </header>
 
 <main class="page">
@@ -125,11 +125,11 @@
 </section>
 </main>
 
-<footer class="footer">FDI Ascolta IX CRM — Sala Operativa PRO v1.2 RC2</footer><div class="toast" id="toast"></div>
+<footer class="footer">FDI Ascolta IX CRM — Sala Operativa PRO v2.0.0</footer><div class="toast" id="toast"></div>
 
-<script src="assets/js/config.js?v=18"></script>
-<script src="assets/js/auth.js?v=18"></script>
-<script src="assets/js/api.js?v=18"></script>
+<script src="assets/js/config.js?v=200"></script>
+<script src="assets/js/auth.js?v=200"></script>
+<script src="assets/js/api.js?v=200"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
@@ -202,9 +202,7 @@ function markerIcon(r){
 function validCoords(r){
   const lat=Number(r.latitudine);
   const lng=Number(r.longitudine);
-  const bounds=CONFIG.COORD_BOUNDS||{
-    minLat:41.65,maxLat:42.05,minLng:12.25,maxLng:12.75
-  };
+  const bounds=CONFIG.COORD_BOUNDS;
 
   return Number.isFinite(lat)&&
     Number.isFinite(lng)&&
@@ -607,6 +605,6 @@ async function startSalaOperativa(){
 
 startSalaOperativa();
 </script>
-<script src="assets/js/crm-shell.js?v=18"></script>
+<script src="assets/js/crm-shell.js?v=200"></script>
 </body>
 </html>

@@ -122,8 +122,7 @@
     }catch(_){}
   }
 
-  const NOTIFY_READ_KEY="fdi_crm_notifications_read_v1";
-  const NOTIFY_SNAPSHOT_KEY="fdi_crm_notifications_snapshot_v1";
+  const NOTIFY_READ_KEY=CONFIG.NOTIFICATION_READ_KEY;
 
   function readSet(){
     try{return new Set(JSON.parse(localStorage.getItem(NOTIFY_READ_KEY)||"[]"))}
@@ -144,7 +143,12 @@
 
   function notificationDate(r){
     const raw=r.ultimoAggiornamento||r.dataAggiornamento||r.timestamp||r.dataCreazione||r.data||"";
-    const d=new Date(raw);
+    const text=String(raw||"").trim();
+    const match=text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+    if(match){
+      return new Date(Number(match[3]),Number(match[2])-1,Number(match[1]),Number(match[4]||0),Number(match[5]||0));
+    }
+    const d=new Date(text);
     return isNaN(d)?null:d;
   }
 

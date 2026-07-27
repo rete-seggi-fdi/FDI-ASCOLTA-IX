@@ -84,5 +84,12 @@ const API = Object.freeze({
   updateReportLocation(data) { return this.call("updateReportLocation", data); },
   sendToReferente(data) { return this.call("sendToReferente", data); },
   sendToUfficio(data) { return this.call("sendToUfficio", data); },
-  closeReport(data) { return this.call("closeReport", data); }
+  closeReport(data) { return this.call("closeReport", data); },
+  getConfigurationData() { return this.call("getConfigurationData"); },
+  saveConfigurationItem(itemType, item) {
+    return this.call("saveConfigurationItem", { itemType, item });
+  },
+  deactivateConfigurationItem(itemType, id) {
+    return this.call("deactivateConfigurationItem", { itemType, id });
+  }
 });

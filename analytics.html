@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Analytics PRO — FDI Ascolta IX CRM</title>
-<link rel="stylesheet" href="assets/css/crm-shell.css?v=201">
+<title>Analytics PRO v2.0.0 — FDI Ascolta IX CRM</title>
+<link rel="stylesheet" href="assets/css/crm-shell.css?v=200">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <style>
 :root{
@@ -58,7 +58,7 @@ th{color:var(--blue);font-size:.7rem;text-transform:uppercase;letter-spacing:.04
 <body>
 <header class="topbar">
   <div class="brand"><strong>FDI ASCOLTA IX CRM</strong><small>Analytics PRO · Municipio IX Roma</small></div>
-  <span class="version">Versione 1.0 RC1</span>
+  <span class="version">Versione 2.0.0</span>
 </header>
 
 <main class="page">
@@ -115,23 +115,48 @@ th{color:var(--blue);font-size:.7rem;text-transform:uppercase;letter-spacing:.04
   </section>
 </main>
 
-<footer class="footer">FDI Ascolta IX CRM — Analytics PRO v1.0 RC1</footer>
+<footer class="footer">FDI Ascolta IX CRM — Analytics PRO v2.0.0</footer>
 
+<script src="assets/js/config.js?v=200"></script>
+<script src="assets/js/auth.js?v=200"></script>
+<script src="assets/js/api.js?v=200"></script>
 <script>
-const API_FALLBACK="https://script.google.com/macros/s/AKfycbyZuNSOT2SCW6YNp6gZ-bTO6gfm9wGI3-YAjvSmo5oelcqrUmARNzmd49hbjSn4ISh4Yg/exec";
+const authenticated=Auth.requireAuth();
 let reports=[],filtered=[],charts={};
 
-function apiUrl(){return typeof CONFIG!=="undefined"&&CONFIG.API_URL&&CONFIG.API_URL.includes("/macros/s/")?CONFIG.API_URL:API_FALLBACK}
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 function group(s){const v=String(s||"").toLowerCase();if(v.includes("archiv"))return"arch";if(v.includes("risolt"))return"done";if(/presa|assegnata|attesa|ufficio|lavorazione|risposta/.test(v))return"work";return"open"}
+function parseDate(value){
+  if(!value)return null;
+  if(value instanceof Date&&!isNaN(value))return value;
+  const text=String(value).trim();
+  const italian=text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+  if(italian){
+    return new Date(
+      Number(italian[3]),
+      Number(italian[2])-1,
+      Number(italian[1]),
+      Number(italian[4]||0),
+      Number(italian[5]||0)
+    );
+  }
+  const parsed=new Date(text);
+  return isNaN(parsed)?null:parsed;
+}
 function dateOf(r){
-  const vals=[r.dataCreazione,r.timestamp,r.data,r.createdAt,r.dataSegnalazione];
-  for(const v of vals){if(!v)continue;const d=new Date(v);if(!isNaN(d))return d}
-  const m=String(r.id||"").match(/IX-(\d{4})(\d{2})(\d{2})/);return m?new Date(+m[1],+m[2]-1,+m[3]):null
+  for(const value of [r.data,r.dataCreazione,r.timestamp,r.createdAt,r.dataSegnalazione]){
+    const date=parseDate(value);
+    if(date)return date;
+  }
+  const match=String(r.id||"").match(/IX-(\d{4})(\d{2})(\d{2})/);
+  return match?new Date(Number(match[1]),Number(match[2])-1,Number(match[3])):null;
 }
 function closeDateOf(r){
-  for(const v of [r.dataChiusura,r.closedAt,r.dataRisoluzione,r.ultimoAggiornamento]){if(!v)continue;const d=new Date(v);if(!isNaN(d))return d}
-  return null
+  for(const value of [r.dataChiusura,r.closedAt,r.dataRisoluzione,r.ultimoAggiornamento]){
+    const date=parseDate(value);
+    if(date)return date;
+  }
+  return null;
 }
 function uniq(field){return [...new Set(reports.map(r=>r[field]).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),"it"))}
 function fill(id,values){const s=document.getElementById(id),current=s.value,first=s.options[0].outerHTML;s.innerHTML=first+values.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("");if([...s.options].some(o=>o.value===current))s.value=current}
@@ -200,22 +225,30 @@ function exportCsv(){
 }
 
 async function load(){
-  refreshBtn.disabled=true;refreshBtn.textContent="Aggiornamento...";
+  if(!authenticated)return;
+  refreshBtn.disabled=true;
+  refreshBtn.textContent="Aggiornamento...";
   try{
-    const u=new URL(apiUrl());u.searchParams.set("action","listReports");u.searchParams.set("_",Date.now());
-    const r=await fetch(u,{cache:"no-store",redirect:"follow"}),j=await r.json();
-    if(!r.ok||!j.ok)throw new Error(j.error||"Errore caricamento");
-    reports=j.reports||[];
-    fill("quartiere",uniq("quartiere"));fill("categoria",uniq("categoria"));fill("referente",uniq("referenteNome"));
-    apply()
-  }catch(e){advisorTable.innerHTML=`<tr><td colspan="6"><div class="loading">${esc(e.message)}</div></td></tr>`}
-  finally{refreshBtn.disabled=false;refreshBtn.textContent="Aggiorna"}
+    const result=await API.listReports();
+    if(!result.ok)throw new Error(result.error||"Errore caricamento");
+    reports=Array.isArray(result.reports)?result.reports:[];
+    fill("quartiere",uniq("quartiere"));
+    fill("categoria",uniq("categoria"));
+    fill("referente",uniq("referenteNome"));
+    apply();
+  }catch(error){
+    console.error(error);
+    advisorTable.innerHTML=`<tr><td colspan="6"><div class="loading">${esc(error.message)}</div></td></tr>`;
+  }finally{
+    refreshBtn.disabled=false;
+    refreshBtn.textContent="Aggiorna";
+  }
 }
 [search,period,quartiere,categoria,referente].forEach(el=>el.addEventListener(el.tagName==="INPUT"?"input":"change",apply));
 resetBtn.onclick=()=>{search.value="";period.value="all";quartiere.value="";categoria.value="";referente.value="";apply()};
 refreshBtn.onclick=load;csvBtn.onclick=exportCsv;
 load();
 </script>
-<script src="assets/js/crm-shell.js?v=202"></script>
+<script src="assets/js/crm-shell.js?v=200"></script>
 </body>
 </html>

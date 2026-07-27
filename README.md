@@ -1,87 +1,94 @@
-# FDI Ascolta IX — versione hardening
+# FDI Ascolta IX CRM — versione 2.0.0
 
-Piattaforma statica GitHub Pages + Google Apps Script + Google Sheets per la raccolta e la gestione delle segnalazioni territoriali del Municipio IX.
+Applicazione statica + Google Apps Script per la raccolta e la gestione delle segnalazioni territoriali del Municipio IX.
 
-## Modifiche principali
+## Struttura
 
-- API privata protetta da sessioni verificate nel backend.
-- Tracking pubblico puntuale: non scarica più tutte le segnalazioni.
-- Home pubblica alimentata da sole statistiche aggregate.
-- Password migrate automaticamente dal formato in chiaro a un hash con salt e segreto server-side.
-- Implementate le azioni mancanti: `listQuartieri`, `listUffici`, `updateReportStatus`, `sendToUfficio`, `closeReport`, `getTimeline`, `getCommunications`.
-- `setupSheet` non è più richiamabile via HTTP.
-- URL Apps Script presente esclusivamente in `assets/js/config.js`.
-- Unica sessione frontend in `sessionStorage`, con chiave definita in `CONFIG.SESSION_KEY`.
-- Upload limitato a 5 MB, con controllo della firma reale del file; JPEG, PNG, GIF e WebP soltanto.
-- Le nuove foto restano private su Drive.
-- Rate limiting su login, creazione segnalazioni, tracking e invii email.
-- Validazione server-side dei campi, delle lunghezze, dell’email, del consenso e delle coordinate.
-- Protezione contro formule iniettate nei fogli Google.
-- Eliminati i file JavaScript non utilizzati.
+- `Code.gs`: unica fonte backend da incollare nel progetto Apps Script.
+- `assets/js/config.js`: unico punto in cui configurare URL della Web App, sessione, coordinate e chiave pubblica reCAPTCHA.
+- `segnala.html`: modulo pubblico con quartieri, ricerca indirizzo, mappa, upload e anti-spam.
+- `tracking.html`: tracking pubblico puntuale, senza scaricare l'archivio delle pratiche.
+- pagine CRM: Dashboard, Pratiche, Sala Operativa, Analytics, Notifiche, Uffici e Configurazione.
 
-## Pubblicazione
+I vecchi moduli JavaScript orfani e la copia `docs/Code.gs` sono stati rimossi.
 
-1. Copiare `docs/Code.gs` nel progetto Google Apps Script collegato al foglio.
-2. Dall’editor Apps Script eseguire manualmente `setupSheet()` e autorizzare gli accessi richiesti.
-3. Creare almeno un utente eseguendo dall’editor, con dati reali:
+## Installazione backend
 
-```javascript
-createOrUpdateUser(
-  'operatore@dominio.it',
-  'Nome Operatore',
-  'una-password-lunga-e-unica',
-  'Amministratore'
-);
+1. Fare un backup del Google Sheet e del progetto Apps Script.
+2. Eliminare o svuotare tutti i vecchi file `.gs` che duplicano funzioni del backend.
+3. Mantenere un solo file `Code.gs` e sostituirne integralmente il contenuto.
+4. Eseguire manualmente `setupSheet()`.
+5. Configurare nelle Proprietà script:
+
+```text
+INITIAL_USER_EMAIL
+INITIAL_USER_NAME
+INITIAL_USER_PASSWORD
+INITIAL_USER_ROLE = Amministratore
 ```
 
-4. Per revocare la condivisione pubblica delle foto già presenti, eseguire una volta:
+6. Eseguire `setupInitialUser()`.
+7. Eseguire `collegaEFaiDiagnostica()` e controllare il log.
+8. Eseguire una sola volta `privatizeExistingPhotos()`.
+
+`setupSheet()` crea/ripara i fogli, inserisce i 34 quartieri ufficiali più “Altro”, disattiva i contatti dimostrativi `example.com` e crea modelli inattivi per gli uffici.
+
+## Anti-spam reCAPTCHA v3
+
+Il sistema mantiene honeypot, controllo duplicati e throttling anche senza reCAPTCHA. Per attivare anche reCAPTCHA v3:
+
+1. Inserire la chiave pubblica in `assets/js/config.js`:
 
 ```javascript
-privatizeExistingPhotos();
+RECAPTCHA_SITE_KEY: "CHIAVE_PUBBLICA"
 ```
 
-5. Creare una nuova distribuzione Web App. L’app deve essere accessibile pubblicamente perché segnalazione e tracking sono servizi pubblici; le operazioni CRM restano protette dal token verificato nel backend.
-6. Inserire il nuovo URL di distribuzione esclusivamente in `assets/js/config.js`.
-7. Pubblicare i file statici su GitHub Pages.
+2. Inserire nelle Proprietà script:
 
-Dopo ogni modifica a `Code.gs` è necessario aggiornare o ricreare la distribuzione Apps Script; modificare il sorgente senza distribuire una nuova versione non aggiorna l’API pubblica.
+```text
+RECAPTCHA_SECRET = chiave_segreta
+RECAPTCHA_MIN_SCORE = 0.5
+```
 
-## Fogli creati o aggiornati
+La chiave segreta non deve mai essere salvata nel repository.
 
-- `Segnalazioni`
-- `Referenti`
-- `Log_Invii`
-- `Utenti`
-- `Uffici`
-- `Quartieri`
-- `Timeline`
-- `Comunicazioni`
-- `Sessioni`
+## Distribuzione Apps Script
 
-Le colonne mancanti vengono aggiunte senza spostare quelle esistenti. Le password già presenti in chiaro vengono convertite automaticamente al primo `setupSheet()`.
+Creare o aggiornare una distribuzione **Applicazione web**:
 
-## Tracking
+```text
+Esegui come: Me
+Chi può accedere: Chiunque
+```
 
-Le nuove segnalazioni ricevono un link personale con token casuale. Il token viene memorizzato nel foglio soltanto come hash. Per le vecchie pratiche prive di token, il cittadino può usare il codice `IX-...` insieme all’email indicata nella segnalazione.
+L'accesso pubblico è necessario per segnalazione, statistiche e tracking. Tutte le azioni CRM richiedono un token di sessione verificato dal backend.
 
-Le foto non sono più pubbliche con “chiunque abbia il link”. Nel tracking viene mostrata soltanto l’indicazione che una foto è disponibile agli operatori autorizzati.
+Verifiche rapide:
 
-## Configurazione quartieri e uffici
+```text
+URL_WEB_APP?action=health
+URL_WEB_APP?action=listQuartieri
+```
 
-`setupSheet()` recupera i quartieri già presenti nelle segnalazioni e aggiunge sempre “Altro / zona non in elenco”, così il modulo non resta bloccato. Completare poi il foglio `Quartieri` con l’elenco ufficiale.
+`health` deve restituire `spreadsheetConnected: true`; `listQuartieri` deve restituire un array non vuoto.
 
-Compilare il foglio `Uffici` con almeno:
+## Pubblicazione frontend
 
-- ID
-- Ufficio
-- Settore
-- Email
-- Telefono
-- Note
-- Attivo (`Sì` / `No`)
+Pubblicare l'intera cartella sul ramo/cartella usati da GitHub Pages. L'URL Apps Script deve comparire soltanto in `assets/js/config.js`.
 
-Solo gli uffici e i referenti marcati `Sì` possono ricevere invii dal CRM.
+Dopo la pubblicazione aprire il sito in finestra anonima o forzare il refresh. Tutti gli asset usano il parametro cache `v=200`.
 
-## Nota di sicurezza
+## Test di accettazione
 
-La soluzione elimina l’autenticazione puramente client-side e le esposizioni presenti nel progetto originale. Per ambienti con requisiti elevati rimane consigliata, come evoluzione, l’integrazione con un identity provider esterno e ruoli granulari per operatore.
+1. Invio segnalazione con ricerca indirizzo.
+2. Ricezione codice e link personale.
+3. Tracking con token e con codice + email.
+4. Login e logout.
+5. Apertura pratica da mappa e ricerca globale.
+6. Cambio stato, timeline, invio referente/ufficio e chiusura.
+7. Analytics e notifiche.
+8. Creazione/modifica/disattivazione di quartieri, referenti e uffici dalla Configurazione.
+
+## Fonti dati iniziali
+
+L'elenco iniziale dei 34 quartieri deriva dalla pagina istituzionale “I quartieri di Roma — Municipio IX” di Roma Capitale. I contatti di referenti e uffici non vengono inventati: devono essere inseriti e verificati dall'amministratore prima di impostare `Attivo = Sì`.

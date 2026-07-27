@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Centro Notifiche PRO — FDI Ascolta IX CRM</title>
-<link rel="stylesheet" href="assets/css/crm-shell.css?v=201">
+<link rel="stylesheet" href="assets/css/crm-shell.css?v=200">
 <style>
 :root{
   --blue:#082f6a;--blue2:#0b4c99;--gold:#e9b900;--bg:#f4f7fb;--line:#dfe6ef;
@@ -48,7 +48,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui
 <body>
 <header class="topbar">
   <div class="brand"><strong>FDI ASCOLTA IX CRM</strong><small>Centro Notifiche PRO · Municipio IX Roma</small></div>
-  <span class="version">Versione 1.0 RC2</span>
+  <span class="version">Versione 2.0.0</span>
 </header>
 
 <main class="page">
@@ -88,17 +88,17 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui
   </section>
 </main>
 
-<footer class="footer">FDI Ascolta IX CRM — Centro Notifiche PRO v1.0 RC2</footer>
+<footer class="footer">FDI Ascolta IX CRM — Centro Notifiche PRO v2.0.0</footer>
 
-<script src="assets/js/config.js?v=13"></script>
-<script src="assets/js/auth.js?v=13"></script>
-<script src="assets/js/api.js?v=13"></script>
+<script src="assets/js/config.js?v=200"></script>
+<script src="assets/js/auth.js?v=200"></script>
+<script src="assets/js/api.js?v=200"></script>
 <script>
 if (!Auth.requireAuth()) {
   throw new Error("Sessione non disponibile");
 }
 
-const READ_KEY="fdi_crm_notifications_read_v1";
+const READ_KEY=CONFIG.NOTIFICATION_READ_KEY;
 let reports=[],mode="all";
 
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
@@ -203,6 +203,6 @@ readAllBtn.onclick=()=>{const set=readSet();reports.forEach(r=>set.add(nid(r)));
 clearReadBtn.onclick=()=>{localStorage.removeItem(READ_KEY);render()};
 load();setInterval(load,60000);
 </script>
-<script src="assets/js/crm-shell.js?v=213"></script>
+<script src="assets/js/crm-shell.js?v=200"></script>
 </body>
 </html>

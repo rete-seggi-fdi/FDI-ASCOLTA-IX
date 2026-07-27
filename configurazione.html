@@ -3,1071 +3,124 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Configurazione Dashboard — FDI Ascolta IX CRM</title>
-
-  <link rel="stylesheet" href="assets/css/style.css">
-  <link rel="stylesheet" href="assets/css/theme-fdi.css?v=120">
-
+  <title>Configurazione PRO v2.0.0 — FDI Ascolta IX CRM</title>
+  <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/css/theme-fdi.css?v=200">
+  <link rel="stylesheet" href="assets/css/crm-shell.css?v=200">
   <style>
-    :root{
-      --blue:#082f6a;
-      --blue2:#0b4c99;
-      --gold:#d3a400;
-      --bg:#f4f7fb;
-      --card:#ffffff;
-      --line:#dfe6ef;
-      --ink:#102342;
-      --muted:#67758c;
-      --green:#159447;
-      --orange:#ef6c00;
-      --purple:#6c38c7;
-      --red:#c62828;
-      --shadow:0 12px 32px rgba(15,36,69,.08);
-    }
-
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      background:var(--bg);
-      color:var(--ink);
-      font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-    }
-
-    .topbar{
-      min-height:98px;
-      display:grid;
-      grid-template-columns:minmax(320px,1.1fr) minmax(250px,.7fr) auto;
-      align-items:center;
-      gap:24px;
-      padding:18px 32px;
-      background:linear-gradient(135deg,var(--blue),#063f8c);
-      color:#fff;
-      border-bottom:4px solid var(--gold);
-      box-shadow:0 10px 24px rgba(8,47,106,.18);
-    }
-
-    .brand h1{margin:0;color:#fff;font-size:1.8rem}
-    .brand strong{
-      display:block;
-      color:#f2c600;
-      margin-top:4px;
-      text-transform:uppercase;
-      letter-spacing:.08em;
-      font-size:.95rem;
-    }
-
-    .control-center span{
-      display:block;
-      color:#f2c600;
-      text-transform:uppercase;
-      letter-spacing:.12em;
-      font-size:.76rem;
-      font-weight:950;
-    }
-
-    .control-center b{
-      display:block;
-      color:#fff;
-      font-size:1.2rem;
-      margin-top:5px;
-    }
-
-    .top-actions{
-      display:flex;
-      align-items:center;
-      justify-content:flex-end;
-      gap:12px;
-      flex-wrap:wrap;
-    }
-
-    .version-pill{
-      padding:11px 15px;
-      background:#114fa6;
-      border-radius:999px;
-      color:#fff;
-      font-weight:950;
-      font-size:.84rem;
-    }
-
-    .operator{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      padding:8px 12px;
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,.16);
-      background:rgba(255,255,255,.06);
-    }
-
-    .operator-icon{
-      width:42px;height:42px;border-radius:50%;
-      display:grid;place-items:center;
-      border:2px solid rgba(255,255,255,.45);
-    }
-
-    .operator span{display:block;color:rgba(255,255,255,.78);font-size:.78rem}
-    .operator b{display:block;color:#fff}
-
-    .logout{
-      min-height:46px;
-      padding:0 18px;
-      border:1px solid rgba(255,255,255,.75);
-      background:transparent;
-      color:#fff;
-      border-radius:12px;
-      font-weight:950;
-      cursor:pointer;
-    }
-
-    .app{
-      display:grid;
-      grid-template-columns:250px minmax(0,1fr);
-      min-height:calc(100vh - 98px);
-    }
-
-    .sidebar{
-      background:#fff;
-      border-right:1px solid var(--line);
-      padding:18px 14px;
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-    }
-
-    .sidebar-title{
-      padding:14px 12px;
-      border:1px solid var(--line);
-      border-radius:16px;
-      box-shadow:var(--shadow);
-    }
-
-    .sidebar-title b{display:block;color:var(--blue)}
-    .sidebar-title span{display:block;color:var(--muted);font-size:.78rem;margin-top:4px}
-
-    .nav{
-      display:grid;
-      gap:6px;
-    }
-
-    .nav button{
-      width:100%;
-      min-height:44px;
-      border:0;
-      background:transparent;
-      color:var(--blue);
-      display:flex;
-      align-items:center;
-      gap:10px;
-      padding:0 12px;
-      border-radius:10px;
-      font-weight:850;
-      cursor:pointer;
-      text-align:left;
-    }
-
-    .nav button:hover,
-    .nav button.active{
-      background:linear-gradient(135deg,var(--blue),#0b4d98);
-      color:#fff;
-    }
-
-    .help-card{
-      margin-top:auto;
-      background:#eef5ff;
-      border:1px solid #d4e4f8;
-      border-radius:14px;
-      padding:14px;
-    }
-
-    .help-card b{display:block;color:var(--blue)}
-    .help-card p{color:var(--muted);font-size:.82rem;line-height:1.5}
-    .help-card a{
-      display:block;
-      text-align:center;
-      border:1px solid var(--blue2);
-      color:var(--blue2);
-      border-radius:10px;
-      padding:10px;
-      text-decoration:none;
-      font-weight:900;
-    }
-
-    .content{
-      padding:26px;
-      min-width:0;
-    }
-
-    .page-head{
-      display:flex;
-      align-items:center;
-      gap:14px;
-      margin-bottom:20px;
-    }
-
-    .page-head-icon{
-      width:46px;height:46px;border-radius:14px;
-      display:grid;place-items:center;
-      background:#eef4ff;
-      color:var(--blue2);
-      font-size:1.45rem;
-    }
-
-    .page-head h2{margin:0;color:var(--blue);font-size:1.8rem}
-    .page-head p{margin:5px 0 0;color:var(--muted)}
-
-    .kpi-grid{
-      display:grid;
-      grid-template-columns:repeat(5,minmax(0,1fr));
-      gap:14px;
-      margin-bottom:20px;
-    }
-
-    .kpi{
-      background:#fff;
-      border:1px solid var(--line);
-      border-radius:16px;
-      padding:18px;
-      box-shadow:var(--shadow);
-      display:flex;
-      align-items:center;
-      gap:14px;
-    }
-
-    .kpi-icon{
-      width:52px;height:52px;border-radius:50%;
-      display:grid;place-items:center;
-      font-size:1.35rem;
-    }
-
-    .kpi:nth-child(1) .kpi-icon{background:#dff3ff;color:#0d80c7}
-    .kpi:nth-child(2) .kpi-icon{background:#fff2cc;color:#d49c00}
-    .kpi:nth-child(3) .kpi-icon{background:#e3f6e9;color:#159447}
-    .kpi:nth-child(4) .kpi-icon{background:#ece5ff;color:#6c38c7}
-    .kpi:nth-child(5) .kpi-icon{background:#ffe7da;color:#df5b00}
-
-    .kpi strong{display:block;color:var(--blue2);font-size:1.8rem}
-    .kpi b{display:block;color:var(--ink);font-size:.88rem;margin-top:2px}
-    .kpi span{display:block;color:var(--muted);font-size:.78rem;margin-top:2px}
-
-    .main-grid{
-      display:grid;
-      grid-template-columns:minmax(0,1fr) 290px;
-      gap:18px;
-      align-items:start;
-    }
-
-    .panel{
-      background:#fff;
-      border:1px solid var(--line);
-      border-radius:18px;
-      box-shadow:var(--shadow);
-      overflow:hidden;
-    }
-
-    .panel-head{
-      min-height:58px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      padding:0 20px;
-      border-bottom:1px solid var(--line);
-    }
-
-    .panel-head h3{margin:0;color:var(--blue);font-size:1rem}
-
-    .areas{
-      padding:16px;
-      display:grid;
-      grid-template-columns:repeat(3,minmax(0,1fr));
-      gap:14px;
-    }
-
-    .area-card{
-      border:1px solid var(--line);
-      border-radius:16px;
-      padding:16px;
-      background:#fff;
-      transition:.2s ease;
-    }
-
-    .area-card:hover{
-      transform:translateY(-2px);
-      box-shadow:0 14px 28px rgba(15,36,69,.08);
-    }
-
-    .area-top{
-      display:flex;
-      align-items:center;
-      gap:12px;
-    }
-
-    .area-icon{
-      width:48px;height:48px;border-radius:50%;
-      display:grid;place-items:center;
-      font-size:1.25rem;
-      background:#eef4ff;
-      color:var(--blue2);
-    }
-
-    .area-card h4{margin:0;color:var(--ink)}
-    .area-card p{color:var(--muted);font-size:.84rem;line-height:1.45;min-height:42px}
-
-    .manage-btn{
-      width:100%;
-      min-height:38px;
-      border:1px solid #d3ddea;
-      background:#fff;
-      color:var(--blue2);
-      border-radius:10px;
-      font-weight:900;
-      cursor:pointer;
-    }
-
-    .right-stack{display:grid;gap:16px}
-
-    .status-card,.backup-card{padding:16px}
-
-    .system-ok{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      padding:13px;
-      background:#edf9f1;
-      color:#167b3e;
-      border:1px solid #ccebd7;
-      border-radius:12px;
-      font-weight:900;
-      margin-bottom:12px;
-    }
-
-    .status-list{display:grid;gap:10px}
-    .status-row{
-      display:flex;
-      justify-content:space-between;
-      gap:10px;
-      color:var(--ink);
-      font-size:.84rem;
-      padding-bottom:9px;
-      border-bottom:1px solid #edf1f5;
-    }
-
-    .status-row span:last-child{color:var(--muted)}
-
-    .backup-row{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      padding:10px 0;
-      border-bottom:1px solid #edf1f5;
-      font-size:.84rem;
-    }
-
-    .backup-btn{
-      width:100%;
-      min-height:42px;
-      margin-top:12px;
-      border:1px solid var(--blue2);
-      color:var(--blue2);
-      background:#fff;
-      border-radius:10px;
-      font-weight:900;
-      cursor:pointer;
-    }
-
-    .section{display:none}
-    .section.active{display:block}
-
-    .simple-editor{
-      padding:18px;
-      display:grid;
-      gap:14px;
-    }
-
-    .editor-row{
-      display:grid;
-      grid-template-columns:1fr auto;
-      gap:12px;
-      align-items:center;
-      padding:14px;
-      border:1px solid var(--line);
-      border-radius:12px;
-      background:#fbfcfe;
-    }
-
-    .editor-row b{display:block;color:var(--blue)}
-    .editor-row span{display:block;color:var(--muted);font-size:.82rem;margin-top:3px}
-    .editor-row button{
-      min-height:38px;
-      border:1px solid var(--blue2);
-      color:var(--blue2);
-      background:#fff;
-      border-radius:9px;
-      padding:0 12px;
-      font-weight:900;
-      cursor:pointer;
-    }
-
-    .footer{
-      background:var(--blue);
-      color:#fff;
-      text-align:center;
-      padding:14px;
-      display:flex;
-      justify-content:center;
-      gap:18px;
-      flex-wrap:wrap;
-    }
-
-    .backend-dot{color:#4fe07e}
-
-
-    .edit-modal-overlay{
-      position:fixed;
-      inset:0;
-      display:none;
-      align-items:center;
-      justify-content:center;
-      padding:20px;
-      background:rgba(7,31,73,.64);
-      backdrop-filter:blur(4px);
-      z-index:9999;
-    }
-    .edit-modal-overlay.show{display:flex}
-    .edit-modal{
-      width:min(620px,96vw);
-      max-height:90vh;
-      overflow:auto;
-      background:#fff;
-      border-radius:20px;
-      box-shadow:0 35px 90px rgba(0,0,0,.35);
-      border:1px solid var(--line);
-    }
-    .edit-modal-head{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:14px;
-      padding:20px 22px;
-      background:var(--blue);
-      color:#fff;
-      border-bottom:4px solid var(--gold);
-    }
-    .edit-modal-head h3{margin:0;color:#fff;font-size:1.2rem}
-    .edit-modal-head p{margin:5px 0 0;color:rgba(255,255,255,.78);font-size:.84rem}
-    .edit-close{
-      width:40px;height:40px;
-      border-radius:11px;
-      border:1px solid rgba(255,255,255,.3);
-      background:rgba(255,255,255,.1);
-      color:#fff;
-      font-size:22px;
-      cursor:pointer;
-    }
-    .edit-modal-body{padding:20px 22px}
-    .edit-field{display:block;margin-bottom:14px}
-    .edit-field span{
-      display:block;
-      color:var(--muted);
-      font-size:.72rem;
-      text-transform:uppercase;
-      letter-spacing:.04em;
-      margin-bottom:6px;
-      font-weight:900;
-    }
-    .edit-field input,.edit-field textarea,.edit-field select{
-      width:100%;
-      border:1px solid var(--line);
-      border-radius:12px;
-      padding:12px 13px;
-      font:inherit;
-      color:var(--ink);
-      background:#fff;
-    }
-    .edit-field textarea{min-height:110px;resize:vertical}
-    .edit-modal-actions{
-      display:flex;
-      justify-content:flex-end;
-      gap:10px;
-      padding:16px 22px 20px;
-      border-top:1px solid var(--line);
-    }
-    .edit-modal-actions button{
-      min-width:130px;
-      min-height:42px;
-      border-radius:10px;
-      font-weight:900;
-      cursor:pointer;
-    }
-    .edit-cancel{background:#fff;color:var(--blue);border:1px solid var(--blue)}
-    .edit-save{background:var(--blue);color:#fff;border:1px solid var(--blue)}
-    .toast{
-      position:fixed;
-      right:20px;
-      bottom:20px;
-      max-width:360px;
-      padding:14px 16px;
-      border-radius:12px;
-      background:#eaf8ee;
-      color:#16733d;
-      border:1px solid #c6ead2;
-      box-shadow:var(--shadow);
-      font-weight:900;
-      display:none;
-      z-index:10000;
-    }
-    .toast.show{display:block}
-
-    @media(max-width:1250px){
-      .topbar{grid-template-columns:1fr auto}
-      .control-center{display:none}
-      .kpi-grid{grid-template-columns:repeat(3,1fr)}
-      .areas{grid-template-columns:repeat(2,1fr)}
-    }
-
-    @media(max-width:900px){
-      .app{grid-template-columns:1fr}
-      .sidebar{position:static}
-      .nav{grid-template-columns:repeat(2,1fr)}
-      .main-grid{grid-template-columns:1fr}
-      .kpi-grid{grid-template-columns:repeat(2,1fr)}
-    }
-
-    @media(max-width:620px){
-      .topbar{grid-template-columns:1fr;padding:16px}
-      .top-actions{justify-content:flex-start}
-      .content{padding:14px}
-      .kpi-grid,.areas,.nav{grid-template-columns:1fr}
-    }
+    :root{--blue:#082f6a;--blue2:#0b4c99;--gold:#e9b900;--bg:#f4f7fb;--line:#dfe6ef;--text:#102342;--muted:#67758c;--green:#168447;--red:#b42318;--shadow:0 12px 34px rgba(15,36,69,.09)}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif}
+    .topbar{min-height:74px;background:linear-gradient(135deg,#082f6a,#0b438b);border-bottom:4px solid var(--gold);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 28px}.brand strong{display:block}.brand small{display:block;color:#ffd91a;font-weight:900;margin-top:4px}.version{padding:9px 13px;border-radius:999px;background:rgba(255,255,255,.12);font-size:.78rem;font-weight:900}
+    .page{max-width:1500px;margin:auto;padding:24px}.head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}.head h1{margin:0;color:var(--blue)}.head p{color:var(--muted);margin:6px 0 0}.actions{display:flex;gap:9px;flex-wrap:wrap}.btn{min-height:42px;padding:0 14px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--blue);font-weight:900;cursor:pointer}.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}.btn.danger{color:var(--red)}.btn:disabled{opacity:.55;cursor:not-allowed}
+    .status{display:flex;gap:10px;align-items:center;margin-bottom:16px;padding:13px 15px;border:1px solid var(--line);border-radius:14px;background:#fff}.status.ok{color:var(--green)}.status.error{color:var(--red)}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}.tab{min-height:42px;padding:0 15px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--blue);font-weight:900;cursor:pointer}.tab.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+    .panel{display:none;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}.panel.active{display:block}.panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line)}.panel-head h2{margin:0;color:var(--blue);font-size:1.05rem}.panel-body{padding:16px}.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.card{border:1px solid var(--line);border-radius:14px;padding:14px;background:#fff}.card h3{margin:0 0 8px;color:var(--blue);font-size:1rem}.card p{margin:4px 0;color:var(--muted);line-height:1.45}.badge{display:inline-flex;padding:5px 8px;border-radius:999px;font-size:.7rem;font-weight:900;background:#edf4ff;color:var(--blue)}.badge.off{background:#f2f3f5;color:#667085}.card-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}.empty{padding:28px;text-align:center;color:var(--muted)}
+    .readonly{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.readonly article{padding:15px;border:1px solid var(--line);border-radius:14px}.readonly h3{margin:0 0 10px;color:var(--blue)}.readonly ul{margin:0;padding-left:20px;color:var(--muted);line-height:1.75}
+    dialog{width:min(720px,calc(100% - 28px));border:0;border-radius:18px;padding:0;box-shadow:0 28px 90px rgba(0,0,0,.3)}dialog::backdrop{background:rgba(8,23,48,.65)}.modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--line)}.modal-head h2{margin:0;color:var(--blue)}.close{border:0;background:transparent;font-size:1.5rem;cursor:pointer}.form{padding:18px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.field{display:block;font-weight:800;color:var(--text)}.field.full{grid-column:1/-1}.field input,.field select,.field textarea{width:100%;margin-top:7px;border:1px solid var(--line);border-radius:11px;padding:11px 12px;font:inherit}.field textarea{min-height:100px;resize:vertical}.check{display:flex;gap:10px;align-items:center;margin-top:10px}.check input{width:auto}.modal-actions{display:flex;justify-content:flex-end;gap:9px;padding:14px 18px;border-top:1px solid var(--line)}.message{min-height:20px;color:var(--red);font-weight:800;margin-top:10px}
+    .footer{text-align:center;padding:20px;color:var(--muted);font-size:.78rem}
+    @media(max-width:980px){.cards,.readonly{grid-template-columns:1fr 1fr}}@media(max-width:680px){.page{padding:16px 10px}.head{flex-direction:column}.cards,.readonly,.grid{grid-template-columns:1fr}.field.full{grid-column:auto}.topbar{padding:14px}.actions{width:100%}.btn{flex:1}}
   </style>
-<link rel="stylesheet" href="assets/css/crm-shell.css?v=200">
 </head>
 <body>
+<header class="topbar"><div class="brand"><strong>FDI ASCOLTA IX CRM</strong><small>Configurazione amministrativa</small></div><span class="version">Versione 2.0.0</span></header>
+<main class="page">
+  <section class="head"><div><h1>Configurazione</h1><p>Gestione reale dei dati salvati nel Google Sheet. Le modifiche richiedono un account Amministratore.</p></div><div class="actions"><button class="btn" id="refreshBtn" type="button">↻ Aggiorna</button><a class="btn" href="dashboard.html">Dashboard</a></div></section>
+  <div class="status" id="statusBox">Connessione al backend in corso…</div>
+  <nav class="tabs" aria-label="Sezioni configurazione">
+    <button class="tab active" data-panel="quartieri" type="button">Quartieri</button>
+    <button class="tab" data-panel="referenti" type="button">Referenti</button>
+    <button class="tab" data-panel="uffici" type="button">Uffici</button>
+    <button class="tab" data-panel="sistema" type="button">Sistema</button>
+  </nav>
 
-<header class="topbar">
-  <div class="brand">
-    <h1>FDI ASCOLTA IX CRM</h1>
-    <strong>Municipio IX Roma</strong>
-  </div>
+  <section class="panel active" id="quartieri"><div class="panel-head"><h2>Quartieri e zone</h2><button class="btn primary" data-add="quartiere" type="button">+ Nuovo quartiere</button></div><div class="panel-body"><div class="cards" id="quartieriList"></div></div></section>
+  <section class="panel" id="referenti"><div class="panel-head"><h2>Referenti e consiglieri</h2><button class="btn primary" data-add="referente" type="button">+ Nuovo referente</button></div><div class="panel-body"><div class="cards" id="referentiList"></div></div></section>
+  <section class="panel" id="uffici"><div class="panel-head"><h2>Uffici competenti</h2><button class="btn primary" data-add="ufficio" type="button">+ Nuovo ufficio</button></div><div class="panel-body"><div class="cards" id="ufficiList"></div></div></section>
+  <section class="panel" id="sistema"><div class="panel-head"><h2>Valori di sistema</h2></div><div class="panel-body readonly"><article><h3>Categorie</h3><ul id="categoriesList"></ul></article><article><h3>Priorità</h3><ul id="prioritiesList"></ul></article><article><h3>Workflow</h3><ul id="workflowList"></ul></article></div></section>
+</main>
 
-  <div class="control-center">
-    <span>Centro di controllo</span>
-    <b>MUNICIPIO IX ROMA</b>
-  </div>
+<dialog id="editorDialog">
+  <div class="modal-head"><h2 id="dialogTitle">Modifica</h2><button class="close" id="dialogClose" type="button" aria-label="Chiudi">×</button></div>
+  <form class="form" id="editorForm"><input type="hidden" id="itemType"><div class="grid" id="formFields"></div><div class="message" id="formMessage"></div></form>
+  <div class="modal-actions"><button class="btn" id="cancelBtn" type="button">Annulla</button><button class="btn primary" id="saveBtn" type="button">Salva</button></div>
+</dialog>
+<footer class="footer">FDI Ascolta IX CRM — Configurazione PRO v2.0.0</footer>
 
-  <div class="top-actions">
-    <span class="version-pill">Versione 1.1 RC1</span>
-    <div class="operator">
-      <div class="operator-icon">👤</div>
-      <div>
-        <span>Operatore</span>
-        <b id="operatorName">Area riservata</b>
-      </div>
-    </div>
-    <button class="logout" id="logoutBtn" type="button">↪ Logout</button>
-  </div>
-</header>
-
-<div class="app">
-  <aside class="sidebar">
-    <div class="sidebar-title">
-      <b>⚙ CONFIGURAZIONE</b>
-      <span>Gestisci impostazioni e parametri</span>
-    </div>
-
-    <nav class="nav">
-      <button class="active" data-section="overview">⌂ Panoramica</button>
-      <button data-section="categories">◆ Categorie</button>
-      <button data-section="states">☷ Stati pratiche</button>
-      <button data-section="priorities">⚑ Priorità</button>
-      <button data-section="districts">⌖ Quartieri</button>
-      <button data-section="councillors">👥 Consiglieri</button>
-      <button data-section="offices">🏛 Uffici</button>
-      <button data-section="templates">✉ Template Email</button>
-      <button data-section="general">⚙ Impostazioni generali</button>
-      <button data-section="security">🛡 Sicurezza</button>
-      <button data-section="logs">▤ Log attività</button>
-    </nav>
-
-    <div class="help-card">
-      <b>🎧 Hai bisogno di aiuto?</b>
-      <p>Consulta la documentazione o contatta l’amministratore.</p>
-      <a href="dashboard.html">Torna alla Dashboard</a>
-    </div>
-  </aside>
-
-  <main class="content">
-    <section id="overview" class="section active">
-      <div class="page-head">
-        <div class="page-head-icon">⚙</div>
-        <div>
-          <h2>Configurazione</h2>
-          <p>Gestisci tutte le impostazioni del sistema.</p>
-        </div>
-      </div>
-
-      <section class="kpi-grid">
-        <div class="kpi"><div class="kpi-icon">◉</div><div><strong>8</strong><b>Categorie</b><span>attive</span></div></div>
-        <div class="kpi"><div class="kpi-icon">☷</div><div><strong>9</strong><b>Stati pratiche</b><span>configurati</span></div></div>
-        <div class="kpi"><div class="kpi-icon">⚑</div><div><strong>3</strong><b>Livelli priorità</b><span>definiti</span></div></div>
-        <div class="kpi"><div class="kpi-icon">🏛</div><div><strong id="kpiOffices">0</strong><b>Uffici</b><span>registrati</span></div></div>
-        <div class="kpi"><div class="kpi-icon">👥</div><div><strong id="kpiCouncillors">0</strong><b>Consiglieri</b><span>operativi</span></div></div>
-      </section>
-
-      <section class="main-grid">
-        <section class="panel">
-          <div class="panel-head"><h3>Aree di configurazione</h3></div>
-          <div class="areas">
-            <article class="area-card">
-              <div class="area-top"><div class="area-icon">◆</div><h4>Categorie</h4></div>
-              <p>Gestisci le categorie delle segnalazioni.</p>
-              <button class="manage-btn" data-go="categories">Gestisci →</button>
-            </article>
-
-            <article class="area-card">
-              <div class="area-top"><div class="area-icon">☷</div><h4>Stati pratiche</h4></div>
-              <p>Configura gli stati del workflow.</p>
-              <button class="manage-btn" data-go="states">Gestisci →</button>
-            </article>
-
-            <article class="area-card">
-              <div class="area-top"><div class="area-icon">⚑</div><h4>Priorità</h4></div>
-              <p>Imposta i livelli di priorità delle pratiche.</p>
-              <button class="manage-btn" data-go="priorities">Gestisci →</button>
-            </article>
-
-            <article class="area-card">
-              <div class="area-top"><div class="area-icon">⌖</div><h4>Quartieri</h4></div>
-              <p>Gestisci i quartieri del Municipio IX.</p>
-              <button class="manage-btn" data-go="districts">Gestisci →</button>
-            </article>
-
-            <article class="area-card">
-              <div class="area-top"><div class="area-icon">👥</div><h4>Consiglieri</h4></div>
-              <p>Gestisci consiglieri e assegnazioni.</p>
-              <button class="manage-btn" data-go="councillors">Gestisci →</button>
-            </article>
-
-            <article class="area-card">
-              <div class="area-top"><div class="area-icon">🏛</div><h4>Uffici</h4></div>
-              <p>Gestisci gli uffici municipali e i contatti.</p>
-              <button class="manage-btn" data-go="offices">Gestisci →</button>
-            </article>
-
-            <article class="area-card">
-              <div class="area-top"><div class="area-icon">✉</div><h4>Template Email</h4></div>
-              <p>Personalizza i testi delle comunicazioni.</p>
-              <button class="manage-btn" data-go="templates">Gestisci →</button>
-            </article>
-
-            <article class="area-card">
-              <div class="area-top"><div class="area-icon">⚙</div><h4>Impostazioni generali</h4></div>
-              <p>Configura i parametri generali del sistema.</p>
-              <button class="manage-btn" data-go="general">Gestisci →</button>
-            </article>
-
-            <article class="area-card">
-              <div class="area-top"><div class="area-icon">🛡</div><h4>Sicurezza</h4></div>
-              <p>Gestisci ruoli, permessi e accessi.</p>
-              <button class="manage-btn" data-go="security">Gestisci →</button>
-            </article>
-          </div>
-        </section>
-
-        <aside class="right-stack">
-          <section class="panel status-card">
-            <div class="panel-head"><h3>Stato sistema</h3></div>
-            <div class="panel-body">
-              <div class="system-ok">🛡 Sistema operativo</div>
-              <div class="status-list">
-                <div class="status-row"><span>● Connessione backend</span><span>Online</span></div>
-                <div class="status-row"><span>● Database</span><span>Operativo</span></div>
-                <div class="status-row"><span>● Invio email</span><span>Operativo</span></div>
-                <div class="status-row"><span>● Servizio notifiche</span><span>Operativo</span></div>
-              </div>
-            </div>
-          </section>
-
-          <section class="panel backup-card">
-            <div class="panel-head"><h3>Backup e manutenzione</h3></div>
-            <div class="panel-body">
-              <div class="backup-row">🗄 <span>Ultimo backup<br><b>06/07/2026 02:15</b></span></div>
-              <div class="backup-row">🕘 <span>Prossimo backup<br><b>07/07/2026 02:15</b></span></div>
-              <div class="backup-row">✓ <span>Stato backup<br><b>Configurato e attivo</b></span></div>
-              <button class="backup-btn" type="button">Esegui backup ora</button>
-            </div>
-          </section>
-        </aside>
-      </section>
-    </section>
-
-    <section id="categories" class="section panel">
-      <div class="panel-head"><h3>Categorie</h3></div>
-      <div class="simple-editor">
-        <div class="editor-row"><div><b>Buche / strade</b><span>Categoria attiva</span></div><button>Modifica</button></div>
-        <div class="editor-row"><div><b>Illuminazione</b><span>Categoria attiva</span></div><button>Modifica</button></div>
-        <div class="editor-row"><div><b>Rifiuti</b><span>Categoria attiva</span></div><button>Modifica</button></div>
-        <div class="editor-row"><div><b>Verde pubblico</b><span>Categoria attiva</span></div><button>Modifica</button></div>
-      </div>
-    </section>
-
-    <section id="states" class="section panel">
-      <div class="panel-head"><h3>Stati pratiche</h3></div>
-      <div class="simple-editor">
-        <div class="editor-row"><div><b>Segnalazione ricevuta</b><span>Fase 1</span></div><button>Modifica</button></div>
-        <div class="editor-row"><div><b>Presa in carico</b><span>Fase 2</span></div><button>Modifica</button></div>
-        <div class="editor-row"><div><b>Assegnata al consigliere</b><span>Fase 3</span></div><button>Modifica</button></div>
-        <div class="editor-row"><div><b>Archiviata</b><span>Fase 9</span></div><button>Modifica</button></div>
-      </div>
-    </section>
-
-    <section id="priorities" class="section panel">
-      <div class="panel-head"><h3>Priorità</h3></div>
-      <div class="simple-editor">
-        <div class="editor-row"><div><b>Alta</b><span>Colore rosso</span></div><button>Modifica</button></div>
-        <div class="editor-row"><div><b>Media</b><span>Colore arancione</span></div><button>Modifica</button></div>
-        <div class="editor-row"><div><b>Bassa</b><span>Colore verde</span></div><button>Modifica</button></div>
-      </div>
-    </section>
-
-    <section id="districts" class="section panel">
-      <div class="panel-head"><h3>Quartieri</h3><a href="segnala.html">Verifica nel modulo pubblico</a></div>
-      <div class="simple-editor" id="districtList"><div class="editor-row"><div><b>Caricamento quartieri...</b></div></div></div>
-    </section>
-
-    <section id="councillors" class="section panel">
-      <div class="panel-head"><h3>Consiglieri</h3></div>
-      <div class="simple-editor" id="councillorList"><div class="editor-row"><div><b>Caricamento consiglieri...</b></div></div></div>
-    </section>
-
-    <section id="offices" class="section panel">
-      <div class="panel-head"><h3>Uffici</h3><a href="uffici.html">Apri modulo Uffici</a></div>
-      <div class="simple-editor" id="officeList"><div class="editor-row"><div><b>Caricamento uffici...</b></div></div></div>
-    </section>
-
-    <section id="templates" class="section panel">
-      <div class="panel-head"><h3>Template Email</h3></div>
-      <div class="simple-editor">
-        <div class="editor-row"><div><b>Conferma cittadino</b><span>Email inviata dopo la creazione della pratica</span></div><button>Modifica</button></div>
-        <div class="editor-row"><div><b>Invio ufficio</b><span>Messaggio standard agli uffici</span></div><button>Modifica</button></div>
-        <div class="editor-row"><div><b>Chiusura pratica</b><span>Email finale al cittadino</span></div><button>Modifica</button></div>
-      </div>
-    </section>
-
-    <section id="general" class="section panel">
-      <div class="panel-head"><h3>Impostazioni generali</h3></div>
-      <div class="simple-editor">
-        <div class="editor-row"><div><b>Nome CRM</b><span>FDI Ascolta IX CRM</span></div><button>Modifica</button></div>
-        <div class="editor-row"><div><b>Territorio</b><span>Municipio IX Roma</span></div><button>Modifica</button></div>
-        <div class="editor-row"><div><b>Email generale</b><span>Da configurare</span></div><button>Modifica</button></div>
-      </div>
-    </section>
-
-    <section id="security" class="section panel">
-      <div class="panel-head"><h3>Sicurezza</h3></div>
-      <div class="simple-editor">
-        <div class="editor-row"><div><b>Utenti autorizzati</b><span>Gestione accessi operatori</span></div><button>Gestisci</button></div>
-        <div class="editor-row"><div><b>Sessioni</b><span>Controllo sessioni attive</span></div><button>Verifica</button></div>
-      </div>
-    </section>
-
-    <section id="logs" class="section panel">
-      <div class="panel-head"><h3>Log attività</h3></div>
-      <div class="simple-editor">
-        <div class="editor-row"><div><b>Registro comunicazioni</b><span>Consulta il foglio Comunicazioni</span></div><button>Apri</button></div>
-        <div class="editor-row"><div><b>Ultimi aggiornamenti</b><span>Storico operativo del CRM</span></div><button>Consulta</button></div>
-      </div>
-    </section>
-  </main>
-</div>
-
-
-<div id="editModal" class="edit-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
-  <div class="edit-modal">
-    <div class="edit-modal-head">
-      <div>
-        <h3 id="editModalTitle">Modifica elemento</h3>
-        <p id="editModalSubtitle">Aggiorna i dati dell'elemento selezionato.</p>
-      </div>
-      <button type="button" class="edit-close" id="editClose" aria-label="Chiudi">×</button>
-    </div>
-
-    <div class="edit-modal-body">
-      <label class="edit-field">
-        <span>Nome</span>
-        <input id="editName" type="text">
-      </label>
-
-      <label class="edit-field">
-        <span>Descrizione / dettaglio</span>
-        <textarea id="editDescription"></textarea>
-      </label>
-
-      <label class="edit-field">
-        <span>Stato</span>
-        <select id="editStatus">
-          <option value="Attivo">Attivo</option>
-          <option value="Non attivo">Non attivo</option>
-        </select>
-      </label>
-
-      <div id="editInfo" style="color:var(--muted);font-size:.84rem"></div>
-    </div>
-
-    <div class="edit-modal-actions">
-      <button type="button" class="edit-cancel" id="editCancel">Annulla</button>
-      <button type="button" class="edit-save" id="editSave">Salva modifica</button>
-    </div>
-  </div>
-</div>
-
-<div id="toast" class="toast">Modifica salvata localmente.</div>
-
-<footer class="footer">
-  <span>FDI Ascolta IX CRM v1.1 RC1 • Municipio IX Roma • © 2026</span>
-  <span>Backend: Online <b class="backend-dot">●</b></span>
-</footer>
-
-<script src="assets/js/config.js?v=11"></script>
+<script src="assets/js/config.js?v=200"></script>
+<script src="assets/js/auth.js?v=200"></script>
+<script src="assets/js/api.js?v=200"></script>
 <script>
-  const FALLBACK_API_URL =
-    "https://script.google.com/macros/s/AKfycbyZuNSOT2SCW6YNp6gZ-bTO6gfm9wGI3-YAjvSmo5oelcqrUmARNzmd49hbjSn4ISh4Yg/exec";
+const authenticated=Auth.requireAuth();
+const statusBox=document.getElementById("statusBox");
+const refreshBtn=document.getElementById("refreshBtn");
+const quartieriList=document.getElementById("quartieriList");
+const referentiList=document.getElementById("referentiList");
+const ufficiList=document.getElementById("ufficiList");
+const categoriesList=document.getElementById("categoriesList");
+const prioritiesList=document.getElementById("prioritiesList");
+const workflowList=document.getElementById("workflowList");
+const editorDialog=document.getElementById("editorDialog");
+const dialogTitle=document.getElementById("dialogTitle");
+const dialogClose=document.getElementById("dialogClose");
+const editorForm=document.getElementById("editorForm");
+const itemType=document.getElementById("itemType");
+const formFields=document.getElementById("formFields");
+const formMessage=document.getElementById("formMessage");
+const cancelBtn=document.getElementById("cancelBtn");
+const saveBtn=document.getElementById("saveBtn");
+let configuration={quartieri:[],referenti:[],uffici:[],categories:[],priorities:[],workflow:[]};
+let editingItem=null;
+const esc=value=>String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[char]));
+const active=item=>!/^(no|false|0)$/i.test(String(item.attivo||"Sì").trim());
+function setStatus(ok,text){statusBox.className="status "+(ok?"ok":"error");statusBox.textContent=text}
+function switchPanel(id){document.querySelectorAll(".panel").forEach(el=>el.classList.toggle("active",el.id===id));document.querySelectorAll(".tab").forEach(el=>el.classList.toggle("active",el.dataset.panel===id))}
+document.querySelectorAll(".tab").forEach(button=>button.onclick=()=>switchPanel(button.dataset.panel));
 
-  function apiUrl() {
-    if (
-      typeof CONFIG !== "undefined" &&
-      CONFIG.API_URL &&
-      CONFIG.API_URL.includes("/macros/s/")
-    ) {
-      return CONFIG.API_URL;
-    }
-    return FALLBACK_API_URL;
+function render(){
+  quartieriList.innerHTML=configuration.quartieri.map(item=>card("quartiere",item,item.nome,[item.codice,item.tipo,"Ordine "+item.ordine])).join("")||empty("Nessun quartiere configurato");
+  referentiList.innerHTML=configuration.referenti.map(item=>card("referente",item,item.nome,[item.ruolo,item.email,item.competenze])).join("")||empty("Nessun referente configurato");
+  ufficiList.innerHTML=configuration.uffici.map(item=>card("ufficio",item,item.ufficio||item.nome,[item.settore,item.email,item.telefono])).join("")||empty("Nessun ufficio configurato");
+  categoriesList.innerHTML=configuration.categories.map(value=>`<li>${esc(value)}</li>`).join("");
+  prioritiesList.innerHTML=configuration.priorities.map(value=>`<li>${esc(value)}</li>`).join("");
+  workflowList.innerHTML=configuration.workflow.map(value=>`<li>${esc(value)}</li>`).join("");
+}
+function empty(text){return `<div class="empty">${esc(text)}</div>`}
+function card(type,item,title,details){const id=item.id||item.codice||"";return `<article class="card"><span class="badge ${active(item)?"":"off"}">${active(item)?"Attivo":"Non attivo"}</span><h3>${esc(title||"Senza nome")}</h3>${details.filter(Boolean).map(value=>`<p>${esc(value)}</p>`).join("")}<div class="card-actions"><button class="btn" type="button" data-edit="${type}" data-id="${esc(id)}">Modifica</button>${active(item)?`<button class="btn danger" type="button" data-disable="${type}" data-id="${esc(id)}">Disattiva</button>`:""}</div></article>`}
+
+async function loadData(){
+  if(!authenticated)return;
+  refreshBtn.disabled=true;
+  try{
+    const [health,result]=await Promise.all([API.health(),API.getConfigurationData()]);
+    if(!health.ok)throw new Error(health.error||"Backend non disponibile");
+    if(!result.ok)throw new Error(result.error||"Configurazione non disponibile");
+    configuration=result;
+    render();
+    setStatus(true,`Backend ${health.version||"online"} · ${configuration.quartieri.length} quartieri · ${configuration.referenti.length} referenti · ${configuration.uffici.length} uffici`);
+  }catch(error){console.error(error);setStatus(false,error.message)}finally{refreshBtn.disabled=false}
+}
+
+const field=(label,name,value="",type="text",full=false)=>`<label class="field ${full?"full":""}">${label}<input id="f_${name}" name="${name}" type="${type}" value="${esc(value)}"></label>`;
+const textarea=(label,name,value="")=>`<label class="field full">${label}<textarea id="f_${name}" name="${name}">${esc(value)}</textarea></label>`;
+const checkbox=value=>`<label class="check field full"><input id="f_attivo" name="attivo" type="checkbox" ${active({attivo:value})?"checked":""}> Attivo</label>`;
+function findItem(type,id){const key=type==="quartiere"?"quartieri":type==="referente"?"referenti":"uffici";return configuration[key].find(item=>String(item.id||item.codice)===String(id))||null}
+function openEditor(type,item=null){editingItem=item;itemType.value=type;dialogTitle.textContent=(item?"Modifica ":"Nuovo ")+type;formMessage.textContent="";
+  if(type==="quartiere")formFields.innerHTML=field("Codice","codice",item?.codice||item?.id||"")+field("Nome","nome",item?.nome||"")+field("Tipo","tipo",item?.tipo||"Quartiere")+field("Ordine","ordine",item?.ordine||999,"number")+checkbox(item?.attivo??"Sì");
+  if(type==="referente")formFields.innerHTML=field("ID","id",item?.id||"")+field("Nome","nome",item?.nome||"")+field("Ruolo","ruolo",item?.ruolo||"")+field("Partito / lista","partito",item?.partito||"")+field("Email","email",item?.email||"","email")+field("Telefono","telefono",item?.telefono||"")+field("Zona","zona",item?.zona||"Municipio IX")+textarea("Competenze","competenze",item?.competenze||"")+checkbox(item?.attivo??"No");
+  if(type==="ufficio")formFields.innerHTML=field("ID","id",item?.id||"")+field("Ufficio","ufficio",item?.ufficio||item?.nome||"")+field("Settore","settore",item?.settore||"")+field("Email","email",item?.email||"","email")+field("Telefono","telefono",item?.telefono||"")+textarea("Note","note",item?.note||"")+checkbox(item?.attivo??"No");
+  if(item){
+    const identifier=document.getElementById(type==="quartiere"?"f_codice":"f_id");
+    if(identifier)identifier.readOnly=true;
   }
+  editorDialog.showModal();
+}
+function collect(){const result={};new FormData(editorForm).forEach((value,key)=>{result[key]=String(value).trim()});result.attivo=document.getElementById("f_attivo")?.checked||false;return result}
+async function save(){saveBtn.disabled=true;formMessage.textContent="";try{const result=await API.saveConfigurationItem(itemType.value,collect());if(!result.ok)throw new Error(result.error||"Salvataggio non riuscito");editorDialog.close();await loadData()}catch(error){formMessage.textContent=error.message}finally{saveBtn.disabled=false}}
+async function disable(type,id){if(!confirm("Disattivare questo elemento?"))return;const result=await API.deactivateConfigurationItem(type,id);if(!result.ok)return alert(result.error||"Operazione non riuscita");await loadData()}
 
-  async function get(action) {
-    const url = new URL(apiUrl());
-    url.searchParams.set("action", action);
-    url.searchParams.set("_", Date.now());
-
-    const response = await fetch(url.toString(), {
-      cache: "no-store",
-      redirect: "follow"
-    });
-
-    if (!response.ok) {
-      throw new Error("Errore API HTTP " + response.status);
-    }
-
-    return await response.json();
-  }
-
-  function esc(value) {
-    return String(value ?? "").replace(/[&<>"']/g, char => ({
-      "&":"&amp;",
-      "<":"&lt;",
-      ">":"&gt;",
-      '"':"&quot;",
-      "'":"&#039;"
-    }[char]));
-  }
-
-  function showSection(id) {
-    document.querySelectorAll(".section").forEach(section => {
-      section.classList.toggle("active", section.id === id);
-    });
-
-    document.querySelectorAll(".nav button").forEach(button => {
-      button.classList.toggle("active", button.dataset.section === id);
-    });
-  }
-
-  document.querySelectorAll(".nav button").forEach(button => {
-    button.addEventListener("click", () => showSection(button.dataset.section));
-  });
-
-  document.querySelectorAll("[data-go]").forEach(button => {
-    button.addEventListener("click", () => showSection(button.dataset.go));
-  });
-
-  function loadOperator() {
-    try {
-      const raw =
-        localStorage.getItem("fdi_ascolta_ix_user") ||
-        localStorage.getItem("fdi_ascolta_user");
-
-      const user = JSON.parse(raw || "null");
-
-      operatorName.textContent =
-        user && (user.nome || user.name || user.email)
-          ? (user.nome || user.name || user.email)
-          : "Area riservata";
-    } catch {
-      operatorName.textContent = "Area riservata";
-    }
-  }
-
-  function logout() {
-    localStorage.removeItem("fdi_ascolta_ix_user");
-    localStorage.removeItem("fdi_ascolta_user");
-    window.location.href = "login.html";
-  }
-
-  async function loadData() {
-    try {
-      const [offices, councillors, districts] = await Promise.all([
-        get("listUffici"),
-        get("listReferenti"),
-        get("listQuartieri")
-      ]);
-
-      const officeItems = offices.uffici || [];
-      const councillorItems = councillors.referenti || [];
-      const districtItems = districts.quartieri || [];
-
-      kpiOffices.textContent = officeItems.length;
-      kpiCouncillors.textContent = councillorItems.length;
-
-      officeList.innerHTML = officeItems.slice(0, 20).map(item => `
-        <div class="editor-row">
-          <div>
-            <b>${esc(item.ufficio || item.nome || "Ufficio")}</b>
-            <span>${esc(item.settore || item.email || "")}</span>
-          </div>
-          <button type="button" onclick="location.href='uffici.html'">Apri</button>
-        </div>
-      `).join("") || '<div class="editor-row"><div><b>Nessun ufficio configurato</b></div></div>';
-
-      councillorList.innerHTML = councillorItems.slice(0, 20).map(item => `
-        <div class="editor-row">
-          <div>
-            <b>${esc(item.nome || "Consigliere")}</b>
-            <span>${esc(item.email || "")}</span>
-          </div>
-          <button type="button">Dettagli</button>
-        </div>
-      `).join("") || '<div class="editor-row"><div><b>Nessun consigliere configurato</b></div></div>';
-
-      districtList.innerHTML = districtItems.slice(0, 40).map(item => `
-        <div class="editor-row">
-          <div>
-            <b>${esc(item.codice || item.id || "")} — ${esc(item.nome || "")}</b>
-            <span>${esc(item.tipo || "Quartiere")}</span>
-          </div>
-          <button type="button">Dettagli</button>
-        </div>
-      `).join("") || '<div class="editor-row"><div><b>Nessun quartiere configurato</b></div></div>';
-
-    } catch (error) {
-      officeList.innerHTML =
-        '<div class="editor-row"><div><b>Errore caricamento uffici</b><span>' +
-        esc(error.message) +
-        '</span></div></div>';
-    }
-  }
-
-
-  let currentEditRow = null;
-
-  function openEditor(button) {
-    const row = button.closest(".editor-row");
-    if (!row) return;
-
-    currentEditRow = row;
-
-    const titleEl = row.querySelector("b");
-    const descEl = row.querySelector("span");
-
-    const section = row.closest(".section");
-    const sectionTitle = section
-      ? (section.querySelector(".panel-head h3")?.textContent || "Configurazione")
-      : "Configurazione";
-
-    editModalTitle.textContent =
-      (button.textContent.trim() === "Dettagli" ? "Dettagli" : "Modifica") +
-      " — " + sectionTitle;
-
-    editModalSubtitle.textContent =
-      "Gestione locale dell'elemento selezionato. Il backend non viene modificato.";
-
-    editName.value = titleEl ? titleEl.textContent.trim() : "";
-    editDescription.value = descEl ? descEl.textContent.trim() : "";
-    editStatus.value =
-      /non attiv/i.test(editDescription.value) ? "Non attivo" : "Attivo";
-
-    editInfo.textContent =
-      button.textContent.trim() === "Dettagli"
-        ? "Puoi consultare o aggiornare i dati e salvarli come bozza locale."
-        : "Le modifiche vengono applicate alla pagina e salvate nel browser.";
-
-    editModal.classList.add("show");
-    setTimeout(() => editName.focus(), 50);
-  }
-
-  function closeEditor() {
-    editModal.classList.remove("show");
-    currentEditRow = null;
-  }
-
-  function saveEditor() {
-    if (!currentEditRow) return;
-
-    const titleEl = currentEditRow.querySelector("b");
-    const descEl = currentEditRow.querySelector("span");
-
-    if (titleEl) titleEl.textContent = editName.value.trim() || "Elemento";
-    if (descEl) {
-      const detail = editDescription.value.trim();
-      descEl.textContent =
-        detail || (editStatus.value === "Attivo" ? "Elemento attivo" : "Elemento non attivo");
-    }
-
-    const key = "fdi_config_draft_" +
-      (currentEditRow.closest(".section")?.id || "general") +
-      "_" +
-      (editName.value.trim() || "elemento").toLowerCase().replace(/\s+/g, "_");
-
-    localStorage.setItem(key, JSON.stringify({
-      nome: editName.value.trim(),
-      descrizione: editDescription.value.trim(),
-      stato: editStatus.value,
-      aggiornatoIl: new Date().toISOString()
-    }));
-
-    closeEditor();
-
-    toast.classList.add("show");
-    setTimeout(() => toast.classList.remove("show"), 2200);
-  }
-
-  document.addEventListener("click", event => {
-    const button = event.target.closest(".simple-editor button");
-    if (!button) return;
-
-    if (button.textContent.trim() === "Apri" && button.closest("#officeList")) {
-      return;
-    }
-
-    event.preventDefault();
-    openEditor(button);
-  });
-
-  editClose.addEventListener("click", closeEditor);
-  editCancel.addEventListener("click", closeEditor);
-  editSave.addEventListener("click", saveEditor);
-
-  editModal.addEventListener("click", event => {
-    if (event.target === editModal) closeEditor();
-  });
-
-  document.addEventListener("keydown", event => {
-    if (event.key === "Escape" && editModal.classList.contains("show")) {
-      closeEditor();
-    }
-  });
-
-  logoutBtn.addEventListener("click", logout);
-
-  loadOperator();
-  loadData();
+document.addEventListener("click",event=>{const add=event.target.closest("[data-add]");if(add)openEditor(add.dataset.add);const edit=event.target.closest("[data-edit]");if(edit)openEditor(edit.dataset.edit,findItem(edit.dataset.edit,edit.dataset.id));const off=event.target.closest("[data-disable]");if(off)disable(off.dataset.disable,off.dataset.id)});
+refreshBtn.onclick=loadData;saveBtn.onclick=save;cancelBtn.onclick=()=>editorDialog.close();dialogClose.onclick=()=>editorDialog.close();
+loadData();
 </script>
 <script src="assets/js/crm-shell.js?v=200"></script>
 </body>
