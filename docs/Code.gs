@@ -229,6 +229,10 @@ function doPost(e) {
     const user = requireAuth(body);
 
     if (action === 'logout') return json(logoutUser(body));
+    if (action === 'listUsers') { requireAdmin(user); return json({ ok: true, users: listUsers() }); }
+    if (action === 'saveUser') { requireAdmin(user); return json(saveUser(body, user)); }
+    if (action === 'setUserActive') { requireAdmin(user); return json(setUserActive(body, user)); }
+    if (action === 'resetUserPassword') { requireAdmin(user); return json(resetUserPassword(body, user)); }
     if (action === 'listReports') return json({ ok: true, reports: listReports(user) });
     if (action === 'listReferenti') { requireAdmin(user); return json({ ok: true, referenti: listReferenti() }); }
     if (action === 'listUffici') return json({ ok: true, uffici: listUffici() });
@@ -392,6 +396,158 @@ function requireReportAccess(reportId, user) {
   if (!report) throw new Error('Pratica non trovata');
   if (!canAccessReportRow(report.data, user)) throw new Error('Accesso negato alla pratica');
   return report;
+}
+
+
+/* =========================
+ * Gestione utenti CRM
+ * ========================= */
+
+function listUsers() {
+  return readRows(SHEETS.USERS)
+    .map(item => item.data)
+    .filter(row => cleanOutput(row.ID))
+    .map(row => ({
+      id: cleanOutput(row.ID),
+      nome: cleanOutput(row.Nome),
+      email: normalizeEmail(row.Email),
+      ruolo: normalizeUserRole(row.Ruolo),
+      attivo: isYes(row.Attivo)
+    }))
+    .sort((a, b) => String(a.nome || a.email).localeCompare(String(b.nome || b.email), 'it'));
+}
+
+function normalizeUserRole(value) {
+  const role = String(value || '').trim().toLowerCase();
+  if (/amministratore|admin/.test(role)) return 'Amministratore';
+  if (/consigliere/.test(role)) return 'Consigliere';
+  throw new Error('Ruolo non valido. Usare Amministratore o Consigliere');
+}
+
+function saveUser(body, operator) {
+  const item = body && body.user ? body.user : {};
+  const id = cleanText(item.id, 80, false);
+  const email = normalizeEmail(item.email);
+  const nome = cleanText(item.nome, 120, true);
+  const ruolo = normalizeUserRole(item.ruolo);
+  const password = String(item.password || '');
+  const attivo = item.attivo === true || isYes(item.attivo);
+
+  if (!isValidEmail(email)) throw new Error('Email non valida');
+
+  const byId = id ? findRow(SHEETS.USERS, row => String(row.ID || '') === id) : null;
+  const byEmail = findRow(SHEETS.USERS, row => normalizeEmail(row.Email) === email);
+  const match = byId || byEmail;
+
+  if (byId && byEmail && byId.rowNumber !== byEmail.rowNumber) {
+    throw new Error('Email già utilizzata da un altro utente');
+  }
+
+  if (!match && password.trim().length < 12) {
+    throw new Error('Per un nuovo utente serve una password di almeno 12 caratteri');
+  }
+  if (password && password.trim().length < 12) {
+    throw new Error('La nuova password deve avere almeno 12 caratteri');
+  }
+
+  const fields = {
+    ID: match && cleanOutput(match.data.ID)
+      ? cleanOutput(match.data.ID)
+      : 'USR-' + Utilities.getUuid().slice(0, 8).toUpperCase(),
+    Nome: safeSheetText(nome),
+    Email: email,
+    Ruolo: safeSheetText(ruolo),
+    Attivo: attivo ? 'Sì' : 'No'
+  };
+
+  if (password) {
+    const salt = Utilities.getUuid().replace(/-/g, '');
+    fields.Password = hashPassword(password.trim(), salt);
+  }
+
+  if (match) {
+    preventLastAdminRemoval(match.data, fields);
+    setRowFields(SHEETS.USERS, match.rowNumber, fields);
+    revokeUserSessions(cleanOutput(match.data.ID));
+  } else {
+    appendObjectRow(SHEETS.USERS, fields);
+  }
+
+  logAdminAction('Utente salvato', fields.ID, email, operator);
+  return { ok: true, user: { id: fields.ID, nome: nome, email: email, ruolo: ruolo, attivo: attivo } };
+}
+
+function setUserActive(body, operator) {
+  const id = cleanText(body.userId, 80, true);
+  const active = body.active === true || isYes(body.active);
+  const match = findRow(SHEETS.USERS, row => String(row.ID || '') === id);
+  if (!match) throw new Error('Utente non trovato');
+
+  const fields = { Attivo: active ? 'Sì' : 'No' };
+  preventLastAdminRemoval(match.data, fields);
+  setRowFields(SHEETS.USERS, match.rowNumber, fields);
+
+  if (!active) revokeUserSessions(id);
+  logAdminAction(active ? 'Utente attivato' : 'Utente disattivato', id, normalizeEmail(match.data.Email), operator);
+  return { ok: true };
+}
+
+function resetUserPassword(body, operator) {
+  const id = cleanText(body.userId, 80, true);
+  const password = String(body.password || '').trim();
+  if (password.length < 12) throw new Error('La password deve avere almeno 12 caratteri');
+
+  const match = findRow(SHEETS.USERS, row => String(row.ID || '') === id);
+  if (!match) throw new Error('Utente non trovato');
+
+  const salt = Utilities.getUuid().replace(/-/g, '');
+  setRowFields(SHEETS.USERS, match.rowNumber, { Password: hashPassword(password, salt) });
+  revokeUserSessions(id);
+  logAdminAction('Password utente reimpostata', id, normalizeEmail(match.data.Email), operator);
+  return { ok: true };
+}
+
+function preventLastAdminRemoval(existing, fields) {
+  const wasAdmin = /amministratore|admin/i.test(String(existing.Ruolo || ''));
+  const willBeAdmin = Object.prototype.hasOwnProperty.call(fields, 'Ruolo')
+    ? /amministratore|admin/i.test(String(fields.Ruolo || ''))
+    : wasAdmin;
+  const willBeActive = Object.prototype.hasOwnProperty.call(fields, 'Attivo')
+    ? isYes(fields.Attivo)
+    : isYes(existing.Attivo);
+
+  if (wasAdmin && (!willBeAdmin || !willBeActive)) {
+    const otherAdmins = readRows(SHEETS.USERS).filter(item =>
+      String(item.data.ID || '') !== String(existing.ID || '') &&
+      isYes(item.data.Attivo) &&
+      /amministratore|admin/i.test(String(item.data.Ruolo || ''))
+    );
+    if (!otherAdmins.length) {
+      throw new Error('Non è possibile rimuovere o disattivare l’ultimo amministratore');
+    }
+  }
+}
+
+function revokeUserSessions(userId) {
+  readRows(SHEETS.SESSIONS).forEach(item => {
+    if (String(item.data['Utente ID'] || '') === String(userId || '') && !isYes(item.data.Revocato)) {
+      setRowFields(SHEETS.SESSIONS, item.rowNumber, { Revocato: 'Sì' });
+    }
+  });
+}
+
+function logAdminAction(tipo, userId, email, operator) {
+  try {
+    appendObjectRow(SHEETS.LOG, {
+      Data: new Date(),
+      Tipo: tipo,
+      'Segnalazione ID': userId,
+      Destinatario: email,
+      Email: email,
+      Operatore: operator && operator.email ? operator.email : '',
+      Esito: 'OK'
+    });
+  } catch (_) {}
 }
 
 function hashPassword(password, salt) {

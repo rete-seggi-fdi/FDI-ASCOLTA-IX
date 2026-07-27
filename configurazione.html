@@ -30,12 +30,20 @@
     <button class="tab active" data-panel="quartieri" type="button">Quartieri</button>
     <button class="tab" data-panel="referenti" type="button">Referenti</button>
     <button class="tab" data-panel="uffici" type="button">Uffici</button>
+    <button class="tab" data-panel="utenti" type="button">Utenti</button>
     <button class="tab" data-panel="sistema" type="button">Sistema</button>
   </nav>
 
   <section class="panel active" id="quartieri"><div class="panel-head"><h2>Quartieri e zone</h2><button class="btn primary" data-add="quartiere" type="button">+ Nuovo quartiere</button></div><div class="panel-body"><div class="cards" id="quartieriList"></div></div></section>
   <section class="panel" id="referenti"><div class="panel-head"><h2>Referenti e consiglieri</h2><button class="btn primary" data-add="referente" type="button">+ Nuovo referente</button></div><div class="panel-body"><div class="cards" id="referentiList"></div></div></section>
   <section class="panel" id="uffici"><div class="panel-head"><h2>Uffici competenti</h2><button class="btn primary" data-add="ufficio" type="button">+ Nuovo ufficio</button></div><div class="panel-body"><div class="cards" id="ufficiList"></div></div></section>
+  <section class="panel" id="utenti">
+    <div class="panel-head">
+      <div><h2>Utenti della console</h2><p style="margin:5px 0 0;color:var(--muted);font-size:.78rem">Gli amministratori vedono tutto. I consiglieri vedono solo le pratiche assegnate alla propria email.</p></div>
+      <button class="btn primary" id="newUserBtn" type="button">+ Nuovo utente</button>
+    </div>
+    <div class="panel-body"><div class="cards" id="usersList"></div></div>
+  </section>
   <section class="panel" id="sistema"><div class="panel-head"><h2>Valori di sistema</h2></div><div class="panel-body readonly"><article><h3>Categorie</h3><ul id="categoriesList"></ul></article><article><h3>Priorità</h3><ul id="prioritiesList"></ul></article><article><h3>Workflow</h3><ul id="workflowList"></ul></article></div></section>
 </main>
 
@@ -44,6 +52,33 @@
   <form class="form" id="editorForm"><input type="hidden" id="itemType"><div class="grid" id="formFields"></div><div class="message" id="formMessage"></div></form>
   <div class="modal-actions"><button class="btn" id="cancelBtn" type="button">Annulla</button><button class="btn primary" id="saveBtn" type="button">Salva</button></div>
 </dialog>
+<dialog id="userDialog">
+  <div class="modal-head"><h2 id="userDialogTitle">Nuovo utente</h2><button class="close" id="userDialogClose" type="button" aria-label="Chiudi">×</button></div>
+  <form class="form" id="userForm">
+    <input type="hidden" id="u_id">
+    <div class="grid">
+      <label class="field">Nome<input id="u_nome" required maxlength="120"></label>
+      <label class="field">Email<input id="u_email" type="email" required maxlength="200"></label>
+      <label class="field">Ruolo<select id="u_ruolo"><option>Consigliere</option><option>Amministratore</option></select></label>
+      <label class="field">Password<input id="u_password" type="password" minlength="12" autocomplete="new-password" placeholder="Obbligatoria solo per nuovo utente"></label>
+      <label class="check field full"><input id="u_attivo" type="checkbox" checked> Utente attivo</label>
+    </div>
+    <p style="color:var(--muted);font-size:.75rem;line-height:1.45">La password deve avere almeno 12 caratteri. Lasciandola vuota durante una modifica, la password corrente non cambia.</p>
+    <div class="message" id="userMessage"></div>
+  </form>
+  <div class="modal-actions"><button class="btn" id="userCancelBtn" type="button">Annulla</button><button class="btn primary" id="userSaveBtn" type="button">Salva utente</button></div>
+</dialog>
+
+<dialog id="passwordDialog">
+  <div class="modal-head"><h2>Reimposta password</h2><button class="close" id="passwordClose" type="button" aria-label="Chiudi">×</button></div>
+  <form class="form">
+    <input type="hidden" id="passwordUserId">
+    <label class="field">Nuova password<input id="newPassword" type="password" minlength="12" autocomplete="new-password"></label>
+    <div class="message" id="passwordMessage"></div>
+  </form>
+  <div class="modal-actions"><button class="btn" id="passwordCancel" type="button">Annulla</button><button class="btn primary" id="passwordSave" type="button">Aggiorna password</button></div>
+</dialog>
+
 <footer class="footer">FDI Ascolta IX CRM — Configurazione PRO v2.1.0</footer>
 
 <script src="assets/js/config.js?v=210"></script>
@@ -59,6 +94,19 @@ const ufficiList=document.getElementById("ufficiList");
 const categoriesList=document.getElementById("categoriesList");
 const prioritiesList=document.getElementById("prioritiesList");
 const workflowList=document.getElementById("workflowList");
+const usersList=document.getElementById("usersList");
+const newUserBtn=document.getElementById("newUserBtn");
+const userDialog=document.getElementById("userDialog");
+const userDialogTitle=document.getElementById("userDialogTitle");
+const userDialogClose=document.getElementById("userDialogClose");
+const userCancelBtn=document.getElementById("userCancelBtn");
+const userSaveBtn=document.getElementById("userSaveBtn");
+const userMessage=document.getElementById("userMessage");
+const passwordDialog=document.getElementById("passwordDialog");
+const passwordClose=document.getElementById("passwordClose");
+const passwordCancel=document.getElementById("passwordCancel");
+const passwordSave=document.getElementById("passwordSave");
+const passwordMessage=document.getElementById("passwordMessage");
 const editorDialog=document.getElementById("editorDialog");
 const dialogTitle=document.getElementById("dialogTitle");
 const dialogClose=document.getElementById("dialogClose");
@@ -69,6 +117,7 @@ const formMessage=document.getElementById("formMessage");
 const cancelBtn=document.getElementById("cancelBtn");
 const saveBtn=document.getElementById("saveBtn");
 let configuration={quartieri:[],referenti:[],uffici:[],categories:[],priorities:[],workflow:[]};
+let users=[];
 let editingItem=null;
 const esc=value=>String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[char]));
 const active=item=>!/^(no|false|0)$/i.test(String(item.attivo||"Sì").trim());
@@ -83,6 +132,16 @@ function render(){
   categoriesList.innerHTML=configuration.categories.map(value=>`<li>${esc(value)}</li>`).join("");
   prioritiesList.innerHTML=configuration.priorities.map(value=>`<li>${esc(value)}</li>`).join("");
   workflowList.innerHTML=configuration.workflow.map(value=>`<li>${esc(value)}</li>`).join("");
+  usersList.innerHTML=users.map(user=>`<article class="card">
+    <span class="badge ${user.attivo?"":"off"}">${user.attivo?"Attivo":"Non attivo"}</span>
+    <h3>${esc(user.nome||"Senza nome")}</h3>
+    <p>${esc(user.email)}</p><p>${esc(user.ruolo)}</p>
+    <div class="card-actions">
+      <button class="btn" type="button" data-user-edit="${esc(user.id)}">Modifica</button>
+      <button class="btn" type="button" data-user-password="${esc(user.id)}">Password</button>
+      <button class="btn ${user.attivo?"danger":""}" type="button" data-user-toggle="${esc(user.id)}" data-active="${user.attivo?"false":"true"}">${user.attivo?"Disattiva":"Riattiva"}</button>
+    </div>
+  </article>`).join("")||empty("Nessun utente configurato");
 }
 function empty(text){return `<div class="empty">${esc(text)}</div>`}
 function card(type,item,title,details){const id=item.id||item.codice||"";return `<article class="card"><span class="badge ${active(item)?"":"off"}">${active(item)?"Attivo":"Non attivo"}</span><h3>${esc(title||"Senza nome")}</h3>${details.filter(Boolean).map(value=>`<p>${esc(value)}</p>`).join("")}<div class="card-actions"><button class="btn" type="button" data-edit="${type}" data-id="${esc(id)}">Modifica</button>${active(item)?`<button class="btn danger" type="button" data-disable="${type}" data-id="${esc(id)}">Disattiva</button>`:""}</div></article>`}
@@ -91,10 +150,12 @@ async function loadData(){
   if(!authenticated)return;
   refreshBtn.disabled=true;
   try{
-    const [health,result]=await Promise.all([API.health(),API.getConfigurationData()]);
+    const [health,result,userResult]=await Promise.all([API.health(),API.getConfigurationData(),API.listUsers()]);
     if(!health.ok)throw new Error(health.error||"Backend non disponibile");
     if(!result.ok)throw new Error(result.error||"Configurazione non disponibile");
     configuration=result;
+    if(!userResult.ok)throw new Error(userResult.error||"Utenti non disponibili");
+    users=userResult.users||[];
     render();
     setStatus(true,`Backend ${health.version||"online"} · ${configuration.quartieri.length} quartieri · ${configuration.referenti.length} referenti · ${configuration.uffici.length} uffici`);
   }catch(error){console.error(error);setStatus(false,error.message)}finally{refreshBtn.disabled=false}
@@ -118,8 +179,73 @@ function collect(){const result={};new FormData(editorForm).forEach((value,key)=
 async function save(){saveBtn.disabled=true;formMessage.textContent="";try{const result=await API.saveConfigurationItem(itemType.value,collect());if(!result.ok)throw new Error(result.error||"Salvataggio non riuscito");editorDialog.close();await loadData()}catch(error){formMessage.textContent=error.message}finally{saveBtn.disabled=false}}
 async function disable(type,id){if(!confirm("Disattivare questo elemento?"))return;const result=await API.deactivateConfigurationItem(type,id);if(!result.ok)return alert(result.error||"Operazione non riuscita");await loadData()}
 
-document.addEventListener("click",event=>{const add=event.target.closest("[data-add]");if(add)openEditor(add.dataset.add);const edit=event.target.closest("[data-edit]");if(edit)openEditor(edit.dataset.edit,findItem(edit.dataset.edit,edit.dataset.id));const off=event.target.closest("[data-disable]");if(off)disable(off.dataset.disable,off.dataset.id)});
+
+function openUser(user=null){
+  document.getElementById("u_id").value=user?.id||"";
+  document.getElementById("u_nome").value=user?.nome||"";
+  document.getElementById("u_email").value=user?.email||"";
+  document.getElementById("u_ruolo").value=user?.ruolo||"Consigliere";
+  document.getElementById("u_password").value="";
+  document.getElementById("u_attivo").checked=user?Boolean(user.attivo):true;
+  userDialogTitle.textContent=user?"Modifica utente":"Nuovo utente";
+  userMessage.textContent="";
+  userDialog.showModal();
+}
+function findUser(id){return users.find(user=>String(user.id)===String(id))||null}
+async function saveUser(){
+  userSaveBtn.disabled=true;userMessage.textContent="";
+  try{
+    const payload={
+      id:document.getElementById("u_id").value.trim(),
+      nome:document.getElementById("u_nome").value.trim(),
+      email:document.getElementById("u_email").value.trim(),
+      ruolo:document.getElementById("u_ruolo").value,
+      password:document.getElementById("u_password").value,
+      attivo:document.getElementById("u_attivo").checked
+    };
+    if(!payload.nome)throw new Error("Inserire il nome");
+    if(!payload.email)throw new Error("Inserire l’email");
+    if(!payload.id&&payload.password.length<12)throw new Error("Per un nuovo utente serve una password di almeno 12 caratteri");
+    const result=await API.saveUser(payload);
+    if(!result.ok)throw new Error(result.error||"Salvataggio non riuscito");
+    userDialog.close();await loadData();switchPanel("utenti");
+  }catch(error){userMessage.textContent=error.message}
+  finally{userSaveBtn.disabled=false}
+}
+async function toggleUser(id,activeValue){
+  const active=activeValue==="true";
+  if(!confirm(active?"Riattivare questo utente?":"Disattivare questo utente?"))return;
+  const result=await API.setUserActive(id,active);
+  if(!result.ok)return alert(result.error||"Operazione non riuscita");
+  await loadData();switchPanel("utenti");
+}
+function openPassword(id){
+  document.getElementById("passwordUserId").value=id;
+  document.getElementById("newPassword").value="";
+  passwordMessage.textContent="";
+  passwordDialog.showModal();
+}
+async function resetPassword(){
+  passwordSave.disabled=true;passwordMessage.textContent="";
+  try{
+    const id=document.getElementById("passwordUserId").value;
+    const password=document.getElementById("newPassword").value;
+    if(password.length<12)throw new Error("La password deve avere almeno 12 caratteri");
+    const result=await API.resetUserPassword(id,password);
+    if(!result.ok)throw new Error(result.error||"Aggiornamento non riuscito");
+    passwordDialog.close();
+    alert("Password aggiornata. Le sessioni precedenti dell’utente sono state revocate.");
+  }catch(error){passwordMessage.textContent=error.message}
+  finally{passwordSave.disabled=false}
+}
+
+document.addEventListener("click",event=>{const add=event.target.closest("[data-add]");if(add)openEditor(add.dataset.add);const edit=event.target.closest("[data-edit]");if(edit)openEditor(edit.dataset.edit,findItem(edit.dataset.edit,edit.dataset.id));const off=event.target.closest("[data-disable]");if(off)disable(off.dataset.disable,off.dataset.id);
+const ue=event.target.closest("[data-user-edit]");if(ue)openUser(findUser(ue.dataset.userEdit));
+const up=event.target.closest("[data-user-password]");if(up)openPassword(up.dataset.userPassword);
+const ut=event.target.closest("[data-user-toggle]");if(ut)toggleUser(ut.dataset.userToggle,ut.dataset.active)});
 refreshBtn.onclick=loadData;saveBtn.onclick=save;cancelBtn.onclick=()=>editorDialog.close();dialogClose.onclick=()=>editorDialog.close();
+newUserBtn.onclick=()=>openUser();userSaveBtn.onclick=saveUser;userCancelBtn.onclick=()=>userDialog.close();userDialogClose.onclick=()=>userDialog.close();
+passwordSave.onclick=resetPassword;passwordCancel.onclick=()=>passwordDialog.close();passwordClose.onclick=()=>passwordDialog.close();
 loadData();
 </script>
 <script src="assets/js/crm-shell.js?v=210"></script>
