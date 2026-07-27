@@ -794,14 +794,15 @@
   FDI Ascolta IX CRM — Centro di Controllo Municipio IX Roma
 </footer>
 
-<script src="assets/js/config.js?v=2"></script>
-<script src="assets/js/auth.js?v=2"></script>
-<script src="assets/js/api.js?v=2"></script>
+<script src="assets/js/config.js?v=11"></script>
+<script src="assets/js/auth.js?v=11"></script>
+<script src="assets/js/api.js?v=11"></script>
 <script>
-Auth.requireAuth();
-  async function apiGet(action, params = {}) {
-    return API.call(action, params);
-  }
+  const authenticated = Auth.requireAuth();
+
+  let reports = [];
+  let filteredReports = [];
+
 
   function esc(value) {
     return String(value ?? "").replace(/[&<>"']/g, char => ({
@@ -893,16 +894,10 @@ Auth.requireAuth();
   }
 
   function loadOperator() {
-    try {
-      const user = Auth.getUser();
-
-      operatorName.textContent =
-        user && (user.nome || user.name || user.email)
-          ? (user.nome || user.name || user.email)
-          : "Area riservata";
-    } catch {
-      operatorName.textContent = "Area riservata";
-    }
+    const user = Auth.getUser();
+    operatorName.textContent = user && (user.nome || user.email)
+      ? (user.nome || user.email)
+      : "Area riservata";
   }
 
   function updateKpis() {
@@ -1043,7 +1038,7 @@ Auth.requireAuth();
     setInterval(updateClock, 30000);
 
     try {
-      const result = await apiGet("listReports");
+      const result = await API.listReports();
 
       if (!result.ok) {
         throw new Error(result.error || "Errore caricamento pratiche");
@@ -1082,7 +1077,7 @@ Auth.requireAuth();
     }
   });
 
-  boot();
+  if (authenticated) boot();
 </script>
 <script src="assets/js/crm-shell.js?v=200"></script>
 </body>

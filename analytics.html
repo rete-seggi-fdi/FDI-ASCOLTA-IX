@@ -117,13 +117,11 @@ th{color:var(--blue);font-size:.7rem;text-transform:uppercase;letter-spacing:.04
 
 <footer class="footer">FDI Ascolta IX CRM — Analytics PRO v1.0 RC1</footer>
 
-<script src="assets/js/config.js?v=2"></script>
-<script src="assets/js/auth.js?v=2"></script>
-<script src="assets/js/api.js?v=2"></script>
 <script>
-Auth.requireAuth();
+const API_FALLBACK="https://script.google.com/macros/s/AKfycbyZuNSOT2SCW6YNp6gZ-bTO6gfm9wGI3-YAjvSmo5oelcqrUmARNzmd49hbjSn4ISh4Yg/exec";
 let reports=[],filtered=[],charts={};
 
+function apiUrl(){return typeof CONFIG!=="undefined"&&CONFIG.API_URL&&CONFIG.API_URL.includes("/macros/s/")?CONFIG.API_URL:API_FALLBACK}
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 function group(s){const v=String(s||"").toLowerCase();if(v.includes("archiv"))return"arch";if(v.includes("risolt"))return"done";if(/presa|assegnata|attesa|ufficio|lavorazione|risposta/.test(v))return"work";return"open"}
 function dateOf(r){
@@ -204,8 +202,9 @@ function exportCsv(){
 async function load(){
   refreshBtn.disabled=true;refreshBtn.textContent="Aggiornamento...";
   try{
-    const j=await API.listReports();
-    if(!j.ok)throw new Error(j.error||"Errore caricamento");
+    const u=new URL(apiUrl());u.searchParams.set("action","listReports");u.searchParams.set("_",Date.now());
+    const r=await fetch(u,{cache:"no-store",redirect:"follow"}),j=await r.json();
+    if(!r.ok||!j.ok)throw new Error(j.error||"Errore caricamento");
     reports=j.reports||[];
     fill("quartiere",uniq("quartiere"));fill("categoria",uniq("categoria"));fill("referente",uniq("referenteNome"));
     apply()

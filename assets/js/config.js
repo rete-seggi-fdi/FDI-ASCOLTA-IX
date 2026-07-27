@@ -1,5 +1,5 @@
 const CONFIG = Object.freeze({
-  API_URL: "https://script.google.com/macros/s/AKfycbydMX5t3F9r3sHQ3zM3tSH6edMBz_hqGnDiVvK_kisOrSz8kn1pbeoMG00fX_Ei6wd7HQ/exec",
+  API_URL: "https://script.google.com/macros/s/AKfycbyZuNSOT2SCW6YNp6gZ-bTO6gfm9wGI3-YAjvSmo5oelcqrUmARNzmd49hbjSn4ISh4Yg/exec",
   SESSION_KEY: "fdi_ascolta_ix_session_v2",
   CLIENT_ID_KEY: "fdi_ascolta_ix_client_v1",
   MAX_PHOTO_BYTES: 5 * 1024 * 1024,

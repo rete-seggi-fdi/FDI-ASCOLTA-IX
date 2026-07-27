@@ -28,34 +28,51 @@ label{display:block;font-weight:850;color:var(--ink);margin-bottom:14px}label sp
 <main class="login-page"><section class="login-grid"><div class="login-info"><span class="badge" style="background:rgba(255,255,255,.12);color:#fff">Accesso operatori</span><h1>Area riservata</h1><p>Accedi al centro di controllo per gestire pratiche, assegnazioni, uffici, comunicazioni e chiusure.</p><div class="feature-list"><div class="feature"><i>✓</i> Dashboard operativa</div><div class="feature"><i>✓</i> Workflow completo delle pratiche</div><div class="feature"><i>✓</i> Registro comunicazioni e tracking</div></div></div>
 <div class="login-form"><h2>Bentornato</h2><p>Inserisci le credenziali autorizzate.</p><form id="loginForm"><div id="messageBox" class="message error" hidden></div><label><span>Email</span><input id="email" type="email" required autocomplete="username" placeholder="nome@dominio.it"></label><label><span>Password</span><div class="password-wrap"><input id="password" type="password" required autocomplete="current-password" placeholder="Password"><button class="show-pass" id="showPass" type="button" aria-label="Mostra password">◉</button></div></label><button class="btn" id="loginBtn" type="submit">Entra nel CRM</button></form><a class="back-link" href="index.html">← Torna al portale pubblico</a></div></section></main>
 <footer class="footer">FDI Ascolta IX CRM — Login PRO v1.1 RC1</footer>
-<script src="assets/js/config.js?v=2"></script>
-<script src="assets/js/auth.js?v=2"></script>
-<script src="assets/js/api.js?v=2"></script>
+<script src="assets/js/config.js?v=11"></script>
+<script src="assets/js/auth.js?v=11"></script>
+<script src="assets/js/api.js?v=11"></script>
 <script>
-showPass.onclick=()=>{password.type=password.type==="password"?"text":"password"};
+const loginFormEl = document.getElementById("loginForm");
+const emailEl = document.getElementById("email");
+const passwordEl = document.getElementById("password");
+const loginBtnEl = document.getElementById("loginBtn");
+const messageBoxEl = document.getElementById("messageBox");
+const showPassEl = document.getElementById("showPass");
 
-if(Auth.getToken()){
-  const next=Auth.safeNext(new URLSearchParams(location.search).get("next"));
-  location.replace(next);
+function destinationAfterLogin() {
+  const params = new URLSearchParams(location.search);
+  return Auth.safeNext(params.get("next"), "dashboard.html");
 }
 
-loginForm.onsubmit=async event=>{
+if (Auth.getToken()) {
+  location.replace(destinationAfterLogin());
+}
+
+showPassEl.addEventListener("click", () => {
+  passwordEl.type = passwordEl.type === "password" ? "text" : "password";
+});
+
+loginFormEl.addEventListener("submit", async event => {
   event.preventDefault();
-  messageBox.hidden=true;
-  loginBtn.disabled=true;
-  loginBtn.textContent="Accesso in corso...";
-  try{
-    const result=await API.login(email.value,password.value);
-    if(!result.ok)throw new Error(result.error||"Credenziali non valide o accesso negato");
+  messageBoxEl.hidden = true;
+  loginBtnEl.disabled = true;
+  loginBtnEl.textContent = "Accesso in corso...";
+
+  try {
+    const result = await API.login(emailEl.value.trim(), passwordEl.value);
+    if (!result || !result.ok) {
+      throw new Error((result && result.error) || "Credenziali non valide o accesso negato");
+    }
     Auth.saveSession(result);
-    const next=Auth.safeNext(new URLSearchParams(location.search).get("next"));
-    location.replace(next);
-  }catch(error){
-    messageBox.hidden=false;
-    messageBox.textContent=error.message;
-  }finally{
-    loginBtn.disabled=false;
-    loginBtn.textContent="Entra nel CRM";
+    location.replace(destinationAfterLogin());
+  } catch (error) {
+    messageBoxEl.hidden = false;
+    messageBoxEl.textContent = error && error.message
+      ? error.message
+      : "Impossibile accedere all’area riservata";
+  } finally {
+    loginBtnEl.disabled = false;
+    loginBtnEl.textContent = "Entra nel CRM";
   }
-};
+});
 </script></body></html>

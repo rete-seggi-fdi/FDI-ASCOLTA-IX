@@ -22,11 +22,18 @@ const API = Object.freeze({
 
     if (!response.ok) throw new Error("Errore API HTTP " + response.status);
 
+    const rawResponse = await response.text();
     let result;
     try {
-      result = await response.json();
+      result = JSON.parse(rawResponse);
     } catch (_) {
-      throw new Error("Risposta API non valida");
+      const looksLikeHtml = /<!doctype html|<html|accounts\.google\.com/i.test(rawResponse);
+      if (looksLikeHtml) {
+        throw new Error(
+          "La Web App Apps Script non è pubblica, l’URL è errato oppure il deploy non è aggiornato"
+        );
+      }
+      throw new Error("Risposta API non valida dal backend");
     }
 
     if (result && result.authRequired && typeof Auth !== "undefined") {
@@ -38,6 +45,7 @@ const API = Object.freeze({
     return result;
   },
 
+  health() { return this.call("health", {}, { publicAction: true }); },
   login(email, password) {
     return this.call("login", { email, password }, { publicAction: true });
   },
