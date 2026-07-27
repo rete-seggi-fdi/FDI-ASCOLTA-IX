@@ -148,6 +148,30 @@
       font-size:.92rem;
     }
 
+    .address-results {
+      display:none;
+      margin:12px 0 4px;
+      padding:10px;
+      border:1px solid #dbe3ef;
+      border-radius:16px;
+      background:#fff;
+    }
+
+    .address-results button {
+      width:100%;
+      text-align:left;
+      border:0;
+      background:#f8fafc;
+      border-radius:12px;
+      padding:11px 12px;
+      margin:4px 0;
+      cursor:pointer;
+      color:#172033;
+      font-weight:700;
+    }
+
+    .address-results button:hover { background:#edf4ff; }
+
     .coord-hidden { display:none; }
 
     .check {
@@ -291,16 +315,20 @@
 
       <div class="location-panel">
         <label>Indirizzo o punto di riferimento *
-          <input required name="indirizzo" type="text" placeholder="Es. Piazza Cina, Via Mendoza..." />
+          <input required name="indirizzo" id="indirizzo" type="text" placeholder="Es. Via Laurentina 875, Roma" />
         </label>
 
         <div class="location-actions">
-          <button class="btn btn-secondary" type="button" id="gpsBtn">
-            Usa GPS
+          <button class="btn btn-primary" type="button" id="searchAddressBtn">
+            Cerca indirizzo
           </button>
-          <span class="muted">Puoi correggere il punto trascinando il marker sulla mappa.</span>
+          <button class="btn btn-secondary" type="button" id="gpsBtn">
+            Usa la mia posizione
+          </button>
+          <span class="muted">Scegli la via segnalata. Il GPS va usato solo se sei ancora sul posto.</span>
         </div>
 
+        <div id="addressResults" class="address-results"></div>
         <div id="gpsStatus" class="gps-status"></div>
 
         <div id="gpsMap"></div>
@@ -320,7 +348,7 @@
       </label>
 
       <label class="check">
-        <input required type="checkbox" />
+        <input required type="checkbox" id="consenso" name="consenso" />
         <span>
           Confermo che i dati inseriti sono corretti e autorizzo l’uso per la gestione
           della segnalazione.
@@ -340,13 +368,16 @@
   FDI Ascolta IX — Sistema di gestione delle segnalazioni territoriali
 </footer>
 
-<script src="assets/js/config.js"></script>
-<script src="assets/js/api.js"></script>
+<script src="assets/js/config.js?v=14"></script>
+<script src="assets/js/api.js?v=14"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
   const form = document.getElementById("reportForm");
   const gpsBtn = document.getElementById("gpsBtn");
+  const searchAddressBtn = document.getElementById("searchAddressBtn");
+  const addressResults = document.getElementById("addressResults");
+  const addressInput = document.getElementById("indirizzo");
   const gpsStatus = document.getElementById("gpsStatus");
   const gpsMapEl = document.getElementById("gpsMap");
   const coordPreview = document.getElementById("coordPreview");
@@ -357,6 +388,8 @@
 
   let gpsMap = null;
   let gpsMarker = null;
+  let positionSource = "";
+  let resolvedAddressValue = "";
 
   function getApiUrl() {
     if (typeof CONFIG !== "undefined" && CONFIG.API_URL) return CONFIG.API_URL;
@@ -386,8 +419,13 @@
       }
 
     } catch (error) {
-      quartiereSelect.innerHTML = '<option value="">Errore caricamento quartieri</option>';
-      console.error(error);
+      quartiereSelect.innerHTML = "";
+      const option = document.createElement("option");
+      option.value = "";
+      option.textContent = "Errore caricamento quartieri";
+      quartiereSelect.appendChild(option);
+      quartiereSelect.title = error && error.message ? error.message : "Errore API";
+      console.error("Caricamento quartieri:", error);
     }
   }
 
@@ -402,13 +440,25 @@
     gpsStatus.textContent = text;
   }
 
-  function updateCoords(lat, lng) {
+  function updateCoords(lat, lng, source) {
     latInput.value = Number(lat).toFixed(6);
     lngInput.value = Number(lng).toFixed(6);
+    positionSource = source || positionSource || "manuale";
 
     coordPreview.style.display = "block";
     coordPreview.textContent =
-      "Coordinate impostate: " + latInput.value + ", " + lngInput.value;
+      "Punto selezionato (" + positionSource + "): " + latInput.value + ", " + lngInput.value;
+  }
+
+  function clearCoords() {
+    latInput.value = "";
+    lngInput.value = "";
+    positionSource = "";
+    resolvedAddressValue = "";
+    coordPreview.style.display = "none";
+    addressResults.style.display = "none";
+    addressResults.innerHTML = "";
+    gpsMapEl.style.display = "none";
   }
 
   function showMap(lat, lng) {
@@ -425,7 +475,12 @@
 
       gpsMarker.on("dragend", function () {
         const pos = gpsMarker.getLatLng();
-        updateCoords(pos.lat, pos.lng);
+        updateCoords(pos.lat, pos.lng, "marker spostato");
+      });
+
+      gpsMap.on("click", function(event) {
+        gpsMarker.setLatLng(event.latlng);
+        updateCoords(event.latlng.lat, event.latlng.lng, "punto scelto sulla mappa");
       });
     } else {
       gpsMap.setView([lat, lng], 17);
@@ -436,6 +491,73 @@
       gpsMap.invalidateSize();
     }, 250);
   }
+
+  function selectAddressResult(result) {
+    resolvedAddressValue = result.indirizzo || addressInput.value.trim();
+    updateCoords(result.latitudine, result.longitudine, "indirizzo cercato");
+    showMap(Number(result.latitudine), Number(result.longitudine));
+    addressResults.style.display = "none";
+    addressResults.innerHTML = "";
+    setGpsStatus("ok", "Punto trovato: " + resolvedAddressValue + ". Controlla il marker e spostalo se necessario.");
+  }
+
+  async function searchAddress() {
+    const address = addressInput.value.trim();
+    const quartiere = quartiereSelect.value;
+
+    if (!address) {
+      setGpsStatus("err", "Inserisci prima la via o il punto di riferimento.");
+      addressInput.focus();
+      return;
+    }
+
+    searchAddressBtn.disabled = true;
+    searchAddressBtn.textContent = "Ricerca...";
+    addressResults.style.display = "none";
+    addressResults.innerHTML = "";
+
+    try {
+      const result = await API.geocodeAddress(address, quartiere);
+      if (!result.ok) throw new Error(result.error || "Ricerca indirizzo non riuscita");
+
+      const matches = Array.isArray(result.risultati) ? result.risultati : [];
+      if (!matches.length) {
+        throw new Error("Indirizzo non trovato nel Municipio IX. Aggiungi numero civico o un punto di riferimento.");
+      }
+
+      addressResults.innerHTML = "";
+      matches.forEach(function(item, index) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = item.indirizzo || (item.latitudine + ", " + item.longitudine);
+        button.addEventListener("click", function() {
+          selectAddressResult(matches[index]);
+        });
+        addressResults.appendChild(button);
+      });
+      addressResults.style.display = "block";
+      setGpsStatus("ok", "Seleziona il risultato corretto dall’elenco.");
+    } catch (error) {
+      setGpsStatus("err", error.message || "Errore nella ricerca dell’indirizzo.");
+    } finally {
+      searchAddressBtn.disabled = false;
+      searchAddressBtn.textContent = "Cerca indirizzo";
+    }
+  }
+
+  searchAddressBtn.addEventListener("click", searchAddress);
+  addressInput.addEventListener("keydown", function(event) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      searchAddress();
+    }
+  });
+  addressInput.addEventListener("input", function() {
+    if (resolvedAddressValue && addressInput.value.trim() !== resolvedAddressValue) {
+      clearCoords();
+      setGpsStatus("", "");
+    }
+  });
 
   gpsBtn.addEventListener("click", function () {
     if (!navigator.geolocation) {
@@ -451,12 +573,12 @@
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
 
-        updateCoords(lat, lng);
+        updateCoords(lat, lng, "posizione del dispositivo");
         showMap(lat, lng);
 
-        setGpsStatus("ok", "Posizione acquisita. Puoi trascinare il marker per correggerla.");
+        setGpsStatus("ok", "Posizione del dispositivo acquisita. Usala solo se coincide con il luogo della segnalazione.");
         gpsBtn.disabled = false;
-        gpsBtn.textContent = "Aggiorna GPS";
+        gpsBtn.textContent = "Aggiorna posizione";
       },
       function () {
         setGpsStatus("err", "Impossibile acquisire la posizione. Controlla i permessi GPS.");
@@ -497,7 +619,7 @@
     const fd = new FormData(form);
 
     if (!latInput.value || !lngInput.value) {
-      showNotice("error", "Devi acquisire la posizione GPS prima di inviare.");
+      showNotice("error", "Cerca la via indicata oppure scegli il punto con GPS/mappa prima di inviare.");
       return;
     }
 
@@ -505,7 +627,7 @@
     const lng = Number(lngInput.value);
 
     if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < 41.65 || lat > 42.05 || lng < 12.25 || lng > 12.75) {
-      showNotice("error", "Coordinate non valide. Premi di nuovo Usa GPS.");
+      showNotice("error", "Il punto selezionato non è valido o risulta fuori dal Municipio IX.");
       return;
     }
 
@@ -525,6 +647,8 @@
         indirizzo: fd.get("indirizzo"),
         latitudine: latInput.value,
         longitudine: lngInput.value,
+        fontePosizione: positionSource,
+        consenso: document.getElementById("consenso").checked,
         foto: foto
       };
 
@@ -539,9 +663,7 @@
 
       form.reset();
       loadQuartieri();
-      latInput.value = "";
-      lngInput.value = "";
-      coordPreview.style.display = "none";
+      clearCoords();
       gpsMapEl.style.display = "none";
       gpsStatus.className = "gps-status";
       gpsStatus.textContent = "";
