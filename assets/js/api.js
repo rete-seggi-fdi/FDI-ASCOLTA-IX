@@ -133,7 +133,10 @@ const API = Object.freeze({
   listUsers() { return this.call("listUsers"); },
   saveUser(user) { return this.call("saveUser", { user }); },
   setUserActive(userId, active) { return this.call("setUserActive", { userId, active }); },
-  resetUserPassword(userId, password) {
-    return this.call("resetUserPassword", { userId, password });
+  resetUserPassword(userId) {
+    return this.call("resetUserPassword", { userId });
+  },
+  changeOwnPassword(currentPassword, newPassword) {
+    return this.call("changeOwnPassword", { currentPassword, newPassword });
   }
 });

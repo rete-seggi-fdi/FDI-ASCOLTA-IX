@@ -12,7 +12,7 @@
 
 const APP = Object.freeze({
   NAME: 'FDI Ascolta IX',
-  SCHEMA_VERSION: '2026-07-hardened-2',
+  SCHEMA_VERSION: '2026-07-users-invite-1.1',
   SESSION_HOURS: 8,
   MAX_PHOTO_BYTES: 5 * 1024 * 1024,
   PHOTO_FOLDER_NAME: 'FDI Ascolta IX Foto',
@@ -47,7 +47,7 @@ const HEADERS = Object.freeze({
     'Data','Tipo','Segnalazione ID','Destinatario ID','Destinatario','Email',
     'Oggetto','Messaggio','Operatore','Esito'
   ],
-  [SHEETS.USERS]: ['ID','Nome','Email','Password','Ruolo','Attivo'],
+  [SHEETS.USERS]: ['ID','Nome','Email','Password','Ruolo','Attivo','Cambio password richiesto'],
   [SHEETS.OFFICES]: ['ID','Ufficio','Settore','Email','Telefono','Note','Attivo'],
   [SHEETS.DISTRICTS]: ['Codice','Nome','Tipo','Attivo','Ordine'],
   [SHEETS.TIMELINE]: [
@@ -101,8 +101,9 @@ function createOrUpdateUser(email, nome, password, ruolo) {
     Nome: safeSheetText(cleanText(nome, 120, false)),
     Email: normalizedEmail,
     Password: hashed,
-    Ruolo: safeSheetText(cleanText(ruolo || 'Operatore', 80, false)),
-    Attivo: 'Sì'
+    Ruolo: safeSheetText(normalizeUserRole(ruolo || 'Amministratore')),
+    Attivo: 'Sì',
+    'Cambio password richiesto': 'No'
   };
 
   if (match) setRowFields(SHEETS.USERS, match.rowNumber, values);
@@ -229,6 +230,7 @@ function doPost(e) {
     const user = requireAuth(body);
 
     if (action === 'logout') return json(logoutUser(body));
+    if (action === 'changeOwnPassword') return json(changeOwnPassword(body, user));
     if (action === 'listUsers') { requireAdmin(user); return json({ ok: true, users: listUsers() }); }
     if (action === 'saveUser') { requireAdmin(user); return json(saveUser(body, user)); }
     if (action === 'setUserActive') { requireAdmin(user); return json(setUserActive(body, user)); }
@@ -360,7 +362,8 @@ function publicUser(row) {
     id: String(row.ID || ''),
     nome: cleanOutput(row.Nome),
     email: normalizeEmail(row.Email),
-    ruolo: cleanOutput(row.Ruolo)
+    ruolo: cleanOutput(row.Ruolo),
+    mustChangePassword: isYes(row['Cambio password richiesto'])
   };
 }
 
@@ -412,7 +415,8 @@ function listUsers() {
       nome: cleanOutput(row.Nome),
       email: normalizeEmail(row.Email),
       ruolo: normalizeUserRole(row.Ruolo),
-      attivo: isYes(row.Attivo)
+      attivo: isYes(row.Attivo),
+      mustChangePassword: isYes(row['Cambio password richiesto'])
     }))
     .sort((a, b) => String(a.nome || a.email).localeCompare(String(b.nome || b.email), 'it'));
 }
@@ -430,7 +434,6 @@ function saveUser(body, operator) {
   const email = normalizeEmail(item.email);
   const nome = cleanText(item.nome, 120, true);
   const ruolo = normalizeUserRole(item.ruolo);
-  const password = String(item.password || '');
   const attivo = item.attivo === true || isYes(item.attivo);
 
   if (!isValidEmail(email)) throw new Error('Email non valida');
@@ -443,26 +446,23 @@ function saveUser(body, operator) {
     throw new Error('Email già utilizzata da un altro utente');
   }
 
-  if (!match && password.trim().length < 12) {
-    throw new Error('Per un nuovo utente serve una password di almeno 12 caratteri');
-  }
-  if (password && password.trim().length < 12) {
-    throw new Error('La nuova password deve avere almeno 12 caratteri');
-  }
-
+  const isNew = !match;
   const fields = {
     ID: match && cleanOutput(match.data.ID)
       ? cleanOutput(match.data.ID)
-      : 'USR-' + Utilities.getUuid().slice(0, 8).toUpperCase(),
+      : nextUserId(),
     Nome: safeSheetText(nome),
     Email: email,
     Ruolo: safeSheetText(ruolo),
     Attivo: attivo ? 'Sì' : 'No'
   };
 
-  if (password) {
+  let temporaryPassword = '';
+  if (isNew) {
+    temporaryPassword = generateTemporaryPassword();
     const salt = Utilities.getUuid().replace(/-/g, '');
-    fields.Password = hashPassword(password.trim(), salt);
+    fields.Password = hashPassword(temporaryPassword, salt);
+    fields['Cambio password richiesto'] = 'Sì';
   }
 
   if (match) {
@@ -471,10 +471,99 @@ function saveUser(body, operator) {
     revokeUserSessions(cleanOutput(match.data.ID));
   } else {
     appendObjectRow(SHEETS.USERS, fields);
+    try {
+      sendWelcomeEmail(nome, email, temporaryPassword, ruolo);
+    } catch (mailError) {
+      const created = findRow(SHEETS.USERS, row => String(row.ID || '') === fields.ID);
+      if (created) setRowFields(SHEETS.USERS, created.rowNumber, { Attivo: 'No' });
+      throw new Error('Utente creato ma email non inviata. Account disattivato: ' + mailError.message);
+    }
   }
 
-  logAdminAction('Utente salvato', fields.ID, email, operator);
-  return { ok: true, user: { id: fields.ID, nome: nome, email: email, ruolo: ruolo, attivo: attivo } };
+  logAdminAction(isNew ? 'Utente creato e invito inviato' : 'Utente aggiornato', fields.ID, email, operator);
+  return {
+    ok: true,
+    invited: isNew,
+    user: {
+      id: fields.ID,
+      nome: nome,
+      email: email,
+      ruolo: ruolo,
+      attivo: attivo,
+      mustChangePassword: isNew ? true : isYes(match.data['Cambio password richiesto'])
+    }
+  };
+}
+
+function nextUserId() {
+  const max = readRows(SHEETS.USERS).reduce((current, item) => {
+    const match = String(item.data.ID || '').match(/^U(\d+)$/i);
+    return match ? Math.max(current, Number(match[1])) : current;
+  }, 0);
+  return 'U' + String(max + 1).padStart(3, '0');
+}
+
+function generateTemporaryPassword() {
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lower = 'abcdefghijkmnopqrstuvwxyz';
+  const digits = '23456789';
+  const symbols = '!@#$%*-_';
+  const all = upper + lower + digits + symbols;
+  let chars = [
+    upper[Math.floor(Math.random() * upper.length)],
+    lower[Math.floor(Math.random() * lower.length)],
+    digits[Math.floor(Math.random() * digits.length)],
+    symbols[Math.floor(Math.random() * symbols.length)]
+  ];
+  while (chars.length < 16) chars.push(all[Math.floor(Math.random() * all.length)]);
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = chars[i]; chars[i] = chars[j]; chars[j] = tmp;
+  }
+  return chars.join('');
+}
+
+function sendWelcomeEmail(nome, email, temporaryPassword, ruolo) {
+  const loginUrl = APP.PUBLIC_TRACKING_URL.replace(/tracking\.html(?:\?.*)?$/, 'login.html');
+  const subject = 'Accesso al CRM FDI Ascolta IX';
+  const text =
+    'Ciao ' + nome + ',\n\n' +
+    'è stato creato il tuo account per il CRM FDI Ascolta IX.\n\n' +
+    'Ruolo: ' + ruolo + '\n' +
+    'Email: ' + email + '\n' +
+    'Password temporanea: ' + temporaryPassword + '\n\n' +
+    'Accedi qui: ' + loginUrl + '\n\n' +
+    'Al primo accesso dovrai scegliere una nuova password.\n' +
+    'Non inoltrare questa email e non condividere la password temporanea.';
+
+  const html =
+    '<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#102342">' +
+    '<h2 style="color:#082f6a">FDI Ascolta IX</h2>' +
+    '<p>Ciao <strong>' + escapeHtmlEmail(nome) + '</strong>,</p>' +
+    '<p>è stato creato il tuo account per il CRM.</p>' +
+    '<div style="padding:18px;border:1px solid #dfe6ef;border-radius:12px;background:#f4f7fb">' +
+    '<p><strong>Ruolo:</strong> ' + escapeHtmlEmail(ruolo) + '</p>' +
+    '<p><strong>Email:</strong> ' + escapeHtmlEmail(email) + '</p>' +
+    '<p><strong>Password temporanea:</strong> <code style="font-size:16px">' + escapeHtmlEmail(temporaryPassword) + '</code></p>' +
+    '</div>' +
+    '<p style="margin:24px 0"><a href="' + loginUrl + '" style="background:#082f6a;color:#fff;padding:12px 18px;text-decoration:none;border-radius:9px;font-weight:bold">Accedi al CRM</a></p>' +
+    '<p>Al primo accesso dovrai scegliere una nuova password.</p>' +
+    '<p style="font-size:12px;color:#67758c">Non inoltrare questa email e non condividere la password temporanea.</p>' +
+    '</div>';
+
+  MailApp.sendEmail({
+    to: email,
+    subject: subject,
+    body: text,
+    htmlBody: html,
+    name: APP.NAME
+  });
+}
+
+function escapeHtmlEmail(value) {
+  return String(value || '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[char]);
 }
 
 function setUserActive(body, operator) {
@@ -494,17 +583,57 @@ function setUserActive(body, operator) {
 
 function resetUserPassword(body, operator) {
   const id = cleanText(body.userId, 80, true);
-  const password = String(body.password || '').trim();
-  if (password.length < 12) throw new Error('La password deve avere almeno 12 caratteri');
-
   const match = findRow(SHEETS.USERS, row => String(row.ID || '') === id);
   if (!match) throw new Error('Utente non trovato');
 
+  const password = generateTemporaryPassword();
   const salt = Utilities.getUuid().replace(/-/g, '');
-  setRowFields(SHEETS.USERS, match.rowNumber, { Password: hashPassword(password, salt) });
+  setRowFields(SHEETS.USERS, match.rowNumber, {
+    Password: hashPassword(password, salt),
+    'Cambio password richiesto': 'Sì',
+    Attivo: 'Sì'
+  });
   revokeUserSessions(id);
-  logAdminAction('Password utente reimpostata', id, normalizeEmail(match.data.Email), operator);
-  return { ok: true };
+
+  try {
+    sendWelcomeEmail(
+      cleanOutput(match.data.Nome),
+      normalizeEmail(match.data.Email),
+      password,
+      normalizeUserRole(match.data.Ruolo)
+    );
+  } catch (mailError) {
+    throw new Error('Password temporanea generata ma email non inviata: ' + mailError.message);
+  }
+
+  logAdminAction('Nuova password temporanea inviata', id, normalizeEmail(match.data.Email), operator);
+  return { ok: true, sent: true };
+}
+
+function changeOwnPassword(body, user) {
+  const currentPassword = String(body.currentPassword || '').trim();
+  const newPassword = String(body.newPassword || '').trim();
+
+  if (newPassword.length < 12) throw new Error('La nuova password deve avere almeno 12 caratteri');
+  if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) ||
+      !/[0-9]/.test(newPassword) || !/[^A-Za-z0-9]/.test(newPassword)) {
+    throw new Error('Usare almeno una maiuscola, una minuscola, un numero e un simbolo');
+  }
+  if (currentPassword === newPassword) throw new Error('La nuova password deve essere diversa');
+
+  const match = findRow(SHEETS.USERS, row => String(row.ID || '') === String(user.id || ''));
+  if (!match || !verifyPassword(currentPassword, String(match.data.Password || ''))) {
+    throw new Error('Password temporanea non corretta');
+  }
+
+  const salt = Utilities.getUuid().replace(/-/g, '');
+  setRowFields(SHEETS.USERS, match.rowNumber, {
+    Password: hashPassword(newPassword, salt),
+    'Cambio password richiesto': 'No'
+  });
+  revokeUserSessions(user.id);
+  logAdminAction('Password personale modificata', user.id, user.email, user);
+  return { ok: true, reloginRequired: true };
 }
 
 function preventLastAdminRemoval(existing, fields) {

@@ -15,6 +15,7 @@ const Auth = Object.freeze({
     sessionStorage.setItem(CONFIG.SESSION_KEY, JSON.stringify({
       token: result.token,
       user: result.user,
+      mustChangePassword: Boolean(result.user.mustChangePassword),
       expiresAt
     }));
     this.clearLegacyKeys();
@@ -33,6 +34,12 @@ const Auth = Object.freeze({
   getUser() {
     const session = this.getSession();
     return session && session.user ? session.user : null;
+  },
+
+  mustChangePassword() {
+    const session = this.getSession();
+    return Boolean(session && (session.mustChangePassword ||
+      (session.user && session.user.mustChangePassword)));
   },
 
 
@@ -55,15 +62,24 @@ const Auth = Object.freeze({
 
   canOpenPage(pageName) {
     const page = String(pageName || "").split("?")[0].toLowerCase();
+    if (page === "cambia-password.html") return true;
     if (this.isAdmin()) return true;
     if (this.isConsigliere()) {
-      return ["dashboard.html","pratiche.html","notifiche.html"].includes(page);
+      return ["dashboard.html","pratiche.html","notifiche.html","cambia-password.html"].includes(page);
     }
-    return ["dashboard.html","pratiche.html","notifiche.html"].includes(page);
+    return ["dashboard.html","pratiche.html","notifiche.html","cambia-password.html"].includes(page);
   },
 
   enforcePageAccess() {
     const page = (location.pathname.split("/").pop() || "dashboard.html").toLowerCase();
+    if (this.mustChangePassword() && page !== "cambia-password.html") {
+      location.replace("cambia-password.html");
+      return false;
+    }
+    if (!this.mustChangePassword() && page === "cambia-password.html") {
+      location.replace(this.homeForRole());
+      return false;
+    }
     if (!this.canOpenPage(page)) {
       location.replace(this.homeForRole());
       return false;
@@ -83,7 +99,7 @@ const Auth = Object.freeze({
 
   safeNext(value, fallback = "dashboard.html") {
     const candidate = String(value || "");
-    return /^(dashboard|pratiche|mappa|analytics|notifiche|uffici|configurazione)\.html(?:\?[^#]*)?$/.test(candidate)
+    return /^(dashboard|pratiche|mappa|analytics|notifiche|uffici|configurazione|cambia-password)\.html(?:\?[^#]*)?$/.test(candidate)
       ? candidate
       : fallback;
   },

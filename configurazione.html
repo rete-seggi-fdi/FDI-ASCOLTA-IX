@@ -60,23 +60,23 @@
       <label class="field">Nome<input id="u_nome" required maxlength="120"></label>
       <label class="field">Email<input id="u_email" type="email" required maxlength="200"></label>
       <label class="field">Ruolo<select id="u_ruolo"><option>Consigliere</option><option>Amministratore</option></select></label>
-      <label class="field">Password<input id="u_password" type="password" minlength="12" autocomplete="new-password" placeholder="Obbligatoria solo per nuovo utente"></label>
+      
       <label class="check field full"><input id="u_attivo" type="checkbox" checked> Utente attivo</label>
     </div>
-    <p style="color:var(--muted);font-size:.75rem;line-height:1.45">La password deve avere almeno 12 caratteri. Lasciandola vuota durante una modifica, la password corrente non cambia.</p>
+    <p style="color:var(--muted);font-size:.75rem;line-height:1.45">Per un nuovo utente il sistema genera una password temporanea, la invia via email e obbliga il cambio al primo accesso.</p>
     <div class="message" id="userMessage"></div>
   </form>
-  <div class="modal-actions"><button class="btn" id="userCancelBtn" type="button">Annulla</button><button class="btn primary" id="userSaveBtn" type="button">Salva utente</button></div>
+  <div class="modal-actions"><button class="btn" id="userCancelBtn" type="button">Annulla</button><button class="btn primary" id="userSaveBtn" type="button">Crea e invia invito</button></div>
 </dialog>
 
 <dialog id="passwordDialog">
   <div class="modal-head"><h2>Reimposta password</h2><button class="close" id="passwordClose" type="button" aria-label="Chiudi">×</button></div>
   <form class="form">
     <input type="hidden" id="passwordUserId">
-    <label class="field">Nuova password<input id="newPassword" type="password" minlength="12" autocomplete="new-password"></label>
+    <p style="color:var(--muted);line-height:1.55">Verrà generata una nuova password temporanea e inviata all’indirizzo email dell’utente. Al prossimo accesso dovrà cambiarla.</p>
     <div class="message" id="passwordMessage"></div>
   </form>
-  <div class="modal-actions"><button class="btn" id="passwordCancel" type="button">Annulla</button><button class="btn primary" id="passwordSave" type="button">Aggiorna password</button></div>
+  <div class="modal-actions"><button class="btn" id="passwordCancel" type="button">Annulla</button><button class="btn primary" id="passwordSave" type="button">Genera e invia</button></div>
 </dialog>
 
 <footer class="footer">FDI Ascolta IX CRM — Configurazione PRO v2.1.0</footer>
@@ -136,6 +136,7 @@ function render(){
     <span class="badge ${user.attivo?"":"off"}">${user.attivo?"Attivo":"Non attivo"}</span>
     <h3>${esc(user.nome||"Senza nome")}</h3>
     <p>${esc(user.email)}</p><p>${esc(user.ruolo)}</p>
+    ${user.mustChangePassword?'<p><span class="badge">Cambio password richiesto</span></p>':''}
     <div class="card-actions">
       <button class="btn" type="button" data-user-edit="${esc(user.id)}">Modifica</button>
       <button class="btn" type="button" data-user-password="${esc(user.id)}">Password</button>
@@ -185,7 +186,6 @@ function openUser(user=null){
   document.getElementById("u_nome").value=user?.nome||"";
   document.getElementById("u_email").value=user?.email||"";
   document.getElementById("u_ruolo").value=user?.ruolo||"Consigliere";
-  document.getElementById("u_password").value="";
   document.getElementById("u_attivo").checked=user?Boolean(user.attivo):true;
   userDialogTitle.textContent=user?"Modifica utente":"Nuovo utente";
   userMessage.textContent="";
@@ -200,15 +200,15 @@ async function saveUser(){
       nome:document.getElementById("u_nome").value.trim(),
       email:document.getElementById("u_email").value.trim(),
       ruolo:document.getElementById("u_ruolo").value,
-      password:document.getElementById("u_password").value,
       attivo:document.getElementById("u_attivo").checked
     };
     if(!payload.nome)throw new Error("Inserire il nome");
     if(!payload.email)throw new Error("Inserire l’email");
-    if(!payload.id&&payload.password.length<12)throw new Error("Per un nuovo utente serve una password di almeno 12 caratteri");
     const result=await API.saveUser(payload);
     if(!result.ok)throw new Error(result.error||"Salvataggio non riuscito");
-    userDialog.close();await loadData();switchPanel("utenti");
+    userDialog.close();
+    alert(result.invited ? "Utente creato. L’email con la password temporanea è stata inviata." : "Utente aggiornato.");
+    await loadData();switchPanel("utenti");
   }catch(error){userMessage.textContent=error.message}
   finally{userSaveBtn.disabled=false}
 }
@@ -221,7 +221,6 @@ async function toggleUser(id,activeValue){
 }
 function openPassword(id){
   document.getElementById("passwordUserId").value=id;
-  document.getElementById("newPassword").value="";
   passwordMessage.textContent="";
   passwordDialog.showModal();
 }
@@ -229,12 +228,11 @@ async function resetPassword(){
   passwordSave.disabled=true;passwordMessage.textContent="";
   try{
     const id=document.getElementById("passwordUserId").value;
-    const password=document.getElementById("newPassword").value;
-    if(password.length<12)throw new Error("La password deve avere almeno 12 caratteri");
-    const result=await API.resetUserPassword(id,password);
-    if(!result.ok)throw new Error(result.error||"Aggiornamento non riuscito");
+    const result=await API.resetUserPassword(id);
+    if(!result.ok)throw new Error(result.error||"Invio non riuscito");
     passwordDialog.close();
-    alert("Password aggiornata. Le sessioni precedenti dell’utente sono state revocate.");
+    alert("Nuova password temporanea inviata. Le sessioni precedenti sono state revocate.");
+    await loadData();switchPanel("utenti");
   }catch(error){passwordMessage.textContent=error.message}
   finally{passwordSave.disabled=false}
 }

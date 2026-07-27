@@ -65,7 +65,9 @@ loginFormEl.addEventListener("submit", async event => {
       throw new Error((result && result.error) || "Credenziali non valide o accesso negato");
     }
     Auth.saveSession(result);
-    location.replace(destinationAfterLogin());
+    location.replace(result.user && result.user.mustChangePassword
+      ? "cambia-password.html"
+      : destinationAfterLogin());
   } catch (error) {
     messageBoxEl.hidden = false;
     messageBoxEl.textContent = error && error.message
