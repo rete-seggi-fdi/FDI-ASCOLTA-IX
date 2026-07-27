@@ -2,6 +2,7 @@ const API = Object.freeze({
   async call(action, params = {}, options = {}) {
     const isPublic = Boolean(options.publicAction);
     const payload = { action, ...params };
+    const timeoutMs = Math.max(5000, Number(options.timeoutMs || 45000));
 
     if (!isPublic) {
       if (typeof Auth === "undefined") throw new Error("Modulo autenticazione non caricato");
@@ -13,36 +14,72 @@ const API = Object.freeze({
       payload.authToken = token;
     }
 
-    const response = await fetch(CONFIG.API_URL, {
-      method: "POST",
-      cache: "no-store",
-      redirect: "follow",
-      body: JSON.stringify(payload)
-    });
+    const controller = typeof AbortController !== "undefined"
+      ? new AbortController()
+      : null;
 
-    if (!response.ok) throw new Error("Errore API HTTP " + response.status);
+    let timeoutId = null;
+    let timeoutPromise = null;
 
-    const rawResponse = await response.text();
-    let result;
+    if (controller) {
+      timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+    } else {
+      timeoutPromise = new Promise((_, reject) => {
+        timeoutId = window.setTimeout(() => {
+          reject(new Error("Il server non ha risposto entro il tempo previsto"));
+        }, timeoutMs);
+      });
+    }
+
     try {
-      result = JSON.parse(rawResponse);
-    } catch (_) {
-      const looksLikeHtml = /<!doctype html|<html|accounts\.google\.com/i.test(rawResponse);
-      if (looksLikeHtml) {
-        throw new Error(
-          "La Web App Apps Script non è pubblica, l’URL è errato oppure il deploy non è aggiornato"
-        );
+      const fetchPromise = fetch(CONFIG.API_URL, {
+        method: "POST",
+        cache: "no-store",
+        redirect: "follow",
+        body: JSON.stringify(payload),
+        signal: controller ? controller.signal : undefined
+      });
+
+      const response = timeoutPromise
+        ? await Promise.race([fetchPromise, timeoutPromise])
+        : await fetchPromise;
+
+      if (!response.ok) throw new Error("Errore API HTTP " + response.status);
+
+      const rawResponse = await response.text();
+      let result;
+      try {
+        result = JSON.parse(rawResponse);
+      } catch (_) {
+        const looksLikeHtml = /<!doctype html|<html|accounts\.google\.com/i.test(rawResponse);
+        if (looksLikeHtml) {
+          throw new Error(
+            "La Web App Apps Script non è pubblica, l’URL è errato oppure il deploy non è aggiornato"
+          );
+        }
+        throw new Error("Risposta API non valida dal backend");
       }
-      throw new Error("Risposta API non valida dal backend");
-    }
 
-    if (result && result.authRequired && typeof Auth !== "undefined") {
-      Auth.clearSession();
-      Auth.requireAuth();
-      throw new Error(result.error || "Sessione scaduta");
-    }
+      if (result && result.authRequired && typeof Auth !== "undefined") {
+        Auth.clearSession();
+        Auth.requireAuth();
+        throw new Error(result.error || "Sessione scaduta");
+      }
 
-    return result;
+      return result;
+    } catch (error) {
+      if (error && error.name === "AbortError") {
+        if (action === "createReport") {
+          throw new Error(
+            "L’invio sta richiedendo troppo tempo. Controlla se hai ricevuto l’email o se la pratica è comparsa prima di riprovare."
+          );
+        }
+        throw new Error("Il server non ha risposto entro il tempo previsto");
+      }
+      throw error;
+    } finally {
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+    }
   },
 
   health() { return this.call("health", {}, { publicAction: true }); },
@@ -62,7 +99,7 @@ const API = Object.freeze({
     return id;
   },
   createReport(data) {
-    return this.call("createReport", { ...data, clientId: this.getClientId() }, { publicAction: true });
+    return this.call("createReport", { ...data, clientId: this.getClientId() }, { publicAction: true, timeoutMs: 75000 });
   },
   geocodeAddress(indirizzo, quartiere = "") {
     return this.call(
