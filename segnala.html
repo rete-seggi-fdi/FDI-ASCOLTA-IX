@@ -7,7 +7,7 @@
 
   <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="assets/css/style.css" />
-  <link rel="stylesheet" href="assets/css/theme-fdi.css?v=210">
+  <link rel="stylesheet" href="assets/css/theme-fdi.css?v=211">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
   <style>
@@ -375,8 +375,8 @@
   FDI Ascolta IX — Sistema di gestione delle segnalazioni territoriali
 </footer>
 
-<script src="assets/js/config.js?v=210"></script>
-<script src="assets/js/api.js?v=210"></script>
+<script src="assets/js/config.js?v=211"></script>
+<script src="assets/js/api.js?v=211"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
@@ -415,10 +415,26 @@
 
       quartiereSelect.innerHTML = '<option value="">Seleziona quartiere</option>';
 
+      const seenDistricts = new Set();
+
       (data.quartieri || []).forEach(function(q) {
+        const name = String(q && q.nome || "").trim();
+        if (!name) return;
+
+        const key = name.toLocaleLowerCase("it-IT");
+        if (seenDistricts.has(key)) return;
+        seenDistricts.add(key);
+
         const option = document.createElement("option");
-        option.value = q.nome;
-        option.textContent = q.codice ? q.codice + " — " + q.nome : q.nome;
+        option.value = name;
+        option.textContent = name;
+
+        const code = String(q && (q.codice || q.id) || "").trim();
+        if (code) {
+          option.dataset.codice = code;
+          option.title = "Codice interno: " + code;
+        }
+
         quartiereSelect.appendChild(option);
       });
 
@@ -610,6 +626,20 @@
     recaptchaStatus.classList.remove("hidden");
   }
 
+  function withTimeout(promise, timeoutMs, message) {
+    let timeoutId;
+
+    const timeout = new Promise(function(_, reject) {
+      timeoutId = window.setTimeout(function() {
+        reject(new Error(message || "Operazione scaduta"));
+      }, timeoutMs);
+    });
+
+    return Promise.race([promise, timeout]).finally(function() {
+      window.clearTimeout(timeoutId);
+    });
+  }
+
   async function loadPublicSecurityConfig() {
     if (publicConfigPromise) return publicConfigPromise;
 
@@ -729,7 +759,12 @@
         });
       };
 
-      reader.onerror = reject;
+      reader.onerror = function() {
+        reject(new Error("Impossibile leggere la foto selezionata"));
+      };
+      reader.onabort = function() {
+        reject(new Error("Lettura della foto interrotta"));
+      };
       reader.readAsDataURL(file);
     });
   }
@@ -764,15 +799,28 @@
     }
 
     submitReport.disabled = true;
-    submitReport.textContent = "Invio in corso...";
+    submitReport.textContent = "Preparazione invio...";
 
     try {
       const selectedPhoto = photoInput.files[0] || null;
       validateClientPhoto(selectedPhoto);
-      const [foto, recaptchaToken] = await Promise.all([
+
+      submitReport.textContent = selectedPhoto
+        ? "Preparazione foto..."
+        : "Verifica anti-spam...";
+
+      const foto = await withTimeout(
         fileToBase64(selectedPhoto),
-        getRecaptchaToken()
-      ]);
+        20000,
+        "La lettura della foto sta richiedendo troppo tempo. Prova con un file più piccolo."
+      );
+
+      submitReport.textContent = "Verifica anti-spam...";
+      const recaptchaToken = await withTimeout(
+        getRecaptchaToken(),
+        15000,
+        "Il controllo anti-spam non ha risposto. Disattiva eventuali blocchi privacy e ricarica la pagina."
+      );
 
       const payload = {
         action: "createReport",
@@ -794,6 +842,7 @@
         foto: foto
       };
 
+      submitReport.textContent = "Invio al server...";
       const result = await API.createReport(payload);
 
       if (!result.ok) throw new Error(result.error || "Errore durante l’invio.");
@@ -828,7 +877,13 @@
       gpsBtn.textContent = "Usa GPS";
 
     } catch (err) {
-      showNotice("error", err.message);
+      console.error("Invio segnalazione:", err);
+      showNotice(
+        "error",
+        err && err.message
+          ? err.message
+          : "Invio non riuscito. Ricarica la pagina e riprova."
+      );
     } finally {
       submitReport.disabled = !securityReady;
       submitReport.textContent = securityReady
