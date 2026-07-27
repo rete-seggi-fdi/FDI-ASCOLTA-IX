@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Pratiche PRO v1.1 RC3 — FDI Ascolta IX CRM</title>
+<title>Pratiche PRO v1.1 RC5 — FDI Ascolta IX CRM</title>
 
 <link rel="stylesheet" href="assets/css/style.css">
 <link rel="stylesheet" href="assets/css/theme-fdi.css?v=111">
@@ -96,7 +96,46 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,
 #workflow .btn{font-size:.78rem;text-align:left;line-height:1.25;min-height:46px}
 #workflow .btn:nth-child(8){background:#168844;color:#fff;border-color:#168844}
 #workflow .btn:nth-child(9){background:#5d6572;color:#fff;border-color:#5d6572}
-.hidden{display:none}.muted{color:var(--muted)}
+.hidden{display:none}.muted{color:var(--muted)}#case{scroll-margin-top:125px}
+.popup-open{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:38px;
+  margin-top:8px;
+  padding:0 13px;
+  border:0;
+  border-radius:10px;
+  background:var(--blue);
+  color:#fff!important;
+  font-weight:900;
+  text-decoration:none;
+  cursor:pointer
+}
+.case-back{
+  display:inline-flex;
+  align-items:center;
+  min-height:40px;
+  margin-bottom:14px;
+  padding:0 14px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:#fff;
+  color:var(--blue);
+  font-weight:900;
+  cursor:pointer
+}
+body.detail-mode .toolbar,
+body.detail-mode .kpi-strip,
+body.detail-mode .map-panel{
+  display:none
+}
+body.detail-mode .workspace{
+  margin-top:0
+}
+body.detail-mode #case{
+  scroll-margin-top:110px
+}
 .close-modal-overlay{position:fixed;inset:0;background:rgba(7,31,73,.64);display:none;align-items:center;justify-content:center;padding:20px;z-index:9999;backdrop-filter:blur(4px)}
 .close-modal-overlay.show{display:flex}
 .close-modal{width:min(720px,96vw);max-height:90vh;overflow:auto;background:#fff;border-radius:22px;box-shadow:0 35px 90px rgba(0,0,0,.35)}
@@ -124,7 +163,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,
     <small>Pratiche PRO · Municipio IX Roma</small>
   </div>
   <div class="top-actions">
-    <span class="version">Versione 1.1 RC3</span>
+    <span class="version">Versione 1.1 RC5</span>
     <button class="nav-btn" id="refreshPractices" type="button">↻ Aggiorna</button>
     <a class="nav-btn" href="dashboard.html">▦ Dashboard</a>
     <a class="nav-btn" href="uffici.html">🏛 Uffici</a>
@@ -163,6 +202,9 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,
       <div id="empty" class="case-empty">Seleziona una pratica dall'elenco.</div>
 
       <div id="case" class="hidden">
+        <button class="case-back" id="backToOverview" type="button">
+          ← Torna alla mappa generale
+        </button>
         <div class="caseHero">
           <span class="badge" id="caseStatus"></span>
           <h1 id="caseTitle"></h1>
@@ -263,8 +305,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,
   </div>
 </main>
 
-<footer class="footer">FDI Ascolta IX CRM — Pratiche PRO v1.1 RC3</footer>
-<script src="assets/js/config.js?v=15"></script><script src="assets/js/auth.js?v=15"></script><script src="assets/js/api.js?v=15"></script><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<footer class="footer">FDI Ascolta IX CRM — Pratiche PRO v1.1 RC5</footer>
+<script src="assets/js/config.js?v=21"></script><script src="assets/js/auth.js?v=21"></script><script src="assets/js/api.js?v=21"></script><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 Auth.requireAuth();
 const WORKFLOW=[['1','Segnalazione ricevuta','La segnalazione è stata registrata dal sistema FDI Ascolta IX.'],['2','Presa in carico dal Gruppo Consiliare','La pratica è stata presa in carico dal Gruppo Consiliare.'],['3','Assegnata al consigliere','La pratica è stata assegnata al consigliere competente.'],['4','Inviata dal consigliere all’ufficio municipale competente','La pratica è stata trasmessa all’ufficio municipale competente.'],['5','In attesa di risposta dall’ufficio municipale competente','La pratica è in attesa di riscontro da parte dell’ufficio competente.'],['6','Risposta ricevuta','È stata ricevuta una risposta relativa alla pratica.'],['7','In lavorazione','La pratica risulta in lavorazione.'],['8','Risolta','La criticità segnalata risulta risolta.'],['9','Archiviata','La pratica è stata archiviata.']];
@@ -276,7 +318,148 @@ async function post(payload){
   const {action,...params}=payload;
   return API.call(action,params);
 }
-function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}function valid(r){const a=Number(r.latitudine),b=Number(r.longitudine);return Number.isFinite(a)&&Number.isFinite(b)&&a>40&&a<43&&b>10&&b<15}function uniq(k){return [...new Set(reports.map(r=>r[k]).filter(Boolean))].sort()}function fill(id,vals,label){document.getElementById(id).innerHTML='<option value="">'+label+'</option>'+vals.map(v=>`<option>${esc(v)}</option>`).join('')}function apply(){const query=q.value.toLowerCase();filtered=reports.filter(r=>{const t=[r.id,r.titolo,r.quartiere,r.categoria,r.stato,r.nome].join(' ').toLowerCase();return(!query||t.includes(query))&&(!fQuartiere.value||r.quartiere===fQuartiere.value)&&(!fCategoria.value||r.categoria===fCategoria.value)&&(!fStato.value||r.stato===fStato.value)&&(!fPriorita.value||r.priorita===fPriorita.value)});renderList();renderGeneralMap()}function renderList(){count.textContent=filtered.length;list.innerHTML=filtered.map(r=>`<div class="item ${selected&&selected.id===r.id?'active':''}" onclick="openCase('${esc(r.id)}')"><b>${esc(r.id)}</b><br>${esc(r.titolo)}<br><small class="muted">${esc(r.quartiere)} • ${esc(r.categoria)} • ${esc(r.stato)}</small></div>`).join('')||'<p class="muted">Nessuna pratica.</p>'}function renderGeneralMap(){if(!gMap){gMap=L.map('generalMap').setView([41.82,12.45],12);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap'}).addTo(gMap)};gMarkers.forEach(m=>m.remove());gMarkers=[];filtered.filter(valid).forEach(r=>{const m=L.marker([Number(r.latitudine),Number(r.longitudine)]).addTo(gMap).bindPopup(`<b>${esc(r.titolo)}</b><br>${esc(r.quartiere)}<br><button onclick="openCase('${esc(r.id)}')">Apri</button>`);gMarkers.push(m)});setTimeout(()=>gMap.invalidateSize(),200)}async function openCase(id, scrollToDetail=false){
+function esc(v){
+  return String(v??'').replace(/[&<>"']/g,m=>({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#039;'
+  }[m]));
+}
+
+function valid(r){
+  const a=Number(r.latitudine);
+  const b=Number(r.longitudine);
+  return Number.isFinite(a)&&Number.isFinite(b)&&a>40&&a<43&&b>10&&b<15;
+}
+
+function uniq(k){
+  return [...new Set(reports.map(r=>r[k]).filter(Boolean))].sort();
+}
+
+function fill(id,vals,label){
+  document.getElementById(id).innerHTML=
+    '<option value="">'+label+'</option>'+
+    vals.map(v=>`<option>${esc(v)}</option>`).join('');
+}
+
+function apply(){
+  const query=q.value.toLowerCase();
+  filtered=reports.filter(r=>{
+    const t=[r.id,r.titolo,r.quartiere,r.categoria,r.stato,r.nome]
+      .join(' ')
+      .toLowerCase();
+
+    return(!query||t.includes(query))&&
+      (!fQuartiere.value||r.quartiere===fQuartiere.value)&&
+      (!fCategoria.value||r.categoria===fCategoria.value)&&
+      (!fStato.value||r.stato===fStato.value)&&
+      (!fPriorita.value||r.priorita===fPriorita.value);
+  });
+
+  renderList();
+  renderGeneralMap();
+}
+
+function renderList(){
+  count.textContent=filtered.length;
+  list.innerHTML=filtered.map(r=>`
+    <button
+      class="item ${selected&&selected.id===r.id?'active':''}"
+      type="button"
+      data-report-id="${esc(r.id)}">
+      <b>${esc(r.id)}</b><br>
+      ${esc(r.titolo)}<br>
+      <small class="muted">
+        ${esc(r.quartiere)} • ${esc(r.categoria)} • ${esc(r.stato)}
+      </small>
+    </button>
+  `).join('')||'<p class="muted">Nessuna pratica.</p>';
+
+  list.querySelectorAll('[data-report-id]').forEach(button=>{
+    button.addEventListener('click',()=>{
+      openCase(button.dataset.reportId,true,true);
+    });
+  });
+}
+
+function detailUrl(reportId){
+  const url=new URL(window.location.href);
+  url.search='';
+  url.searchParams.set('open',String(reportId||''));
+  url.hash='case';
+  return url.href;
+}
+
+function buildPracticePopup(report){
+  const wrapper=document.createElement('div');
+
+  const title=document.createElement('b');
+  title.textContent=report.titolo||'Pratica';
+  wrapper.appendChild(title);
+
+  wrapper.appendChild(document.createElement('br'));
+
+  const district=document.createElement('span');
+  district.textContent=report.quartiere||'';
+  wrapper.appendChild(district);
+
+  wrapper.appendChild(document.createElement('br'));
+
+  const link=document.createElement('a');
+  link.className='popup-open';
+  link.href=detailUrl(report.id);
+  link.textContent='Apri pratica';
+
+  link.addEventListener('click',event=>{
+    event.preventDefault();
+    event.stopPropagation();
+
+    if(gMap){
+      gMap.closePopup();
+    }
+
+    openCase(report.id,true,true).catch(error=>{
+      console.error(error);
+      window.location.assign(detailUrl(report.id));
+    });
+  });
+
+  wrapper.appendChild(link);
+
+  if(typeof L!=='undefined'&&L.DomEvent){
+    L.DomEvent.disableClickPropagation(wrapper);
+    L.DomEvent.disableScrollPropagation(wrapper);
+  }
+
+  return wrapper;
+}
+
+function renderGeneralMap(){
+  if(!gMap){
+    gMap=L.map('generalMap').setView([41.82,12.45],12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      attribution:'&copy; OpenStreetMap'
+    }).addTo(gMap);
+  }
+
+  gMarkers.forEach(marker=>marker.remove());
+  gMarkers=[];
+
+  filtered.filter(valid).forEach(report=>{
+    const marker=L
+      .marker([Number(report.latitudine),Number(report.longitudine)])
+      .addTo(gMap)
+      .bindPopup(buildPracticePopup(report));
+
+    gMarkers.push(marker);
+  });
+
+  setTimeout(()=>gMap.invalidateSize(),200);
+}
+
+async function openCase(id, scrollToDetail=false, enterDetailMode=false){
   selected=reports.find(r=>String(r.id)===String(id));
 
   if(!selected){
@@ -285,7 +468,12 @@ function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&l
 
   const currentUrl=new URL(window.location.href);
   currentUrl.searchParams.set('open',selected.id);
+  currentUrl.hash='case';
   window.history.replaceState({reportId:selected.id},'',currentUrl);
+
+  if(enterDetailMode){
+    document.body.classList.add('detail-mode');
+  }
 
   empty.classList.add('hidden');
   document.getElementById('case').classList.remove('hidden');
@@ -310,20 +498,60 @@ function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&l
   renderWorkflow();
   renderRefs();
   renderUffici();
-  await renderTimeline();
   renderList();
 
   if(scrollToDetail){
+    const detail=document.getElementById('case');
+
+    window.scrollTo({top:0,left:0,behavior:'auto'});
+
     window.setTimeout(()=>{
-      document.getElementById('case').scrollIntoView({
+      detail.scrollIntoView({
         behavior:'smooth',
         block:'start'
       });
-    },100);
+    },80);
+
+    window.setTimeout(()=>{
+      const top=Math.max(
+        0,
+        detail.getBoundingClientRect().top+window.scrollY-105
+      );
+      window.scrollTo({top,left:0,behavior:'auto'});
+    },450);
   }
 
+  renderTimeline().catch(error=>{
+    console.error('Errore timeline:',error);
+    timeline.innerHTML=
+      '<p class="muted">Impossibile caricare la timeline.</p>';
+  });
+
   return true;
-}function renderCaseMap(){
+}
+
+window.openCase=openCase;
+
+const backToOverview=document.getElementById('backToOverview');
+
+backToOverview.addEventListener('click',()=>{
+  document.body.classList.remove('detail-mode');
+
+  const url=new URL(window.location.href);
+  url.searchParams.delete('open');
+  url.hash='';
+  window.history.replaceState({},'',url);
+
+  window.scrollTo({top:0,left:0,behavior:'smooth'});
+
+  window.setTimeout(()=>{
+    if(gMap){
+      gMap.invalidateSize();
+    }
+  },250);
+});
+
+function renderCaseMap(){
   if(cMap){cMap.remove();cMap=null;}
   caseMapWrap.innerHTML=valid(selected)?'<div id="caseMap"></div>':'<p class="muted">Coordinate mancanti o non valide.</p>';
   if(!valid(selected))return;
@@ -484,7 +712,7 @@ async function boot(preserveSelection=false){
         : (reports[0]?reports[0].id:'');
 
     if(nextId){
-      await openCase(nextId,Boolean(requestedExists));
+      await openCase(nextId,Boolean(requestedExists),Boolean(requestedExists));
     }else{
       selected=null;
       empty.classList.remove('hidden');
@@ -526,6 +754,6 @@ function updateMiniKpis(){
 const originalApply=apply;
 apply=function(){originalApply();updateMiniKpis();};
 </script>
-<script src="assets/js/crm-shell.js?v=200"></script>
+<script src="assets/js/crm-shell.js?v=21"></script>
 </body>
 </html>
