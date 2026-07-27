@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Pratiche PRO v1.1 RC1 — FDI Ascolta IX CRM</title>
+<title>Pratiche PRO v1.1 RC2 — FDI Ascolta IX CRM</title>
 
 <link rel="stylesheet" href="assets/css/style.css">
 <link rel="stylesheet" href="assets/css/theme-fdi.css?v=111">
@@ -40,7 +40,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,
 .brand small{display:block;margin-top:4px;color:#f3c800;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
 .top-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .version{padding:10px 14px;border-radius:999px;background:#114fa6;color:#fff;font-weight:950;font-size:.82rem}
-.nav-btn{min-height:44px;padding:0 15px;border-radius:12px;border:1px solid rgba(255,255,255,.45);color:#fff;text-decoration:none;display:inline-flex;align-items:center;font-weight:900;background:rgba(255,255,255,.07)}
+.nav-btn{min-height:44px;cursor:pointer;font:inherit;padding:0 15px;border-radius:12px;border:1px solid rgba(255,255,255,.45);color:#fff;text-decoration:none;display:inline-flex;align-items:center;font-weight:900;background:rgba(255,255,255,.07)}
 .nav-btn:hover{background:#fff;color:var(--blue)}
 .page{max-width:1700px;margin:0 auto;padding:20px 24px 26px}
 .toolbar{
@@ -124,7 +124,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,
     <small>Pratiche PRO · Municipio IX Roma</small>
   </div>
   <div class="top-actions">
-    <span class="version">Versione 1.1 RC1</span>
+    <span class="version">Versione 1.1 RC2</span>
+    <button class="nav-btn" id="refreshPractices" type="button">↻ Aggiorna</button>
     <a class="nav-btn" href="dashboard.html">▦ Dashboard</a>
     <a class="nav-btn" href="uffici.html">🏛 Uffici</a>
   </div>
@@ -260,8 +261,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,
   </div>
 </main>
 
-<footer class="footer">FDI Ascolta IX CRM — Pratiche PRO v1.1 RC1</footer>
-<script src="assets/js/config.js?v=11"></script><script src="assets/js/auth.js?v=11"></script><script src="assets/js/api.js?v=11"></script><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<footer class="footer">FDI Ascolta IX CRM — Pratiche PRO v1.1 RC2</footer>
+<script src="assets/js/config.js?v=12"></script><script src="assets/js/auth.js?v=12"></script><script src="assets/js/api.js?v=12"></script><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 Auth.requireAuth();
 const WORKFLOW=[['1','Segnalazione ricevuta','La segnalazione è stata registrata dal sistema FDI Ascolta IX.'],['2','Presa in carico dal Gruppo Consiliare','La pratica è stata presa in carico dal Gruppo Consiliare.'],['3','Assegnata al consigliere','La pratica è stata assegnata al consigliere competente.'],['4','Inviata dal consigliere all’ufficio municipale competente','La pratica è stata trasmessa all’ufficio municipale competente.'],['5','In attesa di risposta dall’ufficio municipale competente','La pratica è in attesa di riscontro da parte dell’ufficio competente.'],['6','Risposta ricevuta','È stata ricevuta una risposta relativa alla pratica.'],['7','In lavorazione','La pratica risulta in lavorazione.'],['8','Risolta','La criticità segnalata risulta risolta.'],['9','Archiviata','La pratica è stata archiviata.']];
@@ -273,7 +274,7 @@ async function post(payload){
   const {action,...params}=payload;
   return API.call(action,params);
 }
-}function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}function valid(r){const a=Number(r.latitudine),b=Number(r.longitudine);return Number.isFinite(a)&&Number.isFinite(b)&&a>40&&a<43&&b>10&&b<15}function uniq(k){return [...new Set(reports.map(r=>r[k]).filter(Boolean))].sort()}function fill(id,vals,label){document.getElementById(id).innerHTML='<option value="">'+label+'</option>'+vals.map(v=>`<option>${esc(v)}</option>`).join('')}function apply(){const query=q.value.toLowerCase();filtered=reports.filter(r=>{const t=[r.id,r.titolo,r.quartiere,r.categoria,r.stato,r.nome].join(' ').toLowerCase();return(!query||t.includes(query))&&(!fQuartiere.value||r.quartiere===fQuartiere.value)&&(!fCategoria.value||r.categoria===fCategoria.value)&&(!fStato.value||r.stato===fStato.value)&&(!fPriorita.value||r.priorita===fPriorita.value)});renderList();renderGeneralMap()}function renderList(){count.textContent=filtered.length;list.innerHTML=filtered.map(r=>`<div class="item ${selected&&selected.id===r.id?'active':''}" onclick="openCase('${esc(r.id)}')"><b>${esc(r.id)}</b><br>${esc(r.titolo)}<br><small class="muted">${esc(r.quartiere)} • ${esc(r.categoria)} • ${esc(r.stato)}</small></div>`).join('')||'<p class="muted">Nessuna pratica.</p>'}function renderGeneralMap(){if(!gMap){gMap=L.map('generalMap').setView([41.82,12.45],12);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap'}).addTo(gMap)};gMarkers.forEach(m=>m.remove());gMarkers=[];filtered.filter(valid).forEach(r=>{const m=L.marker([Number(r.latitudine),Number(r.longitudine)]).addTo(gMap).bindPopup(`<b>${esc(r.titolo)}</b><br>${esc(r.quartiere)}<br><button onclick="openCase('${esc(r.id)}')">Apri</button>`);gMarkers.push(m)});setTimeout(()=>gMap.invalidateSize(),200)}async function openCase(id){selected=reports.find(r=>r.id===id);if(!selected)return;empty.classList.add('hidden');document.getElementById('case').classList.remove('hidden');caseStatus.textContent=selected.stato||'';caseTitle.textContent=selected.titolo||'Pratica';caseSub.textContent=[selected.quartiere,selected.categoria,selected.data].filter(Boolean).join(' • ');citNome.textContent=selected.nome||'-';citTel.textContent=selected.telefono||'-';citEmail.textContent=selected.email||'-';prio.textContent=selected.priorita||'-';addr.textContent=selected.indirizzo||'-';desc.textContent=selected.descrizione||'-';coords.textContent=valid(selected)?selected.latitudine+', '+selected.longitudine:'Coordinate non valide';refCurrent.textContent=selected.referenteNome||'Non assegnato';photo.innerHTML=selected.fotoUrl?`<a target="_blank" href="${esc(selected.fotoUrl)}">Apri foto allegata</a>`:'Nessuna foto.';renderCaseMap();renderWorkflow();renderRefs();renderUffici();renderTimeline();renderList()}function renderCaseMap(){
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}function valid(r){const a=Number(r.latitudine),b=Number(r.longitudine);return Number.isFinite(a)&&Number.isFinite(b)&&a>40&&a<43&&b>10&&b<15}function uniq(k){return [...new Set(reports.map(r=>r[k]).filter(Boolean))].sort()}function fill(id,vals,label){document.getElementById(id).innerHTML='<option value="">'+label+'</option>'+vals.map(v=>`<option>${esc(v)}</option>`).join('')}function apply(){const query=q.value.toLowerCase();filtered=reports.filter(r=>{const t=[r.id,r.titolo,r.quartiere,r.categoria,r.stato,r.nome].join(' ').toLowerCase();return(!query||t.includes(query))&&(!fQuartiere.value||r.quartiere===fQuartiere.value)&&(!fCategoria.value||r.categoria===fCategoria.value)&&(!fStato.value||r.stato===fStato.value)&&(!fPriorita.value||r.priorita===fPriorita.value)});renderList();renderGeneralMap()}function renderList(){count.textContent=filtered.length;list.innerHTML=filtered.map(r=>`<div class="item ${selected&&selected.id===r.id?'active':''}" onclick="openCase('${esc(r.id)}')"><b>${esc(r.id)}</b><br>${esc(r.titolo)}<br><small class="muted">${esc(r.quartiere)} • ${esc(r.categoria)} • ${esc(r.stato)}</small></div>`).join('')||'<p class="muted">Nessuna pratica.</p>'}function renderGeneralMap(){if(!gMap){gMap=L.map('generalMap').setView([41.82,12.45],12);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap'}).addTo(gMap)};gMarkers.forEach(m=>m.remove());gMarkers=[];filtered.filter(valid).forEach(r=>{const m=L.marker([Number(r.latitudine),Number(r.longitudine)]).addTo(gMap).bindPopup(`<b>${esc(r.titolo)}</b><br>${esc(r.quartiere)}<br><button onclick="openCase('${esc(r.id)}')">Apri</button>`);gMarkers.push(m)});setTimeout(()=>gMap.invalidateSize(),200)}async function openCase(id){selected=reports.find(r=>r.id===id);if(!selected)return;empty.classList.add('hidden');document.getElementById('case').classList.remove('hidden');caseStatus.textContent=selected.stato||'';caseTitle.textContent=selected.titolo||'Pratica';caseSub.textContent=[selected.quartiere,selected.categoria,selected.data].filter(Boolean).join(' • ');citNome.textContent=selected.nome||'-';citTel.textContent=selected.telefono||'-';citEmail.textContent=selected.email||'-';prio.textContent=selected.priorita||'-';addr.textContent=selected.indirizzo||'-';desc.textContent=selected.descrizione||'-';coords.textContent=valid(selected)?selected.latitudine+', '+selected.longitudine:'Coordinate non valide';refCurrent.textContent=selected.referenteNome||'Non assegnato';photo.innerHTML=selected.fotoUrl?`<a target="_blank" href="${esc(selected.fotoUrl)}">Apri foto allegata</a>`:'Nessuna foto.';renderCaseMap();renderWorkflow();renderRefs();renderUffici();renderTimeline();renderList()}function renderCaseMap(){
   if(cMap){cMap.remove();cMap=null;}
   caseMapWrap.innerHTML=valid(selected)?'<div id="caseMap"></div>':'<p class="muted">Coordinate mancanti o non valide.</p>';
   if(!valid(selected))return;
@@ -339,30 +340,62 @@ closeModalX.onclick=closeCloseModal;
 closeCancel.onclick=closeCloseModal;
 closeConfirm.onclick=confirmClosePractice;
 
-function activateTab(id){document.querySelectorAll('.tab,.tabpane').forEach(e=>e.classList.remove('active'));document.querySelector(`[data-tab="${id}"]`)?.classList.add('active');document.getElementById(id)?.classList.add('active');if(id==='mappaTab'&&cMap)setTimeout(()=>cMap.invalidateSize(),150)}document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>activateTab(b.dataset.tab));async function boot(){
+function activateTab(id){document.querySelectorAll('.tab,.tabpane').forEach(e=>e.classList.remove('active'));document.querySelector(`[data-tab="${id}"]`)?.classList.add('active');document.getElementById(id)?.classList.add('active');if(id==='mappaTab'&&cMap)setTimeout(()=>cMap.invalidateSize(),150)}document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>activateTab(b.dataset.tab));
+
+let practicesLoading=false;
+
+async function boot(preserveSelection=false){
+  if(practicesLoading)return;
+  practicesLoading=true;
+
+  const previousId=preserveSelection&&selected?selected.id:'';
+  refreshPractices.disabled=true;
+  refreshPractices.textContent='↻ Aggiornamento...';
+
   try{
     const [r,ref,u]=await Promise.all([
       get('listReports'),
       get('listReferenti'),
       get('listUffici').catch(()=>({ok:false,uffici:[]}))
     ]);
+
     if(!r.ok)throw new Error(r.error||'Errore caricamento pratiche');
-    reports=r.reports||[];
-    referenti=ref.referenti||[];
-    uffici=u.uffici||[];
+    if(!ref.ok)throw new Error(ref.error||'Errore caricamento referenti');
+
+    reports=Array.isArray(r.reports)?r.reports:[];
+    referenti=Array.isArray(ref.referenti)?ref.referenti:[];
+    uffici=Array.isArray(u.uffici)?u.uffici:[];
+
     fill('fQuartiere',uniq('quartiere'),'Quartiere');
     fill('fCategoria',uniq('categoria'),'Categoria');
     fill('fStato',uniq('stato'),'Stato');
     fill('fPriorita',uniq('priorita'),'Priorità');
     apply();
-    if(reports[0])openCase(reports[0].id);
+
+    const nextId=previousId&&reports.some(item=>item.id===previousId)
+      ? previousId
+      : (reports[0]?reports[0].id:'');
+
+    if(nextId){
+      await openCase(nextId);
+    }else{
+      selected=null;
+      empty.classList.remove('hidden');
+      document.getElementById('case').classList.add('hidden');
+    }
   }catch(err){
     console.error(err);
     document.getElementById('list').innerHTML='<p class="muted">Errore caricamento: '+esc(err.message)+'</p>';
+  }finally{
+    practicesLoading=false;
+    refreshPractices.disabled=false;
+    refreshPractices.textContent='↻ Aggiorna';
   }
 }
+
+refreshPractices.onclick=()=>boot(true);
 [q,fQuartiere,fCategoria,fStato,fPriorita].forEach(el=>{el.oninput=apply;el.onchange=apply});
-boot();
+boot(false);
 </script>
 
 <script>
