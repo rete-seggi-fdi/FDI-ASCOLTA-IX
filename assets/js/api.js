@@ -138,5 +138,8 @@ const API = Object.freeze({
   },
   changeOwnPassword(currentPassword, newPassword) {
     return this.call("changeOwnPassword", { currentPassword, newPassword });
+  },
+  addReportNote(reportId, note, visibileCittadino = false) {
+    return this.call("addReportNote", { reportId, note, visibileCittadino });
   }
 });

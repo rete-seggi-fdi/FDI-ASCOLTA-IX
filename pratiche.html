@@ -152,6 +152,16 @@ body.detail-mode #case{
 .footer{text-align:center;color:#fff;background:var(--blue);padding:13px;margin-top:18px}
 @media(max-width:1250px){.workspace{grid-template-columns:300px minmax(0,1fr)}.action-panel{grid-column:1/-1;position:static;display:grid;grid-template-columns:1fr 1fr}.action-section{border-right:1px solid var(--line)}.toolbar{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:850px){.page{padding:14px}.toolbar,.kpi-strip,.workspace,.info,.action-panel{grid-template-columns:1fr}.list{max-height:420px}.topbar{align-items:flex-start;flex-direction:column}.action-section{border-right:0}.close-modal-actions{flex-direction:column}.close-modal-actions .btn{width:100%}}
+
+.councillor-tools{display:none}
+body.councillor-mode .councillor-tools{display:block}
+body.councillor-mode .admin-tools{display:none!important}
+.quick-actions{display:grid;gap:10px}
+.quick-actions .btn{width:100%;text-align:left}
+.note-box textarea{width:100%;min-height:120px;box-sizing:border-box}
+.note-options{display:flex;gap:8px;align-items:flex-start;margin:10px 0 14px;font-size:.82rem;color:var(--muted)}
+.role-banner{display:none;margin:0 0 16px;padding:14px 16px;border-radius:14px;background:#eef5ff;border:1px solid #cfe0f5}
+body.councillor-mode .role-banner{display:block}
 </style>
 <link rel="stylesheet" href="assets/css/crm-shell.css?v=210">
 </head>
@@ -178,6 +188,11 @@ body.detail-mode #case{
     <select id="fStato"><option value="">Tutti gli stati</option></select>
     <select id="fPriorita"><option value="">Tutte le priorità</option></select>
   </section>
+
+  <div class="role-banner">
+    <strong>Area operativa Consigliere</strong><br>
+    Puoi lavorare esclusivamente sulle pratiche assegnate a te.
+  </div>
 
   <section class="kpi-strip">
     <div class="mini-kpi"><span>📥</span><div><b id="miniNew">0</b><small>Nuove</small></div></div>
@@ -261,7 +276,7 @@ body.detail-mode #case{
     </section>
 
     <aside class="panel action-panel">
-      <div class="action-section">
+      <div class="action-section admin-tools">
         <h3>👤 Assegna consigliere</h3>
         <select id="refSelect"></select>
         <textarea id="refMsg" placeholder="Messaggio opzionale"></textarea>
@@ -271,6 +286,25 @@ body.detail-mode #case{
       <div class="action-section">
         <h3>⚙ Workflow pratica</h3>
         <div id="workflow"></div>
+      </div>
+
+      <div class="action-section councillor-tools note-box">
+        <h3>📝 Aggiungi nota</h3>
+        <textarea id="councillorNote" placeholder="Scrivi un aggiornamento operativo..."></textarea>
+        <label class="note-options">
+          <input type="checkbox" id="noteVisibleCitizen">
+          <span>Rendi l’aggiornamento visibile anche al cittadino</span>
+        </label>
+        <button class="btn" id="saveCouncillorNote" type="button">Salva nota</button>
+      </div>
+
+      <div class="action-section councillor-tools">
+        <h3>⚡ Azioni rapide</h3>
+        <div class="quick-actions">
+          <button class="btn secondary" id="takeChargeBtn" type="button">▶ Segna in lavorazione</button>
+          <button class="btn secondary" id="waitingOfficeBtn" type="button">🏛 In attesa ufficio</button>
+          <button class="btn" id="resolveCouncillorBtn" type="button">✅ Chiudi come risolta</button>
+        </div>
       </div>
     </aside>
   </section>
@@ -309,6 +343,10 @@ body.detail-mode #case{
 <script src="assets/js/config.js?v=210"></script><script src="assets/js/auth.js?v=210"></script><script src="assets/js/api.js?v=210"></script><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 Auth.requireAuth();
+if(!Auth.isAdmin()){
+  const title=document.querySelector('.panel-head h2');
+  if(title&&title.textContent.includes('Elenco pratiche'))title.textContent='📋 Le mie pratiche';
+}
 const WORKFLOW=[['1','Segnalazione ricevuta','La segnalazione è stata registrata dal sistema FDI Ascolta IX.'],['2','Presa in carico dal Gruppo Consiliare','La pratica è stata presa in carico dal Gruppo Consiliare.'],['3','Assegnata al consigliere','La pratica è stata assegnata al consigliere competente.'],['4','Inviata dal consigliere all’ufficio municipale competente','La pratica è stata trasmessa all’ufficio municipale competente.'],['5','In attesa di risposta dall’ufficio municipale competente','La pratica è in attesa di riscontro da parte dell’ufficio competente.'],['6','Risposta ricevuta','È stata ricevuta una risposta relativa alla pratica.'],['7','In lavorazione','La pratica risulta in lavorazione.'],['8','Risolta','La criticità segnalata risulta risolta.'],['9','Archiviata','La pratica è stata archiviata.']];
 let reports=[],filtered=[],referenti=[],uffici=[],selected=null,gMap=null,cMap=null,gMarkers=[];
 async function get(action,params={}){
@@ -672,11 +710,73 @@ closeConfirm.onclick=confirmClosePractice;
 function activateTab(id){document.querySelectorAll('.tab,.tabpane').forEach(e=>e.classList.remove('active'));document.querySelector(`[data-tab="${id}"]`)?.classList.add('active');document.getElementById(id)?.classList.add('active');if(id==='mappaTab'&&cMap)setTimeout(()=>cMap.invalidateSize(),150)}document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>activateTab(b.dataset.tab));
 
 if(!Auth.isAdmin()){
-  document.querySelectorAll('[data-admin-only],#sendRef,#sendUff,#refSelect,#uffSelect').forEach(el=>{
-    const container=el.closest('.card,.panel,.box,.form-section')||el;
+  document.body.classList.add('councillor-mode');
+  document.querySelectorAll('[data-admin-only],#sendRef,#refSelect,#refMsg').forEach(el=>{
+    const container=el.closest('.admin-tools')||el;
     container.style.display='none';
   });
 }
+
+
+const councillorNote=document.getElementById('councillorNote');
+const noteVisibleCitizen=document.getElementById('noteVisibleCitizen');
+const saveCouncillorNote=document.getElementById('saveCouncillorNote');
+const takeChargeBtn=document.getElementById('takeChargeBtn');
+const waitingOfficeBtn=document.getElementById('waitingOfficeBtn');
+const resolveCouncillorBtn=document.getElementById('resolveCouncillorBtn');
+
+async function saveOperationalNote(){
+  if(!selected)return alert('Seleziona una pratica');
+  const note=(councillorNote.value||'').trim();
+  if(note.length<3)return alert('Inserisci una nota di almeno 3 caratteri');
+  saveCouncillorNote.disabled=true;
+  saveCouncillorNote.textContent='Salvataggio...';
+  try{
+    const result=await API.addReportNote(
+      selected.id,
+      note,
+      noteVisibleCitizen.checked
+    );
+    if(!result.ok)throw new Error(result.error||'Nota non salvata');
+    councillorNote.value='';
+    noteVisibleCitizen.checked=false;
+    await renderTimeline();
+    alert('Nota salvata correttamente.');
+  }catch(error){
+    alert(error.message||'Errore durante il salvataggio');
+  }finally{
+    saveCouncillorNote.disabled=false;
+    saveCouncillorNote.textContent='Salva nota';
+  }
+}
+
+async function setCouncillorStatus(status, description){
+  if(!selected)return alert('Seleziona una pratica');
+  const result=await post({
+    action:'updateReportStatus',
+    reportId:selected.id,
+    stato:status,
+    descrizione:description,
+    visibileCittadino:'Sì'
+  });
+  if(!result.ok)return alert(result.error||'Aggiornamento non riuscito');
+  selected.stato=status;
+  const item=reports.find(report=>report.id===selected.id);
+  if(item)item.stato=status;
+  apply();
+  await openCase(selected.id);
+}
+
+if(saveCouncillorNote)saveCouncillorNote.onclick=saveOperationalNote;
+if(takeChargeBtn)takeChargeBtn.onclick=()=>setCouncillorStatus(
+  'In lavorazione',
+  'La pratica è stata presa in lavorazione dal consigliere assegnato.'
+);
+if(waitingOfficeBtn)waitingOfficeBtn.onclick=()=>setCouncillorStatus(
+  'In attesa di risposta dall’ufficio municipale competente',
+  'La pratica è in attesa di riscontro da parte dell’ufficio municipale competente.'
+);
+if(resolveCouncillorBtn)resolveCouncillorBtn.onclick=openCloseModal;
 
 let practicesLoading=false;
 
@@ -695,9 +795,7 @@ async function boot(preserveSelection=false){
       isAdminUser
         ? get('listReferenti')
         : Promise.resolve({ok:true,referenti:[]}),
-      isAdminUser
-        ? get('listUffici').catch(()=>({ok:false,uffici:[]}))
-        : Promise.resolve({ok:true,uffici:[]})
+      get('listUffici').catch(()=>({ok:false,uffici:[]}))
     ]);
 
     if(!r.ok)throw new Error(r.error||'Errore caricamento pratiche');
