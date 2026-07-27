@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Sala Operativa PRO v1.1 RC1 — FDI Ascolta IX CRM</title>
+<title>Sala Operativa PRO v1.2 RC1 — FDI Ascolta IX CRM</title>
 <link rel="stylesheet" href="assets/css/style.css">
 <link rel="stylesheet" href="assets/css/theme-fdi.css?v=140">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -31,7 +31,7 @@
 .ops-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;padding:13px 15px;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
 .ops-left,.ops-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .live-pill{display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:0 12px;border-radius:999px;background:#eaf8ee;color:#11763a;font-weight:950}
-.live-dot{width:9px;height:9px;border-radius:50%;background:#20a657;box-shadow:0 0 0 5px rgba(32,166,87,.12)}
+.live-dot{width:9px;height:9px;border-radius:50%;background:#20a657;box-shadow:0 0 0 5px rgba(32,166,87,.12)}.live-pill.error{background:#fff0f0;color:#a82323}.live-pill.error .live-dot{background:#c62828;box-shadow:0 0 0 5px rgba(198,40,40,.12)}
 .tool-btn{min-height:40px;padding:0 13px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--blue);font-weight:900;cursor:pointer}
 .tool-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
 .refresh-label{color:var(--muted);font-size:.82rem}
@@ -55,7 +55,7 @@
 <body>
 <header class="topbar">
 <div class="brand"><strong>FDI ASCOLTA IX CRM</strong><small>Sala Operativa · Municipio IX Roma</small></div>
-<div class="top-actions"><span class="version-pill">Versione 1.1 RC1</span><a class="nav-btn" href="dashboard.html">▦ Dashboard</a><a class="nav-btn" href="pratiche.html">▣ Pratiche</a><a class="nav-btn" href="uffici.html">🏛 Uffici</a></div>
+<div class="top-actions"><span class="version-pill">Versione 1.2 RC1</span><a class="nav-btn" href="dashboard.html">▦ Dashboard</a><a class="nav-btn" href="pratiche.html">▣ Pratiche</a><a class="nav-btn" href="uffici.html">🏛 Uffici</a></div>
 </header>
 
 <main class="page">
@@ -63,7 +63,7 @@
 
 <section class="ops-toolbar">
   <div class="ops-left">
-    <span class="live-pill"><span class="live-dot"></span> Sistema operativo</span>
+    <span class="live-pill" id="systemStatus"><span class="live-dot"></span><span id="systemStatusText">Connessione in corso</span></span>
     <span class="refresh-label" id="lastRefresh">Ultimo aggiornamento: —</span>
   </div>
   <div class="ops-right">
@@ -119,21 +119,21 @@
 <div class="map-wrap"><div id="map"></div></div>
 <section class="panel list-panel">
 <div class="panel-head"><h2>Pratiche visibili</h2><span class="badge" id="tableCount">0</span></div>
-<div class="table-wrap"><table><thead><tr><th>ID</th><th>Titolo</th><th>Quartiere</th><th>Categoria</th><th>Stato</th><th>Priorità</th></tr></thead><tbody id="tableBody"><tr><td colspan="6" class="loading">Caricamento pratiche...</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>ID</th><th>Titolo</th><th>Quartiere</th><th>Categoria</th><th>Stato</th><th>Priorità</th><th>Azioni</th></tr></thead><tbody id="tableBody"><tr><td colspan="7" class="loading">Caricamento pratiche...</td></tr></tbody></table></div>
 </section>
 </section>
 </section>
 </main>
 
-<footer class="footer">FDI Ascolta IX CRM — Sala Operativa PRO v1.1 RC1</footer><div class="toast" id="toast"></div>
+<footer class="footer">FDI Ascolta IX CRM — Sala Operativa PRO v1.2 RC1</footer><div class="toast" id="toast"></div>
 
-<script src="assets/js/config.js?v=11"></script>
+<script src="assets/js/config.js?v=17"></script>
+<script src="assets/js/auth.js?v=17"></script>
+<script src="assets/js/api.js?v=17"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <script>
-const FALLBACK_API_URL="https://script.google.com/macros/s/AKfycbyZuNSOT2SCW6YNp6gZ-bTO6gfm9wGI3-YAjvSmo5oelcqrUmARNzmd49hbjSn4ISh4Yg/exec";
-
 let reports=[];
 let filtered=[];
 let map;
@@ -145,21 +145,6 @@ let clusterEnabled=true;
 let heatEnabled=false;
 let firstLoad=true;
 const markerById=new Map();
-
-function apiUrl(){
-  return typeof CONFIG!=="undefined"&&CONFIG.API_URL&&CONFIG.API_URL.includes("/macros/s/")
-    ? CONFIG.API_URL
-    : FALLBACK_API_URL;
-}
-
-async function apiGet(action){
-  const url=new URL(apiUrl());
-  url.searchParams.set("action",action);
-  url.searchParams.set("_",Date.now());
-  const r=await fetch(url,{cache:"no-store",redirect:"follow"});
-  if(!r.ok) throw new Error("Errore API HTTP "+r.status);
-  return r.json();
-}
 
 function esc(v){
   return String(v??"").replace(/[&<>"']/g,c=>({
@@ -217,20 +202,28 @@ function markerIcon(r){
 function validCoords(r){
   const lat=Number(r.latitudine);
   const lng=Number(r.longitudine);
-  return Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=40&&lat<=43&&lng>=10&&lng<=15;
+  const bounds=CONFIG.COORD_BOUNDS||{
+    minLat:41.65,maxLat:42.05,minLng:12.25,maxLng:12.75
+  };
+
+  return Number.isFinite(lat)&&
+    Number.isFinite(lng)&&
+    lat>=bounds.minLat&&lat<=bounds.maxLat&&
+    lng>=bounds.minLng&&lng<=bounds.maxLng;
 }
 
 function popupHtml(r){
+  const detailUrl="pratiche.html?open="+encodeURIComponent(r.id);
+
   return `<div class="popup">
     <h3>${esc(r.titolo||"Pratica")}</h3>
     <p><b>${esc(r.id)}</b></p>
     <p>${esc(r.indirizzo||r.quartiere||"Posizione non indicata")}</p>
     <p><b>Stato:</b> ${esc(r.stato||"—")}</p>
     <p><b>Priorità:</b> ${esc(r.priorita||"Media")}</p>
-    <p><b>Consigliere:</b> ${esc(r.referenteNome||"Non assegnato")}</p>
+    <p><b>Referente:</b> ${esc(r.referenteNome||"Non assegnato")}</p>
     <div class="popup-actions">
-      <a class="open-link" href="pratiche.html?open=${encodeURIComponent(r.id)}">Apri pratica</a>
-      <a class="track-link" href="tracking.html?id=${encodeURIComponent(r.id)}">Tracking</a>
+      <a class="open-link" href="${detailUrl}">Apri dettaglio</a>
     </div>
   </div>`;
 }
@@ -290,9 +283,14 @@ function renderMap({fit=true}={}){
     clusterLayer.addLayer(marker);
     bounds.push([lat,lng]);
 
-    const weight=statusGroup(r.stato)==="open"?1:
-      statusGroup(r.stato)==="work"?.8:
-      statusGroup(r.stato)==="done"?.45:.25;
+    const group=statusGroup(r.stato);
+    const weight=group==="open"
+      ? 1
+      : group==="work"
+        ? 0.8
+        : group==="done"
+          ? 0.45
+          : 0.25;
 
     heatPoints.push([lat,lng,weight]);
   });
@@ -311,15 +309,19 @@ function renderMap({fit=true}={}){
 
 function renderTable(){
   tableBody.innerHTML=filtered.map(r=>`
-    <tr data-id="${esc(r.id)}" class="${selectedId===r.id?"selected":""}" onclick="focusReport('${esc(r.id)}')">
+    <tr data-id="${esc(r.id)}" class="${selectedId===r.id?"selected":""}">
       <td>${esc(r.id)}</td>
       <td>${esc(r.titolo||"—")}</td>
       <td>${esc(r.quartiere||"—")}</td>
       <td>${esc(r.categoria||"—")}</td>
       <td><span class="status ${statusGroup(r.stato)}">${esc(r.stato||"—")}</span></td>
       <td>${esc(r.priorita||"Media")}</td>
+      <td>
+        <a class="open-link" data-open-report="${esc(r.id)}"
+           href="pratiche.html?open=${encodeURIComponent(r.id)}">Dettaglio</a>
+      </td>
     </tr>
-  `).join("")||'<tr><td colspan="6">Nessuna pratica trovata.</td></tr>';
+  `).join("")||'<tr><td colspan="7">Nessuna pratica trovata.</td></tr>';
 
   tableCount.textContent=filtered.length;
   visibleCount.textContent=filtered.length;
@@ -381,7 +383,10 @@ function applyFilters({fit=true}={}){
       (!fReferente.value||r.referenteNome===fReferente.value);
   });
 
-  selectedId=null;
+  if(selectedId&&!filtered.some(r=>String(r.id)===String(selectedId))){
+    selectedId=null;
+  }
+
   renderMap({fit});
   renderTable();
 }
@@ -406,6 +411,11 @@ function focusReport(id){
   }
 
   renderTable();
+}
+
+function setSystemStatus(ok,message){
+  systemStatus.classList.toggle("error",!ok);
+  systemStatusText.textContent=message;
 }
 
 function showToast(message){
@@ -434,14 +444,15 @@ async function loadReports(fit=true){
   refreshBtn.textContent="Aggiornamento...";
 
   try{
-    const result=await apiGet("listReports");
+    const result=await API.listReports();
     if(!result.ok) throw new Error(result.error||"Errore caricamento pratiche");
 
     const previousIds=new Set(reports.map(r=>String(r.id)));
-    const nextReports=result.reports||[];
+    const nextReports=Array.isArray(result.reports)?result.reports:[];
     const newItems=firstLoad?[]:nextReports.filter(r=>!previousIds.has(String(r.id)));
 
     reports=nextReports;
+    setSystemStatus(true,"Sistema operativo");
 
     fill("fStato",uniq("stato"));
     fill("fCategoria",uniq("categoria"));
@@ -461,7 +472,10 @@ async function loadReports(fit=true){
 
     firstLoad=false;
   }catch(e){
-    tableBody.innerHTML=`<tr><td colspan="6"><div class="error">${esc(e.message)}</div></td></tr>`;
+    console.error(e);
+    setSystemStatus(false,"Connessione non disponibile");
+    lastRefresh.textContent="Ultimo aggiornamento: errore";
+    tableBody.innerHTML=`<tr><td colspan="7"><div class="error">${esc(e.message)}</div></td></tr>`;
     showToast("Aggiornamento non riuscito.");
   }finally{
     refreshBtn.disabled=false;
@@ -494,10 +508,38 @@ heatBtn.addEventListener("click",toggleHeat);
 refreshBtn.addEventListener("click",()=>loadReports(false));
 refreshInterval.addEventListener("change",configureAutoRefresh);
 
-initMap();
-loadReports(true);
-configureAutoRefresh();
+tableBody.addEventListener("click",event=>{
+  if(event.target.closest("[data-open-report]")){
+    return;
+  }
+
+  const row=event.target.closest("tr[data-id]");
+  if(row){
+    focusReport(row.dataset.id);
+  }
+});
+
+async function startSalaOperativa(){
+  if(!Auth.requireAuth()){
+    return;
+  }
+
+  if(typeof L==="undefined"||
+     typeof L.markerClusterGroup!=="function"||
+     typeof L.heatLayer!=="function"){
+    setSystemStatus(false,"Librerie mappa non disponibili");
+    tableBody.innerHTML=
+      '<tr><td colspan="7"><div class="error">Impossibile caricare le librerie della mappa.</div></td></tr>';
+    return;
+  }
+
+  initMap();
+  await loadReports(true);
+  configureAutoRefresh();
+}
+
+startSalaOperativa();
 </script>
-<script src="assets/js/crm-shell.js?v=200"></script>
+<script src="assets/js/crm-shell.js?v=17"></script>
 </body>
 </html>
