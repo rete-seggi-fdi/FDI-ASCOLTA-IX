@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Sala Operativa PRO v1.2 RC1 — FDI Ascolta IX CRM</title>
+<title>Sala Operativa PRO v1.2 RC2 — FDI Ascolta IX CRM</title>
 <link rel="stylesheet" href="assets/css/style.css">
 <link rel="stylesheet" href="assets/css/theme-fdi.css?v=140">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -23,7 +23,7 @@
 .map-wrap{height:640px;border-radius:18px;overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow);background:#eef4fb}#map{height:100%}
 .list-panel{margin-top:16px}.table-wrap{overflow:auto;max-height:380px}table{width:100%;border-collapse:collapse;background:#fff}th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}th{background:#fbfcfe;color:var(--blue);font-size:.72rem;text-transform:uppercase}tbody tr{cursor:pointer}tbody tr:hover{background:#f8fbff}tbody tr.selected{background:#eef5ff}
 .status{display:inline-flex;align-items:center;min-height:26px;padding:4px 9px;border-radius:999px;font-size:.74rem;font-weight:950}.status.open{background:#ffe9e9;color:var(--red)}.status.work{background:#fff1e6;color:var(--orange)}.status.done{background:#eaf8ee;color:var(--green)}.status.arch{background:#edf0f4;color:var(--gray)}
-.popup h3{margin:0 0 6px;color:var(--blue);font-size:1rem}.popup p{margin:4px 0;color:var(--muted);font-size:.84rem}.popup-actions{display:flex;gap:8px;margin-top:10px}.popup a{display:inline-flex;align-items:center;min-height:34px;padding:0 10px;border-radius:9px;text-decoration:none;font-weight:900;font-size:.78rem}.open-link{background:var(--blue);color:#fff}.track-link{border:1px solid var(--blue);color:var(--blue);background:#fff}
+.popup h3{margin:0 0 6px;color:var(--blue);font-size:1rem}.popup p{margin:4px 0;color:var(--muted);font-size:.84rem}.popup-actions{display:flex;gap:8px;margin-top:10px}.popup a,.popup button{display:inline-flex;align-items:center;min-height:36px;padding:0 12px;border-radius:9px;text-decoration:none;font-weight:900;font-size:.78rem;cursor:pointer;border:0}.open-link{background:var(--blue);color:#fff}.track-link{border:1px solid var(--blue);color:var(--blue);background:#fff}
 .custom-marker{width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 4px 12px rgba(0,0,0,.22);display:grid;place-items:center}.custom-marker span{transform:rotate(45deg);font-size:15px}
 .loading,.error{padding:20px;text-align:center;color:var(--muted)}.error{color:#a82323;background:#fff0f0}.footer{margin-top:18px;background:var(--blue);color:#fff;padding:14px;text-align:center}
 @media(max-width:1050px){.workspace{grid-template-columns:1fr}.map-wrap{height:540px}.kpis{grid-template-columns:repeat(2,1fr)}}@media(max-width:700px){.topbar{align-items:flex-start;flex-direction:column;padding:15px}.page{padding:14px}.kpis{grid-template-columns:1fr}.filter-actions{grid-template-columns:1fr}.map-wrap{height:460px}}
@@ -55,7 +55,7 @@
 <body>
 <header class="topbar">
 <div class="brand"><strong>FDI ASCOLTA IX CRM</strong><small>Sala Operativa · Municipio IX Roma</small></div>
-<div class="top-actions"><span class="version-pill">Versione 1.2 RC1</span><a class="nav-btn" href="dashboard.html">▦ Dashboard</a><a class="nav-btn" href="pratiche.html">▣ Pratiche</a><a class="nav-btn" href="uffici.html">🏛 Uffici</a></div>
+<div class="top-actions"><span class="version-pill">Versione 1.2 RC2</span><a class="nav-btn" href="dashboard.html">▦ Dashboard</a><a class="nav-btn" href="pratiche.html">▣ Pratiche</a><a class="nav-btn" href="uffici.html">🏛 Uffici</a></div>
 </header>
 
 <main class="page">
@@ -125,11 +125,11 @@
 </section>
 </main>
 
-<footer class="footer">FDI Ascolta IX CRM — Sala Operativa PRO v1.2 RC1</footer><div class="toast" id="toast"></div>
+<footer class="footer">FDI Ascolta IX CRM — Sala Operativa PRO v1.2 RC2</footer><div class="toast" id="toast"></div>
 
-<script src="assets/js/config.js?v=17"></script>
-<script src="assets/js/auth.js?v=17"></script>
-<script src="assets/js/api.js?v=17"></script>
+<script src="assets/js/config.js?v=18"></script>
+<script src="assets/js/auth.js?v=18"></script>
+<script src="assets/js/api.js?v=18"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
@@ -212,20 +212,82 @@ function validCoords(r){
     lng>=bounds.minLng&&lng<=bounds.maxLng;
 }
 
-function popupHtml(r){
-  const detailUrl="pratiche.html?open="+encodeURIComponent(r.id);
+function reportDetailUrl(reportId){
+  const url=new URL("pratiche.html",window.location.href);
+  url.searchParams.set("open",String(reportId||""));
+  return url.href;
+}
 
-  return `<div class="popup">
-    <h3>${esc(r.titolo||"Pratica")}</h3>
-    <p><b>${esc(r.id)}</b></p>
-    <p>${esc(r.indirizzo||r.quartiere||"Posizione non indicata")}</p>
-    <p><b>Stato:</b> ${esc(r.stato||"—")}</p>
-    <p><b>Priorità:</b> ${esc(r.priorita||"Media")}</p>
-    <p><b>Referente:</b> ${esc(r.referenteNome||"Non assegnato")}</p>
-    <div class="popup-actions">
-      <a class="open-link" href="${detailUrl}">Apri dettaglio</a>
-    </div>
-  </div>`;
+function navigateToReport(reportId){
+  const id=String(reportId||"").trim();
+
+  if(!id){
+    showToast("Codice pratica mancante.");
+    return;
+  }
+
+  window.location.assign(reportDetailUrl(id));
+}
+
+function buildPopupNode(report){
+  const wrapper=document.createElement("div");
+  wrapper.className="popup";
+
+  const title=document.createElement("h3");
+  title.textContent=report.titolo||"Pratica";
+  wrapper.appendChild(title);
+
+  const idLine=document.createElement("p");
+  const idStrong=document.createElement("b");
+  idStrong.textContent=report.id||"";
+  idLine.appendChild(idStrong);
+  wrapper.appendChild(idLine);
+
+  const address=document.createElement("p");
+  address.textContent=report.indirizzo||report.quartiere||"Posizione non indicata";
+  wrapper.appendChild(address);
+
+  [
+    ["Stato",report.stato||"—"],
+    ["Priorità",report.priorita||"Media"],
+    ["Referente",report.referenteNome||"Non assegnato"]
+  ].forEach(([label,value])=>{
+    const line=document.createElement("p");
+    const strong=document.createElement("b");
+    strong.textContent=label+": ";
+    line.appendChild(strong);
+    line.appendChild(document.createTextNode(value));
+    wrapper.appendChild(line);
+  });
+
+  const actions=document.createElement("div");
+  actions.className="popup-actions";
+
+  const openButton=document.createElement("button");
+  openButton.type="button";
+  openButton.className="open-link";
+  openButton.textContent="Apri dettaglio pratica";
+  openButton.addEventListener("click",event=>{
+    event.preventDefault();
+    event.stopPropagation();
+
+    if(map){
+      map.closePopup();
+    }
+
+    navigateToReport(report.id);
+  });
+
+  actions.appendChild(openButton);
+  wrapper.appendChild(actions);
+
+  // Evita che Leaflet intercetti il click del pulsante.
+  if(typeof L!=="undefined"&&L.DomEvent){
+    L.DomEvent.disableClickPropagation(wrapper);
+    L.DomEvent.disableScrollPropagation(wrapper);
+  }
+
+  return wrapper;
 }
 
 function initMap(){
@@ -270,7 +332,7 @@ function renderMap({fit=true}={}){
   filtered.filter(validCoords).forEach(r=>{
     const lat=Number(r.latitudine);
     const lng=Number(r.longitudine);
-    const marker=L.marker([lat,lng],{icon:markerIcon(r)}).bindPopup(popupHtml(r));
+    const marker=L.marker([lat,lng],{icon:markerIcon(r)}).bindPopup(buildPopupNode(r));
 
     marker.on("click",()=>{
       selectedId=r.id;
@@ -317,8 +379,8 @@ function renderTable(){
       <td><span class="status ${statusGroup(r.stato)}">${esc(r.stato||"—")}</span></td>
       <td>${esc(r.priorita||"Media")}</td>
       <td>
-        <a class="open-link" data-open-report="${esc(r.id)}"
-           href="pratiche.html?open=${encodeURIComponent(r.id)}">Dettaglio</a>
+        <button class="open-link" type="button"
+                data-open-report="${esc(r.id)}">Apri dettaglio</button>
       </td>
     </tr>
   `).join("")||'<tr><td colspan="7">Nessuna pratica trovata.</td></tr>';
@@ -509,7 +571,12 @@ refreshBtn.addEventListener("click",()=>loadReports(false));
 refreshInterval.addEventListener("change",configureAutoRefresh);
 
 tableBody.addEventListener("click",event=>{
-  if(event.target.closest("[data-open-report]")){
+  const openButton=event.target.closest("[data-open-report]");
+
+  if(openButton){
+    event.preventDefault();
+    event.stopPropagation();
+    navigateToReport(openButton.dataset.openReport);
     return;
   }
 
@@ -540,6 +607,6 @@ async function startSalaOperativa(){
 
 startSalaOperativa();
 </script>
-<script src="assets/js/crm-shell.js?v=17"></script>
+<script src="assets/js/crm-shell.js?v=18"></script>
 </body>
 </html>
