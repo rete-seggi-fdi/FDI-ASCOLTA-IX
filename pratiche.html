@@ -671,6 +671,13 @@ closeConfirm.onclick=confirmClosePractice;
 
 function activateTab(id){document.querySelectorAll('.tab,.tabpane').forEach(e=>e.classList.remove('active'));document.querySelector(`[data-tab="${id}"]`)?.classList.add('active');document.getElementById(id)?.classList.add('active');if(id==='mappaTab'&&cMap)setTimeout(()=>cMap.invalidateSize(),150)}document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>activateTab(b.dataset.tab));
 
+if(!Auth.isAdmin()){
+  document.querySelectorAll('[data-admin-only],#sendRef,#sendUff,#refSelect,#uffSelect').forEach(el=>{
+    const container=el.closest('.card,.panel,.box,.form-section')||el;
+    container.style.display='none';
+  });
+}
+
 let practicesLoading=false;
 
 async function boot(preserveSelection=false){
@@ -682,14 +689,19 @@ async function boot(preserveSelection=false){
   refreshPractices.textContent='↻ Aggiornamento...';
 
   try{
+    const isAdminUser=Auth.isAdmin();
     const [r,ref,u]=await Promise.all([
       get('listReports'),
-      get('listReferenti'),
-      get('listUffici').catch(()=>({ok:false,uffici:[]}))
+      isAdminUser
+        ? get('listReferenti')
+        : Promise.resolve({ok:true,referenti:[]}),
+      isAdminUser
+        ? get('listUffici').catch(()=>({ok:false,uffici:[]}))
+        : Promise.resolve({ok:true,uffici:[]})
     ]);
 
     if(!r.ok)throw new Error(r.error||'Errore caricamento pratiche');
-    if(!ref.ok)throw new Error(ref.error||'Errore caricamento referenti');
+    if(isAdminUser&&!ref.ok)throw new Error(ref.error||'Errore caricamento referenti');
 
     reports=Array.isArray(r.reports)?r.reports:[];
     referenti=Array.isArray(ref.referenti)?ref.referenti:[];
