@@ -188,6 +188,7 @@ function openUser(user=null){
   document.getElementById("u_ruolo").value=user?.ruolo||"Consigliere";
   document.getElementById("u_attivo").checked=user?Boolean(user.attivo):true;
   userDialogTitle.textContent=user?"Modifica utente":"Nuovo utente";
+  userSaveBtn.textContent=user?"Salva modifiche":"Crea e invia invito";
   userMessage.textContent="";
   userDialog.showModal();
 }
@@ -207,7 +208,9 @@ async function saveUser(){
     const result=await API.saveUser(payload);
     if(!result.ok)throw new Error(result.error||"Salvataggio non riuscito");
     userDialog.close();
-    alert(result.invited ? "Utente creato. L’email con la password temporanea è stata inviata." : "Utente aggiornato.");
+    alert(result.warning || (result.invited
+      ? "Utente creato. L’email con la password temporanea è stata inviata."
+      : (result.created ? "Utente creato. Reimposta la password per inviare le credenziali." : "Utente aggiornato.")));
     await loadData();switchPanel("utenti");
   }catch(error){userMessage.textContent=error.message}
   finally{userSaveBtn.disabled=false}

@@ -1,99 +1,78 @@
-# FDI Ascolta IX CRM — versione 2.1.0
+# FDI Ascolta IX CRM — Release 3.0.0
 
-Applicazione statica + Google Apps Script per la raccolta e la gestione delle segnalazioni territoriali del Municipio IX.
+Piattaforma per la raccolta, l’assegnazione e la gestione delle segnalazioni
+territoriali del Municipio IX, compatibile con:
 
-## Struttura
+- Google Apps Script;
+- Google Sheets;
+- GitHub Pages.
 
-- `Code.gs`: unica fonte backend da incollare nel progetto Apps Script.
-- `assets/js/config.js`: unico punto in cui configurare URL della Web App, sessione, coordinate e chiave pubblica reCAPTCHA.
-- `segnala.html`: modulo pubblico con quartieri, ricerca indirizzo, mappa, upload e anti-spam.
-- `tracking.html`: tracking pubblico puntuale, senza scaricare l'archivio delle pratiche.
-- pagine CRM: Dashboard, Pratiche, Sala Operativa, Analytics, Notifiche, Uffici e Configurazione.
+## Regola di sicurezza principale
 
-I vecchi moduli JavaScript orfani e la copia `docs/Code.gs` sono stati rimossi.
+Un utente con ruolo `Consigliere` riceve dal backend esclusivamente le pratiche
+nelle quali coincidono **sia**:
 
-## Installazione backend
+- `Referente assegnato` con il nome del suo account;
+- `Email referente` con l’email del suo account.
 
-1. Fare un backup del Google Sheet e del progetto Apps Script.
-2. Eliminare o svuotare tutti i vecchi file `.gs` che duplicano funzioni del backend.
-3. Mantenere un solo file `Code.gs` e sostituirne integralmente il contenuto.
-4. Eseguire manualmente `setupSheet()`.
-5. Configurare nelle Proprietà script:
+La stessa regola viene verificata dal server prima di mostrare timeline e
+comunicazioni e prima di ogni modifica, nota, invio all’ufficio, risposta o
+chiusura. Nascondere elementi nel browser non viene considerato un controllo di
+sicurezza.
 
-```text
-INITIAL_USER_EMAIL
-INITIAL_USER_NAME
-INITIAL_USER_PASSWORD
-INITIAL_USER_ROLE = Amministratore
-```
+Le assegnazioni con nome ed email incoerenti non vengono mostrate a nessun
+consigliere. L’amministratore deve riassegnarle dalla pagina Pratiche.
 
-6. Eseguire `setupInitialUser()`.
-7. Eseguire `collegaEFaiDiagnostica()` e controllare il log.
-8. Eseguire una sola volta `privatizeExistingPhotos()`.
+## Installazione
 
-`setupSheet()` crea/ripara i fogli, inserisce i 34 quartieri ufficiali più “Altro”, disattiva i contatti dimostrativi `example.com` e crea modelli inattivi per gli uffici.
+Seguire [INSTALLAZIONE.md](INSTALLAZIONE.md). Non pubblicare il file `Code.gs`
+su GitHub se il repository diventa privato o contiene personalizzazioni
+riservate; il file deve essere copiato nell’editor Apps Script.
 
-## Anti-spam reCAPTCHA v3
+## Controllo assegnazioni
 
-Il sistema mantiene honeypot, controllo duplicati e throttling anche senza reCAPTCHA. Per attivare anche reCAPTCHA v3:
-
-1. Inserire la chiave pubblica in `assets/js/config.js`:
+Dall’editor Apps Script eseguire manualmente:
 
 ```javascript
-RECAPTCHA_SITE_KEY: "CHIAVE_PUBBLICA"
+auditReportAssignments
 ```
 
-2. Inserire nelle Proprietà script:
+La funzione non modifica dati. Restituisce le righe con coppia
+nome/email referente non valida, da riassegnare dalla console amministratore.
 
-```text
-RECAPTCHA_SECRET = chiave_segreta
-RECAPTCHA_MIN_SCORE = 0.5
-```
+## Ruoli
 
-La chiave segreta non deve mai essere salvata nel repository.
+### Amministratore
 
-## Distribuzione Apps Script
+Vede tutte le pratiche e gestisce assegnazioni, utenti, referenti, uffici,
+configurazione e coordinate.
 
-Creare o aggiornare una distribuzione **Applicazione web**:
+### Consigliere
 
-```text
-Esegui come: Me
-Chi può accedere: Chiunque
-```
+Vede solo le proprie pratiche. Può:
 
-L'accesso pubblico è necessario per segnalazione, statistiche e tracking. Tutte le azioni CRM richiedono un token di sessione verificato dal backend.
+- segnare la pratica in lavorazione con nota;
+- aggiungere note;
+- inoltrare a un ufficio;
+- registrare la risposta ricevuta;
+- risolvere la pratica.
 
-Verifiche rapide:
+Non può riassegnare pratiche, amministrare utenti o aprire dati di altri
+consiglieri.
 
-```text
-URL_WEB_APP?action=health
-URL_WEB_APP?action=listQuartieri
-```
+## Password e sessioni
 
-`health` deve restituire `spreadsheetConnected: true`; `listQuartieri` deve restituire un array non vuoto.
+- password con almeno 12 caratteri, maiuscola, minuscola, numero e simbolo;
+- password salvate come HMAC-SHA256 con salt e pepper;
+- password temporanea inviata via email;
+- cambio obbligatorio al primo accesso;
+- revoca delle sessioni dopo cambio password, reset, disattivazione o modifica
+  di ruolo/email;
+- sessione server-side con scadenza di 8 ore.
 
-## Pubblicazione frontend
+## Documentazione
 
-Pubblicare l'intera cartella sul ramo/cartella usati da GitHub Pages. L'URL Apps Script deve comparire soltanto in `assets/js/config.js`.
-
-Dopo la pubblicazione aprire il sito in finestra anonima o forzare il refresh. Tutti gli asset usano il parametro cache `v=210`.
-
-## Test di accettazione
-
-1. Invio segnalazione con ricerca indirizzo.
-2. Ricezione codice e link personale.
-3. Tracking con token e con codice + email.
-4. Login e logout.
-5. Apertura pratica da mappa e ricerca globale.
-6. Cambio stato, timeline, invio referente/ufficio e chiusura.
-7. Analytics e notifiche.
-8. Creazione/modifica/disattivazione di quartieri, referenti e uffici dalla Configurazione.
-
-## Fonti dati iniziali
-
-L'elenco iniziale dei 34 quartieri deriva dalla pagina istituzionale “I quartieri di Roma — Municipio IX” di Roma Capitale. I contatti di referenti e uffici non vengono inventati: devono essere inseriti e verificati dall'amministratore prima di impostare `Attivo = Sì`.
-
-
-## reCAPTCHA obbligatorio
-
-Dalla versione 2.1.0 reCAPTCHA v3 è fail-closed. Configurare le Proprietà script e seguire `CONFIGURA-RECAPTCHA.md` prima di rendere pubblico il modulo.
+- [INSTALLAZIONE.md](INSTALLAZIONE.md)
+- [CHANGELOG.md](CHANGELOG.md)
+- [AUDIT.md](AUDIT.md)
+- [CONFIGURA-RECAPTCHA.md](CONFIGURA-RECAPTCHA.md)
