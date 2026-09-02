@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; upgrade-insecure-requests">
+<title>Diagnostica — FDI Ascolta IX</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/theme-fdi.css">
+<style>
+  .diag-grid{display:grid;gap:12px;margin-top:20px}.diag-row{padding:14px 16px;border:1px solid #e5e7eb;border-radius:16px;background:#fff}.diag-row strong{display:block;margin-bottom:6px}.diag-ok{color:#065f46}.diag-err{color:#991b1b}.diag-warn{color:#92400e}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-word;font-size:.9rem}
+</style>
+</head>
+<body>
+<header class="site-header compact"><a class="brand" href="index.html"><img src="assets/logo/logo.svg" alt="FDI Ascolta IX"><span><strong>FDI Ascolta IX</strong><small>Diagnostica</small></span></a></header>
+<main class="page"><div class="container narrow"><section class="card form-card"><span class="eyebrow dark">RC4</span><h1>Diagnostica browser e backend</h1><p class="muted">Questa pagina non richiede login e non invia dati personali. Verifica collegamento Apps Script, quartieri e geolocalizzazione.</p><button id="runDiag" class="btn btn-primary" type="button">Esegui diagnostica</button><div id="diagResults" class="diag-grid"></div></section></div></main>
+<script src="assets/js/config.js?v=3104"></script>
+<script src="assets/js/api.js?v=3104"></script>
+<script src="assets/js/pages/diagnostica.js?v=3104"></script>
+</body>
+</html>

@@ -1,3 +1,10 @@
+# 3.1.0-rc4
+
+- Rimosso il bridge iframe RC3: a luglio 2026 è stato segnalato un problema Apps Script che può bloccare l'embed cross-origin anche con XFrameOptionsMode.ALLOWALL.
+- Ripristinato il trasporto POST diretto con Content-Type text/plain, redirect follow e senza credenziali browser.
+- Il GPS non dipende più da Leaflet: se la CDN mappa non è disponibile, le coordinate vengono comunque acquisite e salvate.
+- Login con diagnostica esplicita del backend.
+
 # Changelog
 
 ## 3.1.0-rc3 — Bridge Apps Script e GPS robusto

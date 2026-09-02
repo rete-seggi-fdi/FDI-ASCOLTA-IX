@@ -1,4 +1,4 @@
-# Production readiness — 3.1.0-rc3
+# Production readiness — 3.1.0-rc4
 
 Stato: **release candidate pronta per il security test, non ancora approvata per la produzione**.
 

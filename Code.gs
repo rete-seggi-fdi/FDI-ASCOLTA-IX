@@ -12,7 +12,7 @@
 
 const APP = Object.freeze({
   NAME: 'FDI Ascolta IX',
-  SCHEMA_VERSION: '3.1.0-rc3',
+  SCHEMA_VERSION: '3.1.0-rc4',
   SESSION_HOURS: 8,
   MAX_PHOTO_BYTES: 5 * 1024 * 1024,
   PHOTO_FOLDER_NAME: 'FDI Ascolta IX Foto',
@@ -199,10 +199,6 @@ function doGet(e) {
   try {
     const action = e && e.parameter ? String(e.parameter.action || '').trim() : '';
 
-    // Bridge same-backend per frontend statici (GitHub Pages).
-    // Evita di affidare login e API JSON ai redirect/CORS di ContentService.
-    if (action === 'bridge') return apiBridgeHtml();
-
     ensureSetup();
 
     if (action === 'health') {
@@ -230,49 +226,7 @@ function doGet(e) {
   }
 }
 
-/**
- * Pagina bridge caricata in iframe dal frontend pubblico.
- * Le richieste vengono inoltrate a doPost() tramite google.script.run,
- * evitando CORS e mantenendo token/password fuori dagli URL.
- */
-function apiBridgeHtml() {
-  const allowedOrigin = String(APP.PUBLIC_BASE_URL || '').match(/^https:\/\/[^/]+/);
-  if (!allowedOrigin) throw new Error('PUBLIC_BASE_URL non valido');
 
-  const originJson = JSON.stringify(allowedOrigin[0]);
-  const html = '<!doctype html><html><head><meta charset="utf-8">' +
-    '<meta name="referrer" content="no-referrer"></head><body>' +
-    '<script>(function(){' +
-    '"use strict";' +
-    'const ALLOWED_ORIGIN=' + originJson + ';' +
-    'function send(message){try{parent.postMessage(message,ALLOWED_ORIGIN);}catch(_){}}' +
-    'window.addEventListener("message",function(event){' +
-      'if(event.origin!==ALLOWED_ORIGIN)return;' +
-      'const data=event.data||{};' +
-      'if(data.type!=="FDI_API_REQUEST"||!data.id)return;' +
-      'google.script.run' +
-        '.withSuccessHandler(function(raw){send({type:"FDI_API_RESPONSE",id:data.id,raw:String(raw||"")});})' +
-        '.withFailureHandler(function(err){send({type:"FDI_API_RESPONSE",id:data.id,error:(err&&err.message)?err.message:"Errore bridge Apps Script"});})' +
-        '.apiBridge(JSON.stringify(data.payload||{}));' +
-    '});' +
-    'send({type:"FDI_BRIDGE_READY",version:' + JSON.stringify(APP.SCHEMA_VERSION) + '});' +
-    '})();<\/script></body></html>';
-
-  return HtmlService.createHtmlOutput(html)
-    .setTitle(APP.NAME + ' API Bridge')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-}
-
-/**
- * Entry point invocato esclusivamente dal bridge HtmlService.
- * Riusa lo stesso dispatcher di doPost per evitare due implementazioni API.
- */
-function apiBridge(payloadText) {
-  const output = doPost({
-    postData: { contents: String(payloadText || '') }
-  });
-  return output.getContent();
-}
 
 function doPost(e) {
   try {

@@ -44,3 +44,14 @@ loginFormEl.addEventListener("submit", async event => {
     loginBtnEl.textContent = "Entra nel CRM";
   }
 });
+
+
+// Diagnostica non bloccante: distingue subito credenziali errate da backend irraggiungibile.
+API.health().then(result => {
+  if (!result || !result.ok) throw new Error((result && result.error) || "Backend non disponibile");
+}).catch(error => {
+  messageBoxEl.hidden = false;
+  messageBoxEl.textContent = error && error.message
+    ? error.message
+    : "Backend Apps Script non raggiungibile";
+});

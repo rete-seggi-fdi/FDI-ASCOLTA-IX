@@ -115,6 +115,11 @@
   }
 
   function showMap(lat, lng) {
+    if (typeof L === "undefined") {
+      gpsMapEl.style.display = "none";
+      return false;
+    }
+
     gpsMapEl.style.display = "block";
 
     if (!gpsMap) {
@@ -143,6 +148,7 @@
     setTimeout(function () {
       gpsMap.invalidateSize();
     }, 250);
+    return true;
   }
 
   function selectAddressResult(result) {
@@ -291,14 +297,14 @@
       const lng = position.coords.longitude;
 
       updateCoords(lat, lng, "posizione del dispositivo");
-      showMap(lat, lng);
+      const mapAvailable = showMap(lat, lng);
 
       const accuracy = Number(position.coords.accuracy || 0);
       setGpsStatus(
         "ok",
         "Posizione acquisita" +
           (accuracy ? " (precisione circa " + Math.round(accuracy) + " m)" : "") +
-          ". Verifica che coincida con il luogo della segnalazione."
+          (mapAvailable ? ". Verifica che coincida con il luogo della segnalazione." : ". Coordinate salvate; anteprima mappa non disponibile.")
       );
       gpsBtn.textContent = "Aggiorna posizione";
     } catch (error) {

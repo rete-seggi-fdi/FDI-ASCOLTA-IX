@@ -1,8 +1,8 @@
-FDI Ascolta IX preflight 3.1.0-rc3
+FDI Ascolta IX preflight 3.1.0-rc4
 [OK]  VERSION coerente tra file VERSION e config.js
-[OK]  Sintassi valida: Code.gs + 17 file JS
-[OK]  Bridge Apps Script HtmlService presente e abilitato al framing
-[OK]  Frontend API instradato sul bridge, senza fetch diretto Apps Script
+[OK]  Sintassi valida: Code.gs + 18 file JS
+[OK]  Trasporto API Apps Script configurato come POST text/plain + redirect follow
+[OK]  Bridge iframe cross-origin RC3 completamente rimosso
 [OK]  Copertura dispatcher completa per 30 azioni frontend
 [OK]  HTML: nessuno script/event handler inline, CSP/referrer presenti, asset locali risolti
 [OK]  Un solo Code.gs nel pacchetto

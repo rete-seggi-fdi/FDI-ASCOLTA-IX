@@ -26,17 +26,17 @@ for f in [ROOT/'Code.gs', *js_files]:
     if cp.returncode: err(f'Sintassi JavaScript non valida: {f.relative_to(ROOT)}: {cp.stderr.strip()}')
 if not any(x.startswith('Sintassi JavaScript') for x in errors): ok(f'Sintassi valida: Code.gs + {len(js_files)} file JS')
 
-# Apps Script iframe bridge: il frontend statico non deve dipendere da CORS/redirect ContentService.
+# Trasporto Apps Script: POST semplice text/plain, senza preflight OPTIONS e con redirect esplicito.
 code_text=(ROOT/'Code.gs').read_text()
 api_text=(ROOT/'assets/js/api.js').read_text()
-if all(token in code_text for token in ['function apiBridgeHtml()', 'function apiBridge(payloadText)', 'HtmlService.XFrameOptionsMode.ALLOWALL']):
-    ok('Bridge Apps Script HtmlService presente e abilitato al framing')
+if 'fetch(CONFIG.API_URL' in api_text and '"Content-Type": "text/plain;charset=utf-8"' in api_text and 'redirect: "follow"' in api_text:
+    ok('Trasporto API Apps Script configurato come POST text/plain + redirect follow')
 else:
-    err('Bridge Apps Script incompleto')
-if all(token in api_text for token in ['FDI_BRIDGE_READY', 'FDI_API_REQUEST', 'FDI_API_RESPONSE']) and 'fetch(CONFIG.API_URL' not in api_text:
-    ok('Frontend API instradato sul bridge, senza fetch diretto Apps Script')
+    err('Trasporto API Apps Script non conforme al profilo compatibile')
+if 'FDI_BRIDGE_READY' in api_text or 'function apiBridgeHtml()' in code_text:
+    err('Riferimenti residui al bridge iframe RC3')
 else:
-    err('Frontend API non usa esclusivamente il bridge Apps Script')
+    ok('Bridge iframe cross-origin RC3 completamente rimosso')
 
 # Frontend/backend API action parity.
 api=(ROOT/'assets/js/api.js').read_text()
@@ -78,8 +78,8 @@ for html in sorted(ROOT.glob('*.html')):
     if not p.meta_csp: err(f'{html.name}: CSP meta mancante')
     if not p.meta_ref: err(f'{html.name}: Referrer-Policy meta mancante')
     html_text=html.read_text()
-    if 'frame-src https://script.google.com https://script.googleusercontent.com' not in html_text:
-        err(f'{html.name}: CSP non consente il bridge Apps Script')
+    if 'connect-src' not in html_text or 'https://script.google.com' not in html_text or 'https://script.googleusercontent.com' not in html_text:
+        err(f'{html.name}: CSP connect-src non consente Apps Script')
     for ref in p.refs:
         clean=ref.split('?',1)[0].split('#',1)[0]
         if not clean or clean.startswith(('/', '#', 'mailto:', 'tel:')): continue
