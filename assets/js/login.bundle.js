@@ -151,6 +151,57 @@ const Auth = Object.freeze({
 });
 
 
+/* ===== login transport senza fetch POST/CORS ===== */
+function decodeBase64UrlUtf8(value) {
+  let normalized = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
+  while (normalized.length % 4) normalized += '=';
+  const binary = atob(normalized);
+  const bytes = Uint8Array.from(binary, ch => ch.charCodeAt(0));
+  return new TextDecoder('utf-8').decode(bytes);
+}
+
+function consumeLoginRedirectResult() {
+  const match = location.hash.match(/^#auth=([^&]+)$/);
+  if (!match) return null;
+
+  let result;
+  try {
+    result = JSON.parse(decodeBase64UrlUtf8(decodeURIComponent(match[1])));
+  } catch (_) {
+    result = { ok: false, error: 'Risposta di autenticazione non valida' };
+  }
+
+  history.replaceState(null, document.title, location.pathname + location.search);
+  return result;
+}
+
+function loginViaForm(email, password) {
+  const params = new URLSearchParams(location.search);
+  const next = Auth.safeNext(params.get('next'), '');
+  const payload = JSON.stringify({
+    action: 'login',
+    email: String(email || '').trim(),
+    password: String(password || ''),
+    responseMode: 'redirect',
+    next: next
+  });
+
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = CONFIG.API_URL;
+  form.style.display = 'none';
+
+  const input = document.createElement('input');
+  input.type = 'hidden';
+  input.name = 'payload';
+  input.value = payload;
+  form.appendChild(input);
+  document.body.appendChild(form);
+  form.submit();
+
+  return new Promise(() => {});
+}
+
 /* ===== assets/js/api.js ===== */
 const API = Object.freeze({
   async call(action, params = {}, options = {}) {
@@ -245,7 +296,7 @@ const API = Object.freeze({
 
   health() { return this.call("health", {}, { publicAction: true }); },
   getPublicConfig() { return this.call("getPublicConfig", {}, { publicAction: true }); },
-  login(email, password) { return this.call("login", { email, password }, { publicAction: true }); },
+  login(email, password) { return loginViaForm(email, password); },
   logout() { return this.call("logout"); },
   getClientId() {
     let id = localStorage.getItem(CONFIG.CLIENT_ID_KEY);
@@ -306,7 +357,23 @@ function destinationAfterLogin() {
   return Auth.canOpenPage(requested) ? requested : Auth.homeForRole();
 }
 
-if (Auth.getToken()) {
+const redirectedLoginResult = consumeLoginRedirectResult();
+if (redirectedLoginResult) {
+  if (redirectedLoginResult.ok) {
+    try {
+      Auth.saveSession(redirectedLoginResult);
+      location.replace(redirectedLoginResult.user && redirectedLoginResult.user.mustChangePassword
+        ? 'cambia-password.html'
+        : Auth.safeNext(redirectedLoginResult.next, destinationAfterLogin()));
+    } catch (error) {
+      messageBoxEl.hidden = false;
+      messageBoxEl.textContent = error && error.message ? error.message : 'Sessione di accesso non valida';
+    }
+  } else {
+    messageBoxEl.hidden = false;
+    messageBoxEl.textContent = redirectedLoginResult.error || 'Credenziali non valide o accesso negato';
+  }
+} else if (Auth.getToken()) {
   location.replace(destinationAfterLogin());
 }
 
