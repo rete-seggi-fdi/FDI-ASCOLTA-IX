@@ -213,6 +213,10 @@
   });
 
   gpsBtn.addEventListener("click", function () {
+    if (!window.isSecureContext) {
+      setGpsStatus("err", "Il GPS richiede HTTPS. Apri il sito pubblicato con https:// e non come file locale o anteprima non sicura.");
+      return;
+    }
     if (!navigator.geolocation) {
       setGpsStatus("err", "Geolocalizzazione non supportata dal browser.");
       return;
@@ -233,8 +237,13 @@
         gpsBtn.disabled = false;
         gpsBtn.textContent = "Aggiorna posizione";
       },
-      function () {
-        setGpsStatus("err", "Impossibile acquisire la posizione. Controlla i permessi GPS.");
+      function (error) {
+        let message = "Impossibile acquisire la posizione.";
+        if (error && error.code === 1) message += " Il permesso di localizzazione è stato negato: abilitalo nelle impostazioni del sito/browser.";
+        else if (error && error.code === 2) message += " Il dispositivo non riesce a determinare la posizione; attiva GPS/Localizzazione e riprova.";
+        else if (error && error.code === 3) message += " La richiesta GPS è scaduta; spostati in un punto con migliore ricezione e riprova.";
+        else message += " Controlla i permessi GPS del browser.";
+        setGpsStatus("err", message);
         gpsBtn.disabled = false;
         gpsBtn.textContent = "Usa GPS";
       },

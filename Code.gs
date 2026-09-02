@@ -12,7 +12,7 @@
 
 const APP = Object.freeze({
   NAME: 'FDI Ascolta IX',
-  SCHEMA_VERSION: '3.1.0-rc1',
+  SCHEMA_VERSION: '3.1.0-rc2',
   SESSION_HOURS: 8,
   MAX_PHOTO_BYTES: 5 * 1024 * 1024,
   PHOTO_FOLDER_NAME: 'FDI Ascolta IX Foto',
@@ -1880,6 +1880,7 @@ function setupSheet() {
     const reportsSheet = sheetByName(SHEETS.REPORTS);
     reportsSheet.getRange(1, headerIndex(reportsSheet, 'Latitudine'), reportsSheet.getMaxRows(), 1).setNumberFormat('@');
     reportsSheet.getRange(1, headerIndex(reportsSheet, 'Longitudine'), reportsSheet.getMaxRows(), 1).setNumberFormat('@');
+    migrateLegacyConfigurationActiveFlags();
     seedReferenti();
     deactivateDemoReferenti();
     seedQuartieri();
@@ -1911,6 +1912,65 @@ function ensureSheet(ss, name, headers) {
   }
   sheet.setFrozenRows(1);
   SpreadsheetApp.flush();
+}
+
+/**
+ * Le versioni precedenti consideravano attivi quartieri/referenti/uffici con
+ * colonna Attivo vuota. La RC1 era diventata fail-closed e rendeva invisibili
+ * configurazioni legacy. Questa migrazione rende esplicito il vecchio stato
+ * senza allentare i controlli sugli utenti autenticati.
+ */
+function migrateLegacyConfigurationActiveFlags() {
+  [SHEETS.DISTRICTS, SHEETS.REFERENTI, SHEETS.OFFICES].forEach(name => {
+    const sheet = sheetByName(name);
+    const activeCol = headerIndex(sheet, 'Attivo');
+    readRows(name).forEach(item => {
+      const current = String(item.data.Attivo || '').trim();
+      if (!current) sheet.getRange(item.rowNumber, activeCol).setValue('Sì');
+    });
+  });
+}
+
+/**
+ * Eseguire manualmente dopo un aggiornamento importante per autorizzare gli
+ * scope usati in produzione e verificare che i servizi Google siano accessibili.
+ */
+function autorizzaServiziProduzione() {
+  const ss = getSpreadsheet();
+  const sheetName = ss.getName();
+  const maps = Maps.newGeocoder().setRegion('it').setLanguage('it').geocode('EUR, Roma');
+  const rootName = DriveApp.getRootFolder().getName();
+  const mailQuota = MailApp.getRemainingDailyQuota();
+  return 'Servizi autorizzati. Foglio=' + sheetName +
+    '; Maps=' + Boolean(maps && maps.results) +
+    '; Drive=' + Boolean(rootName) +
+    '; MailQuota=' + mailQuota;
+}
+
+/**
+ * Diagnostica rapida pensata per il post-deploy. Non modifica credenziali.
+ */
+function diagnosticaPostDeploy() {
+  setupSheet();
+  const ss = getSpreadsheet();
+  const props = PropertiesService.getScriptProperties();
+  const activeUsers = readRows(SHEETS.USERS).filter(item => item.data.Email && isYes(item.data.Attivo));
+  const hashedUsers = activeUsers.filter(item => String(item.data.Password || '').startsWith('v1$'));
+  const districts = listQuartieri(false);
+  const recaptcha = diagnosticaRecaptcha();
+  const result = {
+    versione: APP.SCHEMA_VERSION,
+    spreadsheetIdConfigurato: Boolean(String(props.getProperty('SPREADSHEET_ID') || '').trim()),
+    spreadsheetId: ss.getId(),
+    foglio: ss.getName(),
+    utentiAttivi: activeUsers.length,
+    utentiConPasswordHash: hashedUsers.length,
+    quartieriAttivi: districts.length,
+    authPepperPresente: Boolean(String(props.getProperty('AUTH_PEPPER') || '').trim()),
+    recaptcha: recaptcha
+  };
+  console.log(JSON.stringify(result, null, 2));
+  return JSON.stringify(result);
 }
 
 function seedReferenti() {
