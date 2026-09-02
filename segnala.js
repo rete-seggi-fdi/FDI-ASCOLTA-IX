@@ -212,7 +212,60 @@
     }
   });
 
-  gpsBtn.addEventListener("click", function () {
+  function gpsErrorMessage(error) {
+    let message = "Impossibile acquisire la posizione.";
+    if (error && error.code === 1) {
+      message += " Il permesso di localizzazione è stato negato: apri le impostazioni del sito nel browser e consenti Posizione.";
+    } else if (error && error.code === 2) {
+      message += " Il dispositivo non riesce a determinare la posizione. Attiva Localizzazione/GPS e riprova.";
+    } else if (error && error.code === 3) {
+      message += " La richiesta GPS è scaduta.";
+    } else {
+      message += " Controlla i permessi di localizzazione del browser.";
+    }
+    return message;
+  }
+
+  function acquirePosition(options) {
+    return new Promise(function(resolve, reject) {
+      navigator.geolocation.getCurrentPosition(resolve, reject, options);
+    });
+  }
+
+  async function getReliablePosition() {
+    try {
+      return await acquirePosition({
+        enableHighAccuracy: true,
+        timeout: 12000,
+        maximumAge: 0
+      });
+    } catch (firstError) {
+      if (firstError && firstError.code === 1) throw firstError;
+      // Su molti telefoni/desktop l'alta precisione può andare in timeout.
+      // Un secondo tentativo più permissivo usa anche Wi-Fi/rete e una cache breve.
+      try {
+        return await acquirePosition({
+          enableHighAccuracy: false,
+          timeout: 20000,
+          maximumAge: 300000
+        });
+      } catch (secondError) {
+        throw secondError || firstError;
+      }
+    }
+  }
+
+  async function checkGeolocationPermission() {
+    if (!navigator.permissions || typeof navigator.permissions.query !== "function") return "unknown";
+    try {
+      const status = await navigator.permissions.query({ name: "geolocation" });
+      return status && status.state ? status.state : "unknown";
+    } catch (_) {
+      return "unknown";
+    }
+  }
+
+  gpsBtn.addEventListener("click", async function () {
     if (!window.isSecureContext) {
       setGpsStatus("err", "Il GPS richiede HTTPS. Apri il sito pubblicato con https:// e non come file locale o anteprima non sicura.");
       return;
@@ -222,37 +275,38 @@
       return;
     }
 
+    const permission = await checkGeolocationPermission();
+    if (permission === "denied") {
+      setGpsStatus("err", "La posizione è bloccata per questo sito. Tocca il lucchetto/impostazioni del sito e imposta Posizione su Consenti, poi ricarica la pagina.");
+      return;
+    }
+
     gpsBtn.disabled = true;
     gpsBtn.textContent = "Acquisizione GPS...";
+    setGpsStatus("", permission === "prompt" ? "Il browser potrebbe chiederti il permesso di usare la posizione." : "Ricerca posizione in corso...");
 
-    navigator.geolocation.getCurrentPosition(
-      function (position) {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
+    try {
+      const position = await getReliablePosition();
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
 
-        updateCoords(lat, lng, "posizione del dispositivo");
-        showMap(lat, lng);
+      updateCoords(lat, lng, "posizione del dispositivo");
+      showMap(lat, lng);
 
-        setGpsStatus("ok", "Posizione del dispositivo acquisita. Usala solo se coincide con il luogo della segnalazione.");
-        gpsBtn.disabled = false;
-        gpsBtn.textContent = "Aggiorna posizione";
-      },
-      function (error) {
-        let message = "Impossibile acquisire la posizione.";
-        if (error && error.code === 1) message += " Il permesso di localizzazione è stato negato: abilitalo nelle impostazioni del sito/browser.";
-        else if (error && error.code === 2) message += " Il dispositivo non riesce a determinare la posizione; attiva GPS/Localizzazione e riprova.";
-        else if (error && error.code === 3) message += " La richiesta GPS è scaduta; spostati in un punto con migliore ricezione e riprova.";
-        else message += " Controlla i permessi GPS del browser.";
-        setGpsStatus("err", message);
-        gpsBtn.disabled = false;
-        gpsBtn.textContent = "Usa GPS";
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 0
-      }
-    );
+      const accuracy = Number(position.coords.accuracy || 0);
+      setGpsStatus(
+        "ok",
+        "Posizione acquisita" +
+          (accuracy ? " (precisione circa " + Math.round(accuracy) + " m)" : "") +
+          ". Verifica che coincida con il luogo della segnalazione."
+      );
+      gpsBtn.textContent = "Aggiorna posizione";
+    } catch (error) {
+      setGpsStatus("err", gpsErrorMessage(error));
+      gpsBtn.textContent = "Usa GPS";
+    } finally {
+      gpsBtn.disabled = false;
+    }
   });
 
   let recaptchaPromise = null;

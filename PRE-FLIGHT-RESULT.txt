@@ -1,6 +1,8 @@
-FDI Ascolta IX preflight 3.1.0-rc1
+FDI Ascolta IX preflight 3.1.0-rc3
 [OK]  VERSION coerente tra file VERSION e config.js
 [OK]  Sintassi valida: Code.gs + 17 file JS
+[OK]  Bridge Apps Script HtmlService presente e abilitato al framing
+[OK]  Frontend API instradato sul bridge, senza fetch diretto Apps Script
 [OK]  Copertura dispatcher completa per 30 azioni frontend
 [OK]  HTML: nessuno script/event handler inline, CSP/referrer presenti, asset locali risolti
 [OK]  Un solo Code.gs nel pacchetto
@@ -11,4 +13,4 @@ FDI Ascolta IX preflight 3.1.0-rc1
 [WARN] mappa.html: dipendenza esterna version-pinned ma senza SRI: https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css
 [WARN] mappa.html: dipendenza esterna version-pinned ma senza SRI: https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js
 
-Esito: 6 OK, 5 warning, 0 errori
+Esito: 8 OK, 5 warning, 0 errori

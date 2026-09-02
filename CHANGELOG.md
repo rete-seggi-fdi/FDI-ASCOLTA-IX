@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.1.0-rc3 — Bridge Apps Script e GPS robusto
+
+- sostituite le chiamate `fetch` dirette GitHub Pages → Apps Script con un bridge HtmlService + `google.script.run`, eliminando la dipendenza da CORS/redirect per login e API;
+- il bridge accetta messaggi solo dall'origine pubblica configurata e non inserisce password/token negli URL;
+- CSP aggiornata per consentire esclusivamente il frame Apps Script necessario al bridge;
+- geolocalizzazione con controllo esplicito del permesso e secondo tentativo a precisione ridotta in caso di timeout/posizione non disponibile;
+- cache-busting frontend aggiornato e preflight esteso per verificare il bridge.
+
 ## 3.1.0-rc1 — Hardening pre-produzione
 
 ### Autorizzazione e sessioni

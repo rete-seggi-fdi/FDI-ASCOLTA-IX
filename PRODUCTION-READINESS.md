@@ -1,6 +1,11 @@
-# Production readiness — 3.1.0-rc1
+# Production readiness — 3.1.0-rc3
 
 Stato: **release candidate pronta per il security test, non ancora approvata per la produzione**.
+
+## Correzione RC3: comunicazione frontend/backend
+
+Il frontend statico non usa più `fetch()` direttamente verso `ContentService` Apps Script. Le API vengono inoltrate da un iframe HtmlService confinato all'origine pubblica configurata e chiamano il backend tramite `google.script.run`. Questo evita di dipendere dal comportamento CORS/redirect del Web App per login, quartieri, geocoding e API private.
+
 
 ## Correzioni già applicate
 
