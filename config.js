@@ -1,5 +1,5 @@
 const CONFIG = Object.freeze({
-  VERSION: "3.1.0-rc4",
+  VERSION: "3.1.0-rc5",
   API_URL: "https://script.google.com/macros/s/AKfycbyZuNSOT2SCW6YNp6gZ-bTO6gfm9wGI3-YAjvSmo5oelcqrUmARNzmd49hbjSn4ISh4Yg/exec",
   SESSION_KEY: "fdi_ascolta_ix_session_v3",
   CLIENT_ID_KEY: "fdi_ascolta_ix_client_v1",

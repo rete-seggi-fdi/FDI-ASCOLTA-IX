@@ -14,9 +14,12 @@
 </head>
 <body>
 <header class="site-header compact"><a class="brand" href="index.html"><img src="assets/logo/logo.svg" alt="FDI Ascolta IX"><span><strong>FDI Ascolta IX</strong><small>Diagnostica</small></span></a></header>
-<main class="page"><div class="container narrow"><section class="card form-card"><span class="eyebrow dark">RC4</span><h1>Diagnostica browser e backend</h1><p class="muted">Questa pagina non richiede login e non invia dati personali. Verifica collegamento Apps Script, quartieri e geolocalizzazione.</p><button id="runDiag" class="btn btn-primary" type="button">Esegui diagnostica</button><div id="diagResults" class="diag-grid"></div></section></div></main>
-<script src="assets/js/config.js?v=3104"></script>
-<script src="assets/js/api.js?v=3104"></script>
-<script src="assets/js/pages/diagnostica.js?v=3104"></script>
+<main class="page"><div class="container narrow"><section class="card form-card"><span class="eyebrow dark">RC5</span><h1>Diagnostica browser e backend</h1><p class="muted">Questa pagina non richiede login e non invia dati personali. Verifica collegamento Apps Script, quartieri e geolocalizzazione.</p><button id="runDiag" class="btn btn-primary" type="button">Esegui diagnostica</button>
+<div id="jsStatus" class="diag-row"><strong class="diag-err">✗ JavaScript pagina</strong><div class="mono">Se questo messaggio resta visibile, il file assets/js/diagnostica.bundle.js non è stato caricato.</div></div>
+<div id="diagResults" class="diag-grid"></div></section></div></main>
+
+
+
+<script src="assets/js/diagnostica.bundle.js?v=3105"></script>
 </body>
 </html>

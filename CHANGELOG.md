@@ -1,4 +1,8 @@
-# 3.1.0-rc4
+# 3.1.0-rc5
+
+- Build frontend a bundle singolo per pagina in `assets/js/*.bundle.js`; eliminate le dipendenze runtime da `assets/js/pages/`.
+- Diagnostica con indicatore statico che segnala immediatamente se il JavaScript pagina non viene caricato.
+- Cache-busting frontend aggiornato a `v=3105`.
 
 - Rimosso il bridge iframe RC3: a luglio 2026 è stato segnalato un problema Apps Script che può bloccare l'embed cross-origin anche con XFrameOptionsMode.ALLOWALL.
 - Ripristinato il trasporto POST diretto con Content-Type text/plain, redirect follow e senza credenziali browser.

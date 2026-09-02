@@ -76,3 +76,7 @@ consiglieri.
 - [CHANGELOG.md](CHANGELOG.md)
 - [AUDIT.md](AUDIT.md)
 - [CONFIGURA-RECAPTCHA.md](CONFIGURA-RECAPTCHA.md)
+
+
+## Nota RC5
+Ogni pagina usa un bundle JavaScript piatto in `assets/js/*.bundle.js`. Caricare l’intera cartella `assets/js` sul repository/hosting senza rinominare i file.

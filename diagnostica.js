@@ -1,3 +1,8 @@
+const jsStatus = document.getElementById("jsStatus");
+if (jsStatus) {
+  jsStatus.innerHTML = '<strong class="diag-ok">✓ JavaScript pagina</strong><div class="mono">diagnostica.bundle.js caricato ed eseguito correttamente.</div>';
+}
+
 const runDiag = document.getElementById("runDiag");
 const diagResults = document.getElementById("diagResults");
 
@@ -30,7 +35,7 @@ async function executeDiag() {
   diagResults.innerHTML = "";
   runDiag.disabled = true;
   runDiag.textContent = "Controllo...";
-  addResult("Versione frontend", CONFIG.VERSION === "3.1.0-rc4" ? "ok" : "err", CONFIG.VERSION);
+  addResult("Versione frontend", CONFIG.VERSION === "3.1.0-rc5" ? "ok" : "err", CONFIG.VERSION);
   addResult("HTTPS / secure context", window.isSecureContext ? "ok" : "err", location.href);
   addResult("Endpoint configurato", /^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(CONFIG.API_URL) ? "ok" : "err", CONFIG.API_URL);
 

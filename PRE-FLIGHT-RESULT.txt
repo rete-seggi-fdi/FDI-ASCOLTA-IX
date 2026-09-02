@@ -1,6 +1,6 @@
-FDI Ascolta IX preflight 3.1.0-rc4
+FDI Ascolta IX preflight 3.1.0-rc5
 [OK]  VERSION coerente tra file VERSION e config.js
-[OK]  Sintassi valida: Code.gs + 18 file JS
+[OK]  Sintassi valida: Code.gs + 31 file JS
 [OK]  Trasporto API Apps Script configurato come POST text/plain + redirect follow
 [OK]  Bridge iframe cross-origin RC3 completamente rimosso
 [OK]  Copertura dispatcher completa per 30 azioni frontend
