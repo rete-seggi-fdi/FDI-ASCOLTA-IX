@@ -4,22 +4,164 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; upgrade-insecure-requests">
-<title>Diagnostica — FDI Ascolta IX</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com; upgrade-insecure-requests">
+<title>Diagnostica autonoma — FDI Ascolta IX</title>
 <link rel="stylesheet" href="assets/css/style.css">
 <link rel="stylesheet" href="assets/css/theme-fdi.css">
 <style>
-  .diag-grid{display:grid;gap:12px;margin-top:20px}.diag-row{padding:14px 16px;border:1px solid #e5e7eb;border-radius:16px;background:#fff}.diag-row strong{display:block;margin-bottom:6px}.diag-ok{color:#065f46}.diag-err{color:#991b1b}.diag-warn{color:#92400e}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-word;font-size:.9rem}
+body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f6f8;color:#111827;margin:0}
+.wrap{max-width:900px;margin:32px auto;padding:0 16px}.card{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:22px;box-shadow:0 8px 30px rgba(0,0,0,.05)}
+h1{margin:0 0 8px}.muted{color:#6b7280}.btn{appearance:none;border:0;border-radius:12px;padding:12px 18px;font-weight:700;cursor:pointer;background:#111827;color:#fff;margin:8px 8px 8px 0}.btn.secondary{background:#e5e7eb;color:#111827}
+.grid{display:grid;gap:10px;margin-top:18px}.row{padding:13px 15px;border:1px solid #e5e7eb;border-radius:13px;background:#fff}.row strong{display:block;margin-bottom:5px}.ok{color:#047857}.err{color:#b91c1c}.warn{color:#a16207}.pending{color:#4b5563}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;word-break:break-word;font-size:.88rem;white-space:pre-wrap}.small{font-size:.9rem}
 </style>
 </head>
 <body>
-<header class="site-header compact"><a class="brand" href="index.html"><img src="assets/logo/logo.svg" alt="FDI Ascolta IX"><span><strong>FDI Ascolta IX</strong><small>Diagnostica</small></span></a></header>
-<main class="page"><div class="container narrow"><section class="card form-card"><span class="eyebrow dark">RC5</span><h1>Diagnostica browser e backend</h1><p class="muted">Questa pagina non richiede login e non invia dati personali. Verifica collegamento Apps Script, quartieri e geolocalizzazione.</p><button id="runDiag" class="btn btn-primary" type="button">Esegui diagnostica</button>
-<div id="jsStatus" class="diag-row"><strong class="diag-err">✗ JavaScript pagina</strong><div class="mono">Se questo messaggio resta visibile, il file assets/js/diagnostica.bundle.js non è stato caricato.</div></div>
-<div id="diagResults" class="diag-grid"></div></section></div></main>
+<div class="wrap">
+  <div class="card">
+    <div class="small muted">FDI Ascolta IX — diagnostica autonoma</div>
+    <h1>Diagnostica browser e backend</h1>
+    <p class="muted">Questa versione contiene il JavaScript direttamente nella pagina: non dipende da <code>assets/js/diagnostica.bundle.js</code>.</p>
+    <button id="runDiag" class="btn" type="button">Esegui diagnostica</button>
+    <button id="testGps" class="btn secondary" type="button">Test GPS</button>
+    <div id="results" class="grid"></div>
+  </div>
+</div>
 
+<script>
+(function(){
+  'use strict';
 
+  const API_URL = 'https://script.google.com/macros/s/AKfycbyZuNSOT2SCW6YNp6gZ-bTO6gfm9wGI3-YAjvSmo5oelcqrUmARNzmd49hbjSn4ISh4Yg/exec';
+  const results = document.getElementById('results');
 
-<script src="assets/js/diagnostica.bundle.js?v=3105"></script>
+  function esc(v){return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  function row(id,title,status,detail){
+    let el=document.getElementById(id);
+    if(!el){el=document.createElement('div');el.id=id;el.className='row';results.appendChild(el);}
+    const cls=status==='ok'?'ok':status==='err'?'err':status==='warn'?'warn':'pending';
+    const icon=status==='ok'?'✓':status==='err'?'✗':status==='warn'?'⚠':'…';
+    el.innerHTML='<strong class="'+cls+'">'+icon+' '+esc(title)+'</strong><div class="mono">'+esc(detail||'')+'</div>';
+  }
+
+  async function fetchText(url, opts){
+    const controller = new AbortController();
+    const timer = setTimeout(()=>controller.abort(), 12000);
+    try{
+      const res = await fetch(url, Object.assign({cache:'no-store', redirect:'follow', signal:controller.signal}, opts||{}));
+      const text = await res.text();
+      return {ok:res.ok,status:res.status,url:res.url,type:res.headers.get('content-type')||'',text};
+    } finally { clearTimeout(timer); }
+  }
+
+  async function testAsset(path,id,label){
+    row(id,label,'pending','Controllo '+path+' …');
+    try{
+      const sep=path.includes('?')?'&':'?';
+      const r=await fetchText(path+sep+'diag='+Date.now());
+      const looksHtml=/<!doctype html|<html/i.test(r.text.slice(0,300));
+      if(!r.ok){
+        row(id,label,'err','HTTP '+r.status+' — file non trovato o non pubblicato. URL finale: '+r.url);
+      } else if(looksHtml && /\.js(?:\?|$)/i.test(path)){
+        row(id,label,'err','HTTP 200 ma il server ha restituito HTML invece di JavaScript. URL finale: '+r.url+' — Content-Type: '+r.type);
+      } else {
+        row(id,label,'ok','HTTP '+r.status+' — '+r.type+' — '+r.text.length+' byte');
+      }
+    }catch(e){
+      row(id,label,'err',(e && e.name==='AbortError')?'Timeout nel caricamento':String(e && e.message || e));
+    }
+  }
+
+  async function testBackend(){
+    row('backend','Backend Apps Script','pending','Controllo action=health …');
+    try{
+      const url=API_URL+'?action=health&_='+Date.now();
+      const r=await fetchText(url,{method:'GET',mode:'cors',credentials:'omit'});
+      if(!r.ok){row('backend','Backend Apps Script','err','HTTP '+r.status+' — '+r.url);return;}
+      let data;
+      try{data=JSON.parse(r.text);}catch(_){
+        row('backend','Backend Apps Script','err','Risposta non JSON. Content-Type: '+r.type+'\nPrimi caratteri: '+r.text.slice(0,180));return;
+      }
+      if(data && data.ok){
+        row('backend','Backend Apps Script','ok','Versione: '+(data.version||'?')+' — spreadsheetConnected: '+String(data.spreadsheetConnected));
+      }else{
+        row('backend','Backend Apps Script','err','Risposta JSON ma non OK: '+JSON.stringify(data));
+      }
+    }catch(e){
+      row('backend','Backend Apps Script','err','Fetch bloccato/fallito: '+String(e && e.message || e)+'\nSe i file locali risultano OK ma qui fallisce, il problema è il collegamento browser → Apps Script/CORS/deploy.');
+    }
+  }
+
+  async function testQuartieri(){
+    row('quartieri','Quartieri dal backend','pending','Controllo action=listQuartieri …');
+    try{
+      const url=API_URL+'?action=listQuartieri&_='+Date.now();
+      const r=await fetchText(url,{method:'GET',mode:'cors',credentials:'omit'});
+      if(!r.ok){row('quartieri','Quartieri dal backend','err','HTTP '+r.status);return;}
+      let data;
+      try{data=JSON.parse(r.text);}catch(_){row('quartieri','Quartieri dal backend','err','Il backend non ha restituito JSON');return;}
+      const q=Array.isArray(data && data.quartieri)?data.quartieri:[];
+      if(q.length){row('quartieri','Quartieri dal backend','ok','Ricevuti '+q.length+' quartieri. Esempio: '+JSON.stringify(q[0]));}
+      else{row('quartieri','Quartieri dal backend','warn','Backend raggiunto ma elenco quartieri vuoto. Risposta: '+JSON.stringify(data));}
+    }catch(e){row('quartieri','Quartieri dal backend','err',String(e && e.message || e));}
+  }
+
+  async function run(){
+    results.innerHTML='';
+    row('inline','JavaScript della diagnostica','ok','JavaScript inline eseguito correttamente.');
+    row('page','Pagina corrente','ok',location.href+'\nOrigin: '+location.origin+'\nProtocollo: '+location.protocol);
+    row('secure','Contesto sicuro HTTPS',window.isSecureContext?'ok':'err','isSecureContext = '+String(window.isSecureContext));
+
+    await Promise.all([
+      testAsset('assets/js/diagnostica.bundle.js','a_diag','diagnostica.bundle.js'),
+      testAsset('assets/js/login.bundle.js','a_login','login.bundle.js'),
+      testAsset('assets/js/segnala.bundle.js','a_segnala','segnala.bundle.js'),
+      testAsset('assets/js/config.js','a_config','config.js'),
+      testAsset('assets/css/style.css','a_css','style.css')
+    ]);
+
+    await testBackend();
+    await testQuartieri();
+
+    if(!('geolocation' in navigator)){
+      row('gps-cap','Geolocalizzazione browser','err','navigator.geolocation non disponibile');
+    }else{
+      let detail='navigator.geolocation disponibile';
+      try{
+        if(navigator.permissions && navigator.permissions.query){
+          const p=await navigator.permissions.query({name:'geolocation'});
+          detail+=' — permesso: '+p.state;
+        }
+      }catch(_){ }
+      row('gps-cap','Geolocalizzazione browser',window.isSecureContext?'ok':'warn',detail+' — premi “Test GPS” per richiedere la posizione.');
+    }
+  }
+
+  function gpsErrorText(err){
+    if(!err) return 'Errore sconosciuto';
+    if(err.code===1) return 'Permesso posizione negato dal browser/dispositivo.';
+    if(err.code===2) return 'Posizione non disponibile. Attiva GPS/servizi di localizzazione e riprova.';
+    if(err.code===3) return 'Timeout: il dispositivo non ha ottenuto la posizione in tempo.';
+    return err.message || 'Errore GPS codice '+err.code;
+  }
+
+  function testGps(){
+    if(!('geolocation' in navigator)){row('gps-live','Test GPS','err','Geolocalizzazione non supportata');return;}
+    if(!window.isSecureContext){row('gps-live','Test GPS','err','La pagina non è in un contesto HTTPS sicuro');return;}
+    row('gps-live','Test GPS','pending','Richiesta posizione in corso…');
+    navigator.geolocation.getCurrentPosition(
+      pos=>row('gps-live','Test GPS','ok','Latitudine: '+pos.coords.latitude+'\nLongitudine: '+pos.coords.longitude+'\nPrecisione: '+Math.round(pos.coords.accuracy)+' m'),
+      err=>row('gps-live','Test GPS','err',gpsErrorText(err)),
+      {enableHighAccuracy:true,timeout:15000,maximumAge:0}
+    );
+  }
+
+  window.addEventListener('error',e=>row('runtime-error','Errore JavaScript runtime','err',(e.message||'Errore')+' — '+(e.filename||'')+':'+(e.lineno||'')));
+  window.addEventListener('unhandledrejection',e=>row('promise-error','Errore Promise','err',String(e.reason && e.reason.message || e.reason || 'Errore')));
+  document.getElementById('runDiag').addEventListener('click',run);
+  document.getElementById('testGps').addEventListener('click',testGps);
+
+  row('inline','JavaScript della diagnostica','ok','JavaScript inline eseguito correttamente. Premi “Esegui diagnostica”.');
+})();
+</script>
 </body>
 </html>
