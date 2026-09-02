@@ -1,0 +1,14 @@
+FDI Ascolta IX preflight 3.1.0-rc1
+[OK]  VERSION coerente tra file VERSION e config.js
+[OK]  Sintassi valida: Code.gs + 17 file JS
+[OK]  Copertura dispatcher completa per 30 azioni frontend
+[OK]  HTML: nessuno script/event handler inline, CSP/referrer presenti, asset locali risolti
+[OK]  Un solo Code.gs nel pacchetto
+[OK]  Nessun URL javascript: rilevato nel frontend
+[WARN] analytics.html: dipendenza esterna version-pinned ma senza SRI: https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js
+[WARN] mappa.html: dipendenza esterna version-pinned ma senza SRI: https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js
+[WARN] mappa.html: dipendenza esterna version-pinned ma senza SRI: https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css
+[WARN] mappa.html: dipendenza esterna version-pinned ma senza SRI: https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css
+[WARN] mappa.html: dipendenza esterna version-pinned ma senza SRI: https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js
+
+Esito: 6 OK, 5 warning, 0 errori

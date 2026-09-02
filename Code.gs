@@ -12,10 +12,11 @@
 
 const APP = Object.freeze({
   NAME: 'FDI Ascolta IX',
-  SCHEMA_VERSION: '2026-07-hardened-2',
+  SCHEMA_VERSION: '3.1.0-rc1',
   SESSION_HOURS: 8,
   MAX_PHOTO_BYTES: 5 * 1024 * 1024,
   PHOTO_FOLDER_NAME: 'FDI Ascolta IX Foto',
+  PUBLIC_BASE_URL: 'https://rete-seggi-fdi.github.io/FDI-ASCOLTA-IX/',
   PUBLIC_TRACKING_URL: 'https://rete-seggi-fdi.github.io/FDI-ASCOLTA-IX/tracking.html',
   COORDS: Object.freeze({ minLat: 41.65, maxLat: 42.05, minLng: 12.25, maxLng: 12.75 })
 });
@@ -38,7 +39,7 @@ const HEADERS = Object.freeze({
     'Latitudine','Longitudine','Foto URL','Stato','Priorità',
     'Referente assegnato','Email referente','Data invio','Nome cittadino',
     'Email cittadino','Telefono cittadino','Note FDI','Tracking Token Hash',
-    'Data chiusura','Ufficio ID','Ufficio','Esito finale','Ultimo aggiornamento'
+    'Data chiusura','Ufficio ID','Ufficio','Esito finale','Ultimo aggiornamento','Request ID'
   ],
   [SHEETS.REFERENTI]: [
     'ID','Nome','Ruolo','Partito/Lista','Email','Telefono','Competenze','Zona','Attivo'
@@ -47,7 +48,7 @@ const HEADERS = Object.freeze({
     'Data','Tipo','Segnalazione ID','Destinatario ID','Destinatario','Email',
     'Oggetto','Messaggio','Operatore','Esito'
   ],
-  [SHEETS.USERS]: ['ID','Nome','Email','Password','Ruolo','Attivo'],
+  [SHEETS.USERS]: ['ID','Nome','Email','Password','Ruolo','Attivo','Cambio password richiesto','Versione autenticazione','Ultimo accesso'],
   [SHEETS.OFFICES]: ['ID','Ufficio','Settore','Email','Telefono','Note','Attivo'],
   [SHEETS.DISTRICTS]: ['Codice','Nome','Tipo','Attivo','Ordine'],
   [SHEETS.TIMELINE]: [
@@ -59,7 +60,7 @@ const HEADERS = Object.freeze({
     'Visibile cittadino','Operatore'
   ],
   [SHEETS.SESSIONS]: [
-    'Token Hash','Utente ID','Email','Creato','Scadenza','Revocato'
+    'Token Hash','Utente ID','Email','Versione autenticazione','Creato','Scadenza','Revocato'
   ]
 });
 
@@ -75,6 +76,14 @@ const WORKFLOW = Object.freeze([
   'Archiviata'
 ]);
 
+const CATEGORIES = Object.freeze([
+  'Buche / strade', 'Illuminazione', 'Rifiuti', 'Verde pubblico',
+  'Sicurezza', 'Degrado', 'Barriere architettoniche', 'Altro'
+]);
+
+const PRIORITIES = Object.freeze(['Bassa', 'Media', 'Alta']);
+
+
 /* =========================
  * FUNZIONI MANUALI DI PRIMO ACCESSO
  * Selezionabili dal menu Esegui di Apps Script
@@ -84,15 +93,24 @@ const WORKFLOW = Object.freeze([
  * Eseguire manualmente dall'editor Apps Script per creare/aggiornare un utente.
  * Non è esposto come azione HTTP.
  */
+function validatePasswordPolicy(password) {
+  const value = String(password || '').trim();
+  if (value.length < 12) throw new Error('Usare una password di almeno 12 caratteri');
+  if (!/[A-Z]/.test(value) || !/[a-z]/.test(value) || !/[0-9]/.test(value) || !/[^A-Za-z0-9]/.test(value)) {
+    throw new Error('Usare almeno una maiuscola, una minuscola, un numero e un simbolo');
+  }
+  return value;
+}
+
 function createOrUpdateUser(email, nome, password, ruolo) {
   setupSheet();
   SpreadsheetApp.flush();
   const normalizedEmail = normalizeEmail(email);
   if (!isValidEmail(normalizedEmail)) throw new Error('Email non valida');
-  if (String(password || '').trim().length < 12) throw new Error('Usare una password di almeno 12 caratteri');
+  const validatedPassword = validatePasswordPolicy(password);
 
   const salt = Utilities.getUuid().replace(/-/g, '');
-  const hashed = hashPassword(String(password).trim(), salt);
+  const hashed = hashPassword(validatedPassword, salt);
   const match = findRow(SHEETS.USERS, row => normalizeEmail(row.Email) === normalizedEmail);
   const values = {
     ID: match && cleanOutput(match.data.ID)
@@ -101,12 +119,16 @@ function createOrUpdateUser(email, nome, password, ruolo) {
     Nome: safeSheetText(cleanText(nome, 120, false)),
     Email: normalizedEmail,
     Password: hashed,
-    Ruolo: safeSheetText(cleanText(ruolo || 'Operatore', 80, false)),
-    Attivo: 'Sì'
+    Ruolo: safeSheetText(normalizeUserRole(ruolo || 'Amministratore')),
+    Attivo: 'Sì',
+    'Cambio password richiesto': 'No',
+    'Versione autenticazione': match ? currentAuthVersion(match.data) + 1 : 1
   };
 
-  if (match) setRowFields(SHEETS.USERS, match.rowNumber, values);
-  else appendObjectRow(SHEETS.USERS, values);
+  if (match) {
+    setRowFields(SHEETS.USERS, match.rowNumber, values);
+    revokeUserSessions(cleanOutput(match.data.ID));
+  } else appendObjectRow(SHEETS.USERS, values);
   return 'Utente configurato: ' + normalizedEmail;
 }
 
@@ -224,22 +246,40 @@ function doPost(e) {
     if (action === 'listQuartieri') return json({ ok: true, quartieri: listQuartieri() });
     if (action === 'getPublicStats') return json({ ok: true, stats: getPublicStats() });
     if (action === 'getPublicReport') return json(getPublicReport(body));
+    if (action === 'getPublicConfig') return json(getPublicConfig());
+    if (action === 'geocodeAddress') return json(geocodeAddress(body));
 
     // Tutto il resto è privato.
     const user = requireAuth(body);
 
     if (action === 'logout') return json(logoutUser(body));
-    if (action === 'listReports') return json({ ok: true, reports: listReports() });
-    if (action === 'listReferenti') return json({ ok: true, referenti: listReferenti() });
-    if (action === 'listUffici') return json({ ok: true, uffici: listUffici() });
+    if (action === 'changeOwnPassword') return json(changeOwnPassword(body, user));
+    requireCompletedPasswordChange(user);
+
+    if (action === 'listUsers') { requireAdmin(user); return json({ ok: true, users: listUsers() }); }
+    if (action === 'saveUser') { requireAdmin(user); return json(saveUser(body, user)); }
+    if (action === 'setUserActive') { requireAdmin(user); return json(setUserActive(body, user)); }
+    if (action === 'resetUserPassword') { requireAdmin(user); return json(resetUserPassword(body, user)); }
+    if (action === 'getConfigurationData') { requireAdmin(user); return json(getConfigurationData()); }
+    if (action === 'saveConfigurationItem') { requireAdmin(user); return json(saveConfigurationItem(body, user)); }
+    if (action === 'deactivateConfigurationItem') { requireAdmin(user); return json(deactivateConfigurationItem(body, user)); }
+    if (action === 'listReports') return json({ ok: true, reports: listReports(user) });
+    if (action === 'listReferenti') { requireAdmin(user); return json({ ok: true, referenti: listReferenti() }); }
+    if (action === 'listUffici') return json({ ok: true, uffici: listUffici(isAdminUser(user)) });
     if (action === 'updateReportStatus') return json(updateReportStatus(body, user));
+    if (action === 'updateReportLocation') return json(updateReportLocation(body, user));
     if (action === 'sendToReferente') return json(sendToReferente(body, user));
     if (action === 'sendToUfficio') return json(sendToUfficio(body, user));
+    if (action === 'addReportNote') return json(addReportNote(body, user));
+    if (action === 'startReportWork') return json(startReportWork(body, user));
+    if (action === 'recordOfficeResponse') return json(recordOfficeResponse(body, user));
     if (action === 'closeReport') return json(closeReport(body, user));
     if (action === 'getTimeline') {
+      requireReportAccess(body.reportId, user);
       return json({ ok: true, timeline: getTimeline(body.reportId, false) });
     }
     if (action === 'getCommunications') {
+      requireReportAccess(body.reportId, user);
       return json({ ok: true, comunicazioni: getCommunications(body.reportId, false) });
     }
 
@@ -282,7 +322,9 @@ function loginUser(body) {
   if (!userMatch || !verifyPassword(password, String(userMatch.data.Password || ''))) {
     throw new Error('Email o password non validi');
   }
+  normalizeUserRole(userMatch.data.Ruolo);
 
+  setRowFields(SHEETS.USERS, userMatch.rowNumber, { 'Ultimo accesso': new Date() });
   const token = createSession(userMatch.data);
   return {
     ok: true,
@@ -302,6 +344,7 @@ function createSession(userRow) {
     'Token Hash': hashToken(rawToken),
     'Utente ID': userRow.ID,
     'Email': normalizeEmail(userRow.Email),
+    'Versione autenticazione': currentAuthVersion(userRow),
     'Creato': now,
     'Scadenza': expires,
     'Revocato': 'No'
@@ -331,6 +374,21 @@ function requireAuth(body) {
   );
   if (!user) throw authError();
 
+  if (normalizeEmail(session.data.Email) !== normalizeEmail(user.data.Email)) {
+    setRowFields(SHEETS.SESSIONS, session.rowNumber, { Revocato: 'Sì' });
+    throw authError();
+  }
+  if (Number(session.data['Versione autenticazione'] || 0) !== currentAuthVersion(user.data)) {
+    setRowFields(SHEETS.SESSIONS, session.rowNumber, { Revocato: 'Sì' });
+    throw authError();
+  }
+  try {
+    normalizeUserRole(user.data.Ruolo);
+  } catch (_) {
+    setRowFields(SHEETS.SESSIONS, session.rowNumber, { Revocato: 'Sì' });
+    throw authError();
+  }
+
   return publicUser(user.data);
 }
 
@@ -354,8 +412,383 @@ function publicUser(row) {
     id: String(row.ID || ''),
     nome: cleanOutput(row.Nome),
     email: normalizeEmail(row.Email),
-    ruolo: cleanOutput(row.Ruolo)
+    ruolo: normalizeUserRole(row.Ruolo),
+    mustChangePassword: isYes(row['Cambio password richiesto'])
   };
+}
+
+function currentAuthVersion(row) {
+  const value = Number(row && row['Versione autenticazione']);
+  return Number.isFinite(value) && value >= 1 ? Math.floor(value) : 1;
+}
+
+function requireCompletedPasswordChange(user) {
+  if (user && user.mustChangePassword) {
+    const err = new Error('Devi cambiare la password temporanea prima di usare il CRM');
+    err.passwordChangeRequired = true;
+    throw err;
+  }
+}
+
+
+function normalizedRole(user) {
+  return String(user && user.ruolo || '').trim().toLowerCase();
+}
+
+function isAdminUser(user) {
+  return /amministratore|admin/.test(normalizedRole(user));
+}
+
+function isConsigliereUser(user) {
+  return /consigliere/.test(normalizedRole(user));
+}
+
+function requireAdmin(user) {
+  if (!isAdminUser(user)) throw new Error('Operazione riservata agli amministratori');
+  return true;
+}
+
+function normalizePersonName(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('it');
+}
+
+function canAccessReportRow(row, user) {
+  if (isAdminUser(user)) return true;
+  if (isConsigliereUser(user)) {
+    const sameEmail = normalizeEmail(row['Email referente']) === normalizeEmail(user.email);
+    const sameName = normalizePersonName(row['Referente assegnato']) === normalizePersonName(user.nome);
+    return Boolean(sameEmail && sameName);
+  }
+  return false;
+}
+
+function requireReportAccess(reportId, user) {
+  const id = cleanText(reportId, 80, false);
+  const report = findRow(SHEETS.REPORTS, row => String(row.ID || '') === id);
+  if (!report) throw new Error('Pratica non trovata');
+  if (!canAccessReportRow(report.data, user)) throw new Error('Accesso negato alla pratica');
+  return report;
+}
+
+
+/* =========================
+ * Gestione utenti CRM
+ * ========================= */
+
+function listUsers() {
+  return readRows(SHEETS.USERS)
+    .map(item => item.data)
+    .filter(row => cleanOutput(row.ID))
+    .map(row => ({
+      id: cleanOutput(row.ID),
+      nome: cleanOutput(row.Nome),
+      email: normalizeEmail(row.Email),
+      ruolo: cleanOutput(row.Ruolo),
+      attivo: isYes(row.Attivo),
+      mustChangePassword: isYes(row['Cambio password richiesto'])
+    }))
+    .sort((a, b) => String(a.nome || a.email).localeCompare(String(b.nome || b.email), 'it'));
+}
+
+function normalizeUserRole(value) {
+  const role = String(value || '').trim().toLowerCase();
+  if (/amministratore|admin/.test(role)) return 'Amministratore';
+  if (/consigliere/.test(role)) return 'Consigliere';
+  throw new Error('Ruolo non valido. Usare Amministratore o Consigliere');
+}
+
+function saveUser(body, operator) {
+  const item = body && body.user ? body.user : {};
+  const id = cleanText(item.id, 80, false);
+  const email = normalizeEmail(item.email);
+  const nome = cleanText(item.nome, 120, true);
+  const ruolo = normalizeUserRole(item.ruolo);
+  const attivo = item.attivo === true || isYes(item.attivo);
+
+  if (!isValidEmail(email)) throw new Error('Email non valida');
+
+  const byId = id ? findRow(SHEETS.USERS, row => String(row.ID || '') === id) : null;
+  const byEmail = findRow(SHEETS.USERS, row => normalizeEmail(row.Email) === email);
+  const match = byId || byEmail;
+
+  if (byId && byEmail && byId.rowNumber !== byEmail.rowNumber) {
+    throw new Error('Email già utilizzata da un altro utente');
+  }
+
+  const isNew = !match;
+  const emailChanged = Boolean(match && normalizeEmail(match.data.Email) !== email);
+  if (match && !isYes(match.data.Attivo) && attivo && !isYes(match.data['Cambio password richiesto'])) {
+    throw new Error('Prima di riattivare l’utente reimposta la password temporanea');
+  }
+
+  const fields = {
+    ID: match && cleanOutput(match.data.ID)
+      ? cleanOutput(match.data.ID)
+      : nextUserId(),
+    Nome: safeSheetText(nome),
+    Email: email,
+    Ruolo: safeSheetText(ruolo),
+    Attivo: attivo ? 'Sì' : 'No',
+    'Versione autenticazione': match ? currentAuthVersion(match.data) + 1 : 1
+  };
+
+  let temporaryPassword = '';
+  const credentialsReset = isNew || emailChanged;
+  if (credentialsReset) {
+    temporaryPassword = generateTemporaryPassword();
+    const salt = Utilities.getUuid().replace(/-/g, '');
+    fields.Password = hashPassword(temporaryPassword, salt);
+    fields['Cambio password richiesto'] = 'Sì';
+  }
+
+  if (match) {
+    preventLastAdminRemoval(match.data, fields);
+    setRowFields(SHEETS.USERS, match.rowNumber, fields);
+    revokeUserSessions(cleanOutput(match.data.ID));
+  } else {
+    appendObjectRow(SHEETS.USERS, fields);
+  }
+
+  if (credentialsReset) {
+    try {
+      sendWelcomeEmail(nome, email, temporaryPassword, ruolo);
+    } catch (mailError) {
+      const affected = findRow(SHEETS.USERS, row => String(row.ID || '') === fields.ID);
+      if (affected) {
+        if (match) {
+          setRowFields(SHEETS.USERS, affected.rowNumber, {
+            Nome: match.data.Nome,
+            Email: match.data.Email,
+            Password: match.data.Password,
+            Ruolo: match.data.Ruolo,
+            Attivo: match.data.Attivo,
+            'Cambio password richiesto': match.data['Cambio password richiesto'],
+            'Versione autenticazione': currentAuthVersion(match.data)
+          });
+        } else {
+          setRowFields(SHEETS.USERS, affected.rowNumber, { Attivo: 'No' });
+        }
+      }
+      throw new Error((match ? 'Modifica annullata' : 'Utente creato ma disattivato') + ': email credenziali non inviata. ' + mailError.message);
+    }
+  }
+
+  logAdminAction(isNew ? 'Utente creato e invito inviato' : (emailChanged ? 'Email utente aggiornata e credenziali rigenerate' : 'Utente aggiornato'), fields.ID, email, operator);
+  return {
+    ok: true,
+    invited: isNew,
+    credentialsSent: credentialsReset,
+    emailChanged: emailChanged,
+    user: {
+      id: fields.ID,
+      nome: nome,
+      email: email,
+      ruolo: ruolo,
+      attivo: attivo,
+      mustChangePassword: credentialsReset ? true : isYes(match.data['Cambio password richiesto'])
+    }
+  };
+}
+
+function nextUserId() {
+  const max = readRows(SHEETS.USERS).reduce((current, item) => {
+    const match = String(item.data.ID || '').match(/^U(\d+)$/i);
+    return match ? Math.max(current, Number(match[1])) : current;
+  }, 0);
+  return 'U' + String(max + 1).padStart(3, '0');
+}
+
+function generateTemporaryPassword() {
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lower = 'abcdefghijkmnopqrstuvwxyz';
+  const digits = '23456789';
+  const symbols = '!@#$%*-_';
+  const all = upper + lower + digits + symbols;
+  const entropy = bytesToHex(Utilities.computeHmacSha256Signature(
+    Utilities.getUuid() + '|' + Utilities.getUuid() + '|' + Date.now(),
+    getSecretPepper()
+  ));
+  let cursor = 0;
+  function pick(chars) {
+    const byte = parseInt(entropy.slice(cursor, cursor + 2), 16);
+    cursor = (cursor + 2) % entropy.length;
+    return chars[byte % chars.length];
+  }
+  const chars = [pick(upper), pick(lower), pick(digits), pick(symbols)];
+  while (chars.length < 18) chars.push(pick(all));
+  for (let i = chars.length - 1; i > 0; i--) {
+    const byte = parseInt(entropy.slice(cursor, cursor + 2), 16);
+    cursor = (cursor + 2) % entropy.length;
+    const j = byte % (i + 1);
+    const tmp = chars[i]; chars[i] = chars[j]; chars[j] = tmp;
+  }
+  return chars.join('');
+}
+
+function sendWelcomeEmail(nome, email, temporaryPassword, ruolo) {
+  const loginUrl = getPublicBaseUrl() + 'login.html';
+  const subject = 'Accesso al CRM FDI Ascolta IX';
+  const text =
+    'Ciao ' + nome + ',\n\n' +
+    'è stato creato il tuo account per il CRM FDI Ascolta IX.\n\n' +
+    'Ruolo: ' + ruolo + '\n' +
+    'Email: ' + email + '\n' +
+    'Password temporanea: ' + temporaryPassword + '\n\n' +
+    'Accedi qui: ' + loginUrl + '\n\n' +
+    'Al primo accesso dovrai scegliere una nuova password.\n' +
+    'Non inoltrare questa email e non condividere la password temporanea.';
+
+  const html =
+    '<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#102342">' +
+    '<h2 style="color:#082f6a">FDI Ascolta IX</h2>' +
+    '<p>Ciao <strong>' + escapeHtmlEmail(nome) + '</strong>,</p>' +
+    '<p>è stato creato il tuo account per il CRM.</p>' +
+    '<div style="padding:18px;border:1px solid #dfe6ef;border-radius:12px;background:#f4f7fb">' +
+    '<p><strong>Ruolo:</strong> ' + escapeHtmlEmail(ruolo) + '</p>' +
+    '<p><strong>Email:</strong> ' + escapeHtmlEmail(email) + '</p>' +
+    '<p><strong>Password temporanea:</strong> <code style="font-size:16px">' + escapeHtmlEmail(temporaryPassword) + '</code></p>' +
+    '</div>' +
+    '<p style="margin:24px 0"><a href="' + loginUrl + '" style="background:#082f6a;color:#fff;padding:12px 18px;text-decoration:none;border-radius:9px;font-weight:bold">Accedi al CRM</a></p>' +
+    '<p>Al primo accesso dovrai scegliere una nuova password.</p>' +
+    '<p style="font-size:12px;color:#67758c">Non inoltrare questa email e non condividere la password temporanea.</p>' +
+    '</div>';
+
+  MailApp.sendEmail({
+    to: email,
+    subject: subject,
+    body: text,
+    htmlBody: html,
+    name: APP.NAME
+  });
+}
+
+function escapeHtmlEmail(value) {
+  return String(value || '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[char]);
+}
+
+function setUserActive(body, operator) {
+  const id = cleanText(body.userId, 80, true);
+  const active = body.active === true || isYes(body.active);
+  const match = findRow(SHEETS.USERS, row => String(row.ID || '') === id);
+  if (!match) throw new Error('Utente non trovato');
+  normalizeUserRole(match.data.Ruolo);
+  if (active && !isYes(match.data.Attivo) && !isYes(match.data['Cambio password richiesto'])) {
+    throw new Error('Prima di riattivare l’utente reimposta la password temporanea');
+  }
+
+  const fields = { Attivo: active ? 'Sì' : 'No', 'Versione autenticazione': currentAuthVersion(match.data) + 1 };
+  preventLastAdminRemoval(match.data, fields);
+  setRowFields(SHEETS.USERS, match.rowNumber, fields);
+  revokeUserSessions(id);
+
+  logAdminAction(active ? 'Utente attivato' : 'Utente disattivato', id, normalizeEmail(match.data.Email), operator);
+  return { ok: true };
+}
+
+function resetUserPassword(body, operator) {
+  const id = cleanText(body.userId, 80, true);
+  const match = findRow(SHEETS.USERS, row => String(row.ID || '') === id);
+  if (!match) throw new Error('Utente non trovato');
+  normalizeUserRole(match.data.Ruolo);
+
+  const password = generateTemporaryPassword();
+  const salt = Utilities.getUuid().replace(/-/g, '');
+  const oldPassword = match.data.Password;
+  const oldChangeRequired = match.data['Cambio password richiesto'];
+  const oldAuthVersion = currentAuthVersion(match.data);
+  setRowFields(SHEETS.USERS, match.rowNumber, {
+    Password: hashPassword(password, salt),
+    'Cambio password richiesto': 'Sì',
+    'Versione autenticazione': oldAuthVersion + 1
+  });
+
+  try {
+    sendWelcomeEmail(
+      cleanOutput(match.data.Nome),
+      normalizeEmail(match.data.Email),
+      password,
+      normalizeUserRole(match.data.Ruolo)
+    );
+  } catch (mailError) {
+    setRowFields(SHEETS.USERS, match.rowNumber, {
+      Password: oldPassword,
+      'Cambio password richiesto': oldChangeRequired,
+      'Versione autenticazione': oldAuthVersion
+    });
+    throw new Error('Reset annullato: email con la password temporanea non inviata. ' + mailError.message);
+  }
+
+  revokeUserSessions(id);
+  logAdminAction('Nuova password temporanea inviata', id, normalizeEmail(match.data.Email), operator);
+  return { ok: true, sent: true };
+}
+
+function changeOwnPassword(body, user) {
+  const currentPassword = String(body.currentPassword || '').trim();
+  const newPassword = String(body.newPassword || '').trim();
+
+  validatePasswordPolicy(newPassword);
+  if (currentPassword === newPassword) throw new Error('La nuova password deve essere diversa');
+
+  const match = findRow(SHEETS.USERS, row => String(row.ID || '') === String(user.id || ''));
+  if (!match || !verifyPassword(currentPassword, String(match.data.Password || ''))) {
+    throw new Error('Password temporanea non corretta');
+  }
+
+  const salt = Utilities.getUuid().replace(/-/g, '');
+  setRowFields(SHEETS.USERS, match.rowNumber, {
+    Password: hashPassword(newPassword, salt),
+    'Cambio password richiesto': 'No',
+    'Versione autenticazione': currentAuthVersion(match.data) + 1
+  });
+  revokeUserSessions(user.id);
+  logAdminAction('Password personale modificata', user.id, user.email, user);
+  return { ok: true, reloginRequired: true };
+}
+
+function preventLastAdminRemoval(existing, fields) {
+  const wasAdmin = /amministratore|admin/i.test(String(existing.Ruolo || ''));
+  const willBeAdmin = Object.prototype.hasOwnProperty.call(fields, 'Ruolo')
+    ? /amministratore|admin/i.test(String(fields.Ruolo || ''))
+    : wasAdmin;
+  const willBeActive = Object.prototype.hasOwnProperty.call(fields, 'Attivo')
+    ? isYes(fields.Attivo)
+    : isYes(existing.Attivo);
+
+  if (wasAdmin && (!willBeAdmin || !willBeActive)) {
+    const otherAdmins = readRows(SHEETS.USERS).filter(item =>
+      String(item.data.ID || '') !== String(existing.ID || '') &&
+      isYes(item.data.Attivo) &&
+      /amministratore|admin/i.test(String(item.data.Ruolo || ''))
+    );
+    if (!otherAdmins.length) {
+      throw new Error('Non è possibile rimuovere o disattivare l’ultimo amministratore');
+    }
+  }
+}
+
+function revokeUserSessions(userId) {
+  readRows(SHEETS.SESSIONS).forEach(item => {
+    if (String(item.data['Utente ID'] || '') === String(userId || '') && !isYes(item.data.Revocato)) {
+      setRowFields(SHEETS.SESSIONS, item.rowNumber, { Revocato: 'Sì' });
+    }
+  });
+}
+
+function logAdminAction(tipo, userId, email, operator) {
+  try {
+    appendObjectRow(SHEETS.LOG, {
+      Data: new Date(),
+      Tipo: tipo,
+      'Segnalazione ID': userId,
+      Destinatario: email,
+      Email: email,
+      Operatore: operator && operator.email ? operator.email : '',
+      Esito: 'OK'
+    });
+  } catch (_) {}
 }
 
 function hashPassword(password, salt) {
@@ -414,6 +847,121 @@ function pruneExpiredSessions() {
  * API pubbliche
  * ========================= */
 
+function getRecaptchaSettings() {
+  const props = PropertiesService.getScriptProperties();
+  const required = !/^(false|0|no)$/i.test(String(props.getProperty('RECAPTCHA_REQUIRED') || 'true').trim());
+  const siteKey = String(props.getProperty('RECAPTCHA_SITE_KEY') || '').trim();
+  const secret = String(props.getProperty('RECAPTCHA_SECRET') || '').trim();
+  const minScoreRaw = Number(props.getProperty('RECAPTCHA_MIN_SCORE') || '0.5');
+  const minScore = Number.isFinite(minScoreRaw) ? Math.min(1, Math.max(0, minScoreRaw)) : 0.5;
+  const allowedHostnames = String(props.getProperty('RECAPTCHA_ALLOWED_HOSTNAMES') || 'rete-seggi-fdi.github.io')
+    .split(',').map(value => value.trim().toLowerCase()).filter(Boolean);
+  return { required: required, siteKey: siteKey, secret: secret, minScore: minScore, allowedHostnames: allowedHostnames };
+}
+
+function getPublicConfig() {
+  const cfg = getRecaptchaSettings();
+  return {
+    ok: true,
+    recaptcha: {
+      required: cfg.required,
+      configured: Boolean(cfg.siteKey && cfg.secret),
+      siteKey: cfg.siteKey
+    }
+  };
+}
+
+function getPublicBaseUrl() {
+  const configured = String(PropertiesService.getScriptProperties().getProperty('PUBLIC_BASE_URL') || APP.PUBLIC_BASE_URL).trim();
+  if (!/^https:\/\//i.test(configured)) throw new Error('PUBLIC_BASE_URL deve usare HTTPS');
+  return configured.replace(/\/+$/, '') + '/';
+}
+
+function getPublicTrackingUrl() {
+  const configured = String(PropertiesService.getScriptProperties().getProperty('PUBLIC_TRACKING_URL') || '').trim();
+  if (configured) {
+    if (!/^https:\/\//i.test(configured)) throw new Error('PUBLIC_TRACKING_URL deve usare HTTPS');
+    return configured;
+  }
+  return getPublicBaseUrl() + 'tracking.html';
+}
+
+function verifyRecaptchaV3(token, expectedAction) {
+  const cfg = getRecaptchaSettings();
+  if (!cfg.required) return true;
+  if (!cfg.siteKey || !cfg.secret) throw new Error('Protezione anti-spam non configurata');
+  const responseToken = cleanText(token, 4096, false);
+  if (!responseToken) throw new Error('Verifica anti-spam mancante');
+
+  const response = UrlFetchApp.fetch('https://www.google.com/recaptcha/api/siteverify', {
+    method: 'post',
+    payload: { secret: cfg.secret, response: responseToken },
+    muteHttpExceptions: true
+  });
+  if (response.getResponseCode() !== 200) throw new Error('Servizio anti-spam non disponibile');
+
+  let result;
+  try { result = JSON.parse(response.getContentText() || '{}'); }
+  catch (_) { throw new Error('Risposta anti-spam non valida'); }
+
+  if (!result.success) throw new Error('Verifica anti-spam non superata');
+  if (String(result.action || '') !== String(expectedAction || '')) throw new Error('Azione anti-spam non valida');
+  if (Number(result.score) < cfg.minScore) throw new Error('Verifica anti-spam non superata');
+  const hostname = String(result.hostname || '').trim().toLowerCase();
+  if (cfg.allowedHostnames.length && cfg.allowedHostnames.indexOf(hostname) < 0) {
+    throw new Error('Origine anti-spam non autorizzata');
+  }
+  return true;
+}
+
+function diagnosticaRecaptcha() {
+  const cfg = getRecaptchaSettings();
+  return {
+    required: cfg.required,
+    configured: Boolean(cfg.siteKey && cfg.secret),
+    siteKeyPresent: Boolean(cfg.siteKey),
+    secretPresent: Boolean(cfg.secret),
+    minScore: cfg.minScore,
+    allowedHostnames: cfg.allowedHostnames
+  };
+}
+
+function setupRecaptcha() {
+  const result = diagnosticaRecaptcha();
+  if (result.required && !result.configured) {
+    throw new Error('Impostare RECAPTCHA_SITE_KEY e RECAPTCHA_SECRET nelle Proprietà script');
+  }
+  if (result.required && !result.allowedHostnames.length) {
+    throw new Error('Impostare almeno un hostname in RECAPTCHA_ALLOWED_HOSTNAMES');
+  }
+  return 'reCAPTCHA configurato: ' + JSON.stringify(result);
+}
+
+function geocodeAddress(body) {
+  const clientId = cleanText(body.clientId || 'anonimo', 120, false);
+  const address = requiredText(body.indirizzo, 'Indirizzo', 300);
+  const district = cleanText(body.quartiere, 120, false);
+  enforceRateLimit('geocode:global', 120, 600);
+  enforceRateLimit('geocode:client:' + shortHash(clientId), 20, 3600);
+
+  const query = [address, district, 'Roma'].filter(Boolean).join(', ');
+  const response = Maps.newGeocoder()
+    .setRegion('it')
+    .setLanguage('it')
+    .setBounds(APP.COORDS.minLat, APP.COORDS.minLng, APP.COORDS.maxLat, APP.COORDS.maxLng)
+    .geocode(query);
+  const results = Array.isArray(response && response.results) ? response.results : [];
+  const clean = results.map(item => {
+    const location = item && item.geometry && item.geometry.location ? item.geometry.location : {};
+    return {
+      indirizzo: cleanText(item && item.formatted_address || '', 500, false),
+      latitudine: normalizeCoordinate(location.lat),
+      longitudine: normalizeCoordinate(location.lng)
+    };
+  }).filter(item => item.indirizzo && isValidMunicipioIXCoord(item.latitudine, item.longitudine)).slice(0, 5);
+  return { ok: true, risultati: clean };
+}
+
 function createReport(body) {
   enforceRateLimit('create:global', 60, 600);
 
@@ -424,17 +972,18 @@ function createReport(body) {
 
   if (String(body.website || '').trim()) throw new Error('Invio non valido');
   if (!truthy(body.consenso)) throw new Error('È necessario accettare il consenso dati');
+  verifyRecaptchaV3(body.recaptchaToken, 'create_report');
 
   const report = {
     nome: requiredText(body.nome, 'Nome e cognome', 120),
     email: email,
     telefono: cleanText(body.telefono, 40, false),
-    quartiere: requiredText(body.quartiere, 'Quartiere', 120),
-    categoria: requiredText(body.categoria, 'Categoria', 100),
+    quartiere: normalizeDistrictName(body.quartiere),
+    categoria: normalizeCategory(body.categoria),
     titolo: requiredText(body.titolo, 'Titolo', 180),
     descrizione: requiredText(body.descrizione, 'Descrizione', 5000),
     indirizzo: requiredText(body.indirizzo, 'Indirizzo', 300),
-    priorita: normalizePriority(body.priorita),
+    priorita: normalizePriorityStrict(body.priorita),
     latitudine: normalizeCoordinate(body.latitudine),
     longitudine: normalizeCoordinate(body.longitudine)
   };
@@ -444,7 +993,9 @@ function createReport(body) {
     throw new Error('Coordinate non valide o fuori area Municipio IX');
   }
 
+  const publicTrackingUrl = getPublicTrackingUrl();
   const photo = body.foto && body.foto.base64 ? validatePhoto(body.foto) : null;
+  const requestId = normalizeRequestId(body.requestId);
   const id = generateReportId();
   const trackingToken = generateTrackingToken();
   const now = new Date();
@@ -452,9 +1003,20 @@ function createReport(body) {
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
   let rowNumber;
+  let duplicateReport = null;
   try {
-    rowNumber = appendObjectRow(SHEETS.REPORTS, {
+    if (requestId) {
+      const existing = findRow(SHEETS.REPORTS, row => String(row['Request ID'] || '') === requestId);
+      if (existing) {
+        if (normalizeEmail(existing.data['Email cittadino']) !== report.email) {
+          throw new Error('Identificativo richiesta già utilizzato');
+        }
+        duplicateReport = existing;
+      }
+    }
+    if (!duplicateReport) rowNumber = appendObjectRow(SHEETS.REPORTS, {
       'ID': id,
+      'Request ID': requestId,
       'Data': now,
       'Quartiere': safeSheetText(report.quartiere),
       'Categoria': safeSheetText(report.categoria),
@@ -474,6 +1036,19 @@ function createReport(body) {
     });
   } finally {
     lock.releaseLock();
+  }
+
+  if (duplicateReport) {
+    const duplicateId = cleanOutput(duplicateReport.data.ID);
+    return {
+      ok: true,
+      id: duplicateId,
+      duplicate: true,
+      trackingToken: '',
+      trackingUrl: '',
+      emailSent: false,
+      warning: 'Richiesta già ricevuta: è stata restituita la pratica esistente. Puoi seguirla con codice pratica ed email.'
+    };
   }
 
   let photoWarning = '';
@@ -515,7 +1090,7 @@ function createReport(body) {
     ok: true,
     id: id,
     trackingToken: trackingToken,
-    trackingUrl: APP.PUBLIC_TRACKING_URL + '?token=' + encodeURIComponent(trackingToken),
+    trackingUrl: publicTrackingUrl + '#token=' + encodeURIComponent(trackingToken),
     emailSent: emailSent,
     warning: [photoWarning, timelineWarning, emailWarning].filter(Boolean).join(' ')
   };
@@ -548,7 +1123,9 @@ function getPublicReport(body) {
   const email = normalizeEmail(body.email);
   if (!code) throw new Error('Inserisci il codice pratica');
 
+  const clientId = cleanText(body.clientId, 120, false);
   enforceRateLimit('tracking:global', 300, 600);
+  if (clientId) enforceRateLimit('tracking:client:' + shortHash(clientId), 60, 600);
   enforceRateLimit('tracking:' + shortHash(code), 30, 600);
 
   const tokenHash = hashToken(code);
@@ -593,10 +1170,10 @@ function publicReport(row) {
   };
 }
 
-function listQuartieri() {
+function listQuartieri(includeInactive) {
   return readRows(SHEETS.DISTRICTS)
     .map(item => item.data)
-    .filter(row => row.Nome && !isNo(row.Attivo))
+    .filter(row => row.Nome && (includeInactive || isYes(row.Attivo)))
     .map(row => ({
       codice: cleanOutput(row.Codice),
       id: cleanOutput(row.Codice),
@@ -608,14 +1185,99 @@ function listQuartieri() {
     .sort((a, b) => a.ordine - b.ordine || a.nome.localeCompare(b.nome, 'it'));
 }
 
+function getConfigurationData() {
+  return {
+    ok: true,
+    quartieri: listQuartieri(true),
+    referenti: listReferenti(true),
+    uffici: listUffici(true),
+    categories: CATEGORIES.slice(),
+    priorities: PRIORITIES.slice(),
+    workflow: WORKFLOW.slice()
+  };
+}
+
+function saveConfigurationItem(body, user) {
+  const type = String(body.itemType || '').trim().toLowerCase();
+  const item = body && body.item ? body.item : {};
+  if (type === 'quartiere') {
+    const code = requiredText(item.codice || item.id, 'Codice quartiere', 80);
+    const values = {
+      Codice: safeSheetText(code),
+      Nome: safeSheetText(requiredText(item.nome, 'Nome quartiere', 120)),
+      Tipo: safeSheetText(cleanText(item.tipo || 'Quartiere', 80, false)),
+      Attivo: truthy(item.attivo) ? 'Sì' : 'No',
+      Ordine: Math.max(0, Math.min(9999, Number(item.ordine) || 999))
+    };
+    upsertConfigurationRow(SHEETS.DISTRICTS, 'Codice', code, values);
+  } else if (type === 'referente') {
+    const id = requiredText(item.id, 'ID referente', 80);
+    const email = normalizeEmail(item.email);
+    if (!isValidEmail(email)) throw new Error('Email referente non valida');
+    const values = {
+      ID: safeSheetText(id),
+      Nome: safeSheetText(requiredText(item.nome, 'Nome referente', 120)),
+      Ruolo: safeSheetText(cleanText(item.ruolo, 120, false)),
+      'Partito/Lista': safeSheetText(cleanText(item.partito, 120, false)),
+      Email: email,
+      Telefono: safeSheetText(cleanText(item.telefono, 40, false)),
+      Competenze: safeSheetText(cleanText(item.competenze, 1000, true)),
+      Zona: safeSheetText(cleanText(item.zona || 'Municipio IX', 120, false)),
+      Attivo: truthy(item.attivo) ? 'Sì' : 'No'
+    };
+    upsertConfigurationRow(SHEETS.REFERENTI, 'ID', id, values);
+  } else if (type === 'ufficio') {
+    const id = requiredText(item.id, 'ID ufficio', 80);
+    const email = normalizeEmail(item.email);
+    if (email && !isValidEmail(email)) throw new Error('Email ufficio non valida');
+    const values = {
+      ID: safeSheetText(id),
+      Ufficio: safeSheetText(requiredText(item.ufficio || item.nome, 'Nome ufficio', 160)),
+      Settore: safeSheetText(cleanText(item.settore, 160, false)),
+      Email: email,
+      Telefono: safeSheetText(cleanText(item.telefono, 40, false)),
+      Note: safeSheetText(cleanText(item.note, 2000, true)),
+      Attivo: truthy(item.attivo) ? 'Sì' : 'No'
+    };
+    upsertConfigurationRow(SHEETS.OFFICES, 'ID', id, values);
+  } else {
+    throw new Error('Tipo configurazione non valido');
+  }
+  logAdminAction('Configurazione aggiornata: ' + type, '', '', user);
+  return { ok: true };
+}
+
+function upsertConfigurationRow(sheetName, keyHeader, keyValue, values) {
+  const match = findRow(sheetName, row => String(row[keyHeader] || '') === String(keyValue || ''));
+  if (match) setRowFields(sheetName, match.rowNumber, values);
+  else appendObjectRow(sheetName, values);
+}
+
+function deactivateConfigurationItem(body, user) {
+  const type = String(body.itemType || '').trim().toLowerCase();
+  const id = requiredText(body.id, 'Identificativo', 80);
+  const map = {
+    quartiere: [SHEETS.DISTRICTS, 'Codice'],
+    referente: [SHEETS.REFERENTI, 'ID'],
+    ufficio: [SHEETS.OFFICES, 'ID']
+  };
+  const target = map[type];
+  if (!target) throw new Error('Tipo configurazione non valido');
+  const match = findRow(target[0], row => String(row[target[1]] || '') === id);
+  if (!match) throw new Error('Elemento non trovato');
+  setRowFields(target[0], match.rowNumber, { Attivo: 'No' });
+  logAdminAction('Configurazione disattivata: ' + type, id, '', user);
+  return { ok: true };
+}
+
 /* =========================
  * API private
  * ========================= */
 
-function listReports() {
+function listReports(user) {
   return readRows(SHEETS.REPORTS)
     .map(item => item.data)
-    .filter(row => row.ID)
+    .filter(row => row.ID && canAccessReportRow(row, user))
     .map(row => ({
       id: cleanOutput(row.ID),
       data: formatDate(row.Data),
@@ -645,10 +1307,10 @@ function listReports() {
     .reverse();
 }
 
-function listReferenti() {
+function listReferenti(includeInactive) {
   return readRows(SHEETS.REFERENTI)
     .map(item => item.data)
-    .filter(row => row.ID && !isNo(row.Attivo))
+    .filter(row => row.ID && (includeInactive || isYes(row.Attivo)))
     .map(row => ({
       id: cleanOutput(row.ID),
       nome: cleanOutput(row.Nome),
@@ -662,10 +1324,10 @@ function listReferenti() {
     }));
 }
 
-function listUffici() {
+function listUffici(includeInactive) {
   return readRows(SHEETS.OFFICES)
     .map(item => item.data)
-    .filter(row => row.ID)
+    .filter(row => row.ID && (includeInactive || isYes(row.Attivo)))
     .map(row => ({
       id: cleanOutput(row.ID),
       ufficio: cleanOutput(row.Ufficio),
@@ -679,10 +1341,12 @@ function listUffici() {
 }
 
 function updateReportStatus(body, user) {
+  requireAdmin(user);
+  requireReportAccess(body.reportId, user);
   const report = requireReport(body.reportId);
   const status = requiredText(body.stato, 'Stato', 160);
   const description = cleanText(body.descrizione, 2000, true) || ('Stato aggiornato a: ' + status);
-  const visible = !isNo(body.visibileCittadino);
+  const visible = isYes(body.visibileCittadino);
 
   if (WORKFLOW.indexOf(status) < 0) throw new Error('Stato non valido');
 
@@ -695,7 +1359,53 @@ function updateReportStatus(body, user) {
   return { ok: true, stato: status };
 }
 
+function updateReportLocation(body, user) {
+  requireAdmin(user);
+  const report = requireReportAccess(body.reportId, user);
+  const lat = normalizeCoordinate(body.latitudine);
+  const lng = normalizeCoordinate(body.longitudine);
+  if (!isValidMunicipioIXCoord(lat, lng)) throw new Error('Coordinate non valide o fuori area Municipio IX');
+  const address = cleanText(body.indirizzo, 300, false);
+  const fields = { Latitudine: lat, Longitudine: lng, 'Ultimo aggiornamento': new Date() };
+  if (address) fields.Indirizzo = safeSheetText(address);
+  setRowFields(SHEETS.REPORTS, report.rowNumber, fields);
+  appendTimeline(report.data.ID, 'Posizione aggiornata', 'Coordinate della pratica aggiornate.', cleanOutput(report.data.Stato), false, user.nome || user.email);
+  return { ok: true, latitudine: lat, longitudine: lng };
+}
+
+function addReportNote(body, user) {
+  const report = requireReportAccess(body.reportId, user);
+  const note = requiredText(body.note, 'Nota', 3000);
+  if (note.length < 3) throw new Error('La nota è troppo breve');
+  const visible = isAdminUser(user) && truthy(body.visibileCittadino);
+  appendTimeline(report.data.ID, 'Nota operativa', note, cleanOutput(report.data.Stato), visible, user.nome || user.email);
+  return { ok: true };
+}
+
+function startReportWork(body, user) {
+  const report = requireReportAccess(body.reportId, user);
+  const note = requiredText(body.note, 'Nota di presa in carico', 3000);
+  if (note.length < 10) throw new Error('La nota deve contenere almeno 10 caratteri');
+  const now = new Date();
+  setRowFields(SHEETS.REPORTS, report.rowNumber, { Stato: WORKFLOW[6], 'Ultimo aggiornamento': now });
+  appendTimeline(report.data.ID, WORKFLOW[6], 'La pratica è in lavorazione.', WORKFLOW[6], true, user.nome || user.email);
+  appendCommunication(report.data.ID, 'Nota interna', 'Presa in carico operativa', note, false, user.nome || user.email);
+  return { ok: true, stato: WORKFLOW[6] };
+}
+
+function recordOfficeResponse(body, user) {
+  const report = requireReportAccess(body.reportId, user);
+  const response = requiredText(body.response, 'Risposta ufficio', 5000);
+  if (response.length < 10) throw new Error('La risposta deve contenere almeno 10 caratteri');
+  const now = new Date();
+  setRowFields(SHEETS.REPORTS, report.rowNumber, { Stato: WORKFLOW[5], 'Ultimo aggiornamento': now });
+  appendTimeline(report.data.ID, WORKFLOW[5], 'È stato ricevuto un riscontro dall’ufficio competente.', WORKFLOW[5], true, user.nome || user.email);
+  appendCommunication(report.data.ID, 'Risposta ufficio', 'Risposta ricevuta', response, false, user.nome || user.email);
+  return { ok: true, stato: WORKFLOW[5] };
+}
+
 function sendToReferente(body, user) {
+  requireAdmin(user);
   enforceRateLimit('mail:user:' + shortHash(user.id || user.email), 30, 3600);
   const report = requireReport(body.reportId);
   const refId = requiredText(body.referenteId, 'Referente', 80);
@@ -706,6 +1416,14 @@ function sendToReferente(body, user) {
   if (!ref) throw new Error('Referente non trovato');
   const email = normalizeEmail(ref.data.Email);
   if (!isValidEmail(email)) throw new Error('Email referente mancante o non valida');
+  const linkedCounsellor = findRow(SHEETS.USERS, row =>
+    isYes(row.Attivo) && /consigliere/i.test(String(row.Ruolo || '')) &&
+    normalizeEmail(row.Email) === email &&
+    normalizePersonName(row.Nome) === normalizePersonName(ref.data.Nome)
+  );
+  if (!linkedCounsellor) {
+    throw new Error('Il referente deve corrispondere a un account Consigliere attivo con lo stesso nome e la stessa email');
+  }
 
   const subject = APP.NAME + ' - Segnalazione ' + cleanOutput(report.data.ID);
   const message = cleanText(body.messaggio, 6000, true) || buildDefaultMessage(report.data, ref.data);
@@ -727,6 +1445,7 @@ function sendToReferente(body, user) {
 }
 
 function sendToUfficio(body, user) {
+  requireReportAccess(body.reportId, user);
   enforceRateLimit('mail:user:' + shortHash(user.id || user.email), 30, 3600);
   const report = requireReport(body.reportId);
   const officeId = requiredText(body.ufficioId, 'Ufficio', 80);
@@ -758,10 +1477,18 @@ function sendToUfficio(body, user) {
 }
 
 function closeReport(body, user) {
+  requireReportAccess(body.reportId, user);
   const report = requireReport(body.reportId);
   const outcome = requiredText(body.esito || 'Risolta', 'Esito', 120);
   const notes = requiredText(body.noteFinali, 'Note finali', 3000);
-  const archive = truthy(body.archivia);
+  const archive = isAdminUser(user) && truthy(body.archivia);
+  const currentStatus = cleanOutput(report.data.Stato);
+  if (/archiviata/i.test(currentStatus)) throw new Error('La pratica è già archiviata');
+  if (/risolta/i.test(currentStatus) && !archive) throw new Error('La pratica è già risolta');
+  if (truthy(body.inviaEmail)) {
+    enforceRateLimit('closemail:user:' + shortHash(user.id || user.email), 20, 3600);
+    enforceRateLimit('closemail:report:' + shortHash(report.data.ID), 3, 21600);
+  }
   const finalStatus = archive ? WORKFLOW[8] : WORKFLOW[7];
   const now = new Date();
 
@@ -797,7 +1524,7 @@ function getTimeline(reportId, publicOnly) {
   return readRows(SHEETS.TIMELINE)
     .map(item => item.data)
     .filter(row => String(row['Segnalazione ID'] || '') === id)
-    .filter(row => !publicOnly || !isNo(row['Visibile cittadino']))
+    .filter(row => !publicOnly || isYes(row['Visibile cittadino']))
     .map(row => ({
       id: cleanOutput(row.ID),
       data: formatDate(row.Data),
@@ -816,7 +1543,7 @@ function getCommunications(reportId, publicOnly) {
   return readRows(SHEETS.COMMUNICATIONS)
     .map(item => item.data)
     .filter(row => String(row['Segnalazione ID'] || '') === id)
-    .filter(row => !publicOnly || !isNo(row['Visibile cittadino']))
+    .filter(row => !publicOnly || isYes(row['Visibile cittadino']))
     .map(row => ({
       id: cleanOutput(row.ID),
       data: formatDate(row.Data),
@@ -834,7 +1561,7 @@ function getCommunications(reportId, publicOnly) {
 
 function sendCitizenConfirmation(report) {
   ensureMailQuota();
-  const trackingUrl = APP.PUBLIC_TRACKING_URL + '?token=' + encodeURIComponent(report.trackingToken);
+  const trackingUrl = getPublicTrackingUrl() + '#token=' + encodeURIComponent(report.trackingToken);
   const subject = APP.NAME + ' - Segnalazione ricevuta ' + report.id;
   const body =
     'Gentile ' + (report.nome || 'cittadino') + ',\n\n' +
@@ -1019,6 +1746,13 @@ function generateReportId() {
     Utilities.getUuid().replace(/-/g, '').slice(0, 16).toUpperCase();
 }
 
+function normalizeRequestId(value) {
+  const id = cleanText(value, 80, false);
+  if (!id) return '';
+  if (!/^[A-Za-z0-9][A-Za-z0-9_-]{15,79}$/.test(id)) throw new Error('Identificativo richiesta non valido');
+  return id;
+}
+
 function generateTrackingToken() {
   return Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
 }
@@ -1062,6 +1796,25 @@ function getSpreadsheet() {
  * Eseguire manualmente una volta dall'editor.
  * Collega il backend al foglio corrente e verifica utenti e quartieri.
  */
+function auditReportAssignments() {
+  setupSheet();
+  const counsellors = readRows(SHEETS.USERS).map(item => item.data).filter(row =>
+    isYes(row.Attivo) && /consigliere/i.test(String(row.Ruolo || ''))
+  );
+  return readRows(SHEETS.REPORTS).map(item => item.data).filter(row => {
+    const assignedName = normalizePersonName(row['Referente assegnato']);
+    const assignedEmail = normalizeEmail(row['Email referente']);
+    if (!assignedName && !assignedEmail) return false;
+    return !counsellors.some(user =>
+      normalizePersonName(user.Nome) === assignedName && normalizeEmail(user.Email) === assignedEmail
+    );
+  }).map(row => ({
+    id: cleanOutput(row.ID),
+    referenteNome: cleanOutput(row['Referente assegnato']),
+    referenteEmail: normalizeEmail(row['Email referente'])
+  }));
+}
+
 function collegaEFaiDiagnostica() {
   const active = SpreadsheetApp.getActiveSpreadsheet();
   if (!active) {
@@ -1077,6 +1830,13 @@ function collegaEFaiDiagnostica() {
   const activeUsers = users.filter(item => isYes(item.data.Attivo));
   const hashedUsers = activeUsers.filter(item => String(item.data.Password || '').startsWith('v1$'));
   const districts = listQuartieri();
+  const recaptcha = diagnosticaRecaptcha();
+  const publicBaseUrl = getPublicBaseUrl();
+  const activeDemoReferenti = readRows(SHEETS.REFERENTI).filter(item => {
+    const email = normalizeEmail(item.data.Email);
+    const name = String(item.data.Nome || '').trim().toLowerCase();
+    return isYes(item.data.Attivo) && (/@example\.(com|org|net|invalid)$/.test(email) || /^nome referente\b/.test(name));
+  });
 
   const result = {
     versione: APP.SCHEMA_VERSION,
@@ -1085,7 +1845,10 @@ function collegaEFaiDiagnostica() {
     utentiTotali: users.length,
     utentiAttivi: activeUsers.length,
     utentiConPasswordHash: hashedUsers.length,
-    quartieriAttivi: districts.length
+    quartieriAttivi: districts.length,
+    referentiDemoAttivi: activeDemoReferenti.length,
+    publicBaseUrl: publicBaseUrl,
+    recaptcha: recaptcha
   };
 
   console.log(JSON.stringify(result, null, 2));
@@ -1093,6 +1856,9 @@ function collegaEFaiDiagnostica() {
   if (!activeUsers.length) throw new Error('Nessun utente attivo nel foglio Utenti');
   if (!hashedUsers.length) throw new Error('Nessun utente attivo con password hash v1$');
   if (!districts.length) throw new Error('Nessun quartiere attivo nel foglio Quartieri');
+  if (activeDemoReferenti.length) throw new Error('Sono presenti referenti dimostrativi attivi');
+  if (recaptcha.required && !recaptcha.configured) throw new Error('reCAPTCHA è obbligatorio ma non configurato');
+  if (recaptcha.required && !recaptcha.allowedHostnames.length) throw new Error('RECAPTCHA_ALLOWED_HOSTNAMES non configurato');
 
   return 'Diagnostica completata: ' + JSON.stringify(result);
 }
@@ -1111,8 +1877,11 @@ function setupSheet() {
     const ss = getSpreadsheet();
     Object.keys(HEADERS).forEach(name => ensureSheet(ss, name, HEADERS[name]));
     SpreadsheetApp.flush();
-    sheetByName(SHEETS.REPORTS).getRange('H:I').setNumberFormat('@');
+    const reportsSheet = sheetByName(SHEETS.REPORTS);
+    reportsSheet.getRange(1, headerIndex(reportsSheet, 'Latitudine'), reportsSheet.getMaxRows(), 1).setNumberFormat('@');
+    reportsSheet.getRange(1, headerIndex(reportsSheet, 'Longitudine'), reportsSheet.getMaxRows(), 1).setNumberFormat('@');
     seedReferenti();
+    deactivateDemoReferenti();
     seedQuartieri();
     migratePlainPasswords();
   } finally {
@@ -1149,13 +1918,24 @@ function seedReferenti() {
   if (sheet.getLastRow() === 1) {
     appendObjectRow(SHEETS.REFERENTI, {
       ID: 'REF-001', Nome: 'Nome Referente 1', Ruolo: 'Consigliere / Assessore',
-      Email: 'email@example.com', Competenze: 'Ambiente, Rifiuti', Zona: 'Municipio IX', Attivo: 'Sì'
+      Email: 'demo1@example.invalid', Competenze: 'Ambiente, Rifiuti', Zona: 'Municipio IX', Attivo: 'No'
     });
     appendObjectRow(SHEETS.REFERENTI, {
       ID: 'REF-002', Nome: 'Nome Referente 2', Ruolo: 'Referente lavori pubblici',
-      Email: 'email2@example.com', Competenze: 'Strade, Illuminazione', Zona: 'Municipio IX', Attivo: 'Sì'
+      Email: 'demo2@example.invalid', Competenze: 'Strade, Illuminazione', Zona: 'Municipio IX', Attivo: 'No'
     });
   }
+}
+
+function deactivateDemoReferenti() {
+  readRows(SHEETS.REFERENTI).forEach(item => {
+    const email = normalizeEmail(item.data.Email);
+    const name = String(item.data.Nome || '').trim().toLowerCase();
+    const isDemo = /@example\.(com|org|net|invalid)$/.test(email) || /^nome referente\b/.test(name);
+    if (isDemo && !isNo(item.data.Attivo)) {
+      setRowFields(SHEETS.REFERENTI, item.rowNumber, { Attivo: 'No' });
+    }
+  });
 }
 
 function seedQuartieri() {
@@ -1275,11 +2055,34 @@ function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(value || '')) && String(value).length <= 200;
 }
 
+function normalizeCategory(value) {
+  const raw = requiredText(value, 'Categoria', 100);
+  const match = CATEGORIES.find(item => item.toLocaleLowerCase('it') === raw.toLocaleLowerCase('it'));
+  if (!match) throw new Error('Categoria non valida');
+  return match;
+}
+
+function normalizeDistrictName(value) {
+  const raw = requiredText(value, 'Quartiere', 120);
+  const match = listQuartieri(false).find(item =>
+    String(item.nome || '').toLocaleLowerCase('it') === raw.toLocaleLowerCase('it')
+  );
+  if (!match) throw new Error('Quartiere non valido o non attivo');
+  return match.nome;
+}
+
 function normalizePriority(value) {
   const p = String(value || 'Media').trim().toLowerCase();
   if (p === 'alta') return 'Alta';
   if (p === 'bassa') return 'Bassa';
   return 'Media';
+}
+
+function normalizePriorityStrict(value) {
+  const raw = String(value == null || value === '' ? 'Media' : value).trim();
+  const match = PRIORITIES.find(item => item.toLocaleLowerCase('it') === raw.toLocaleLowerCase('it'));
+  if (!match) throw new Error('Priorità non valida');
+  return match;
 }
 
 function normalizeCoordinate(value) {
@@ -1365,6 +2168,7 @@ function jsonError(err) {
   return json({
     ok: false,
     error: err && err.message ? err.message : 'Errore interno',
-    authRequired: Boolean(err && err.authRequired)
+    authRequired: Boolean(err && err.authRequired),
+    passwordChangeRequired: Boolean(err && err.passwordChangeRequired)
   });
 }

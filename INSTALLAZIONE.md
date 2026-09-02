@@ -1,4 +1,4 @@
-# Installazione release 3.0.0
+# Installazione release 3.1.0 RC1
 
 ## 1. Backup
 

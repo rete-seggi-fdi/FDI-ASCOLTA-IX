@@ -1,5 +1,40 @@
 # Changelog
 
+## 3.1.0-rc1 — Hardening pre-produzione
+
+### Autorizzazione e sessioni
+
+- completata la copertura di tutte le azioni realmente invocate dal frontend;
+- cambio password temporanea imposto anche dal backend prima di qualsiasi azione privata;
+- accesso Consigliere subordinato alla corrispondenza congiunta di nome ed email assegnati;
+- sessioni invalidate dopo modifiche a password, ruolo, email o stato account;
+- registrato `Ultimo accesso`;
+- tracking pubblico mostra timeline/comunicazioni solo se esplicitamente marcate visibili.
+
+### Protezioni pubbliche
+
+- reCAPTCHA v3 verificato server-side con `success`, `action`, `score` e hostname;
+- geocodifica effettuata lato Apps Script e limitata al perimetro configurato;
+- rate limit aggiuntivo per tracking e geocodifica tramite client identifier pseudocasuale;
+- token di tracking spostato nel fragment URL per i nuovi link.
+
+### Frontend
+
+- eliminati gli handler HTML inline e spostato il JavaScript pagina in file separati;
+- aggiunta Content Security Policy in meta e politica `no-referrer`;
+- aggiunta SRI ufficiale per Leaflet 1.9.4;
+- validazione HTTPS per i link foto;
+- rimossi JavaScript obsoleti e il duplicato `docs/Code.gs`;
+- riallineate versioni e cache key alla release candidate.
+
+### Correzioni operative
+
+- archiviazione riservata agli amministratori; i consiglieri possono risolvere ma non archiviare;
+- transizioni amministrative bloccate server-side;
+- password forti validate anche nelle funzioni manuali di bootstrap;
+- aggiunta funzione manuale `setupRecaptcha`.
+
+
 ## 3.0.0 — Audit organico
 
 ### Sicurezza e permessi

@@ -1,4 +1,4 @@
-# FDI Ascolta IX CRM — Release 3.0.0
+# FDI Ascolta IX CRM — Release 3.1.0 RC1
 
 Piattaforma per la raccolta, l’assegnazione e la gestione delle segnalazioni
 territoriali del Municipio IX, compatibile con:

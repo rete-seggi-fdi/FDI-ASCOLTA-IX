@@ -1,0 +1,303 @@
+
+(function(){
+  const page=(location.pathname.split("/").pop()||"dashboard.html").toLowerCase();
+  const user=Auth.getUser()||{};
+  const isAdmin=Auth.isAdmin();
+  const items=isAdmin ? [
+    ["dashboard.html","▦","Dashboard"],
+    ["pratiche.html","▣","Pratiche"],
+    ["mappa.html","🗺","Sala Operativa"],
+    ["analytics.html","◔","Analytics"],
+    ["notifiche.html","🔔","Notifiche"],
+    ["uffici.html","🏛","Uffici"],
+    ["configurazione.html","⚙","Configurazione"]
+  ] : [
+    ["dashboard.html","▦","Dashboard personale"],
+    ["pratiche.html","▣","Le mie pratiche"],
+    ["notifiche.html","🔔","Notifiche"]
+  ];
+
+  document.documentElement.classList.add("crm-shell-ready");
+
+  async function getReports(){
+    const result=await API.listReports();
+    if(!result.ok) throw new Error(result.error||"Errore API");
+    return result.reports||[];
+  }
+
+  function esc(v){
+    return String(v??"").replace(/[&<>"']/g,c=>({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    }[c]));
+  }
+
+  function isOpen(s){
+    const v=String(s||"").toLowerCase();
+    return !v.includes("risolt")&&!v.includes("archiv");
+  }
+
+  const sidebar=document.createElement("aside");
+  sidebar.className="crm-sidebar";
+  sidebar.innerHTML=`
+    <div class="crm-brand">
+      <div class="crm-brand-title">FDI ASCOLTA IX</div>
+      <div class="crm-brand-sub">CRM Enterprise</div>
+    </div>
+    <nav class="crm-nav">
+      ${items.map(([href,icon,label])=>`
+        <a href="${href}" class="${page===href?"active":""}">
+          <span class="crm-nav-icon">${icon}</span>
+          <span>${label}</span>
+          ${href==="pratiche.html"?'<span class="crm-nav-badge" id="crmOpenBadge">—</span>':""}
+        </a>`).join("")}
+    </nav>
+    <div class="crm-sidebar-footer">
+      <div class="crm-user">
+        <div class="crm-avatar">IX</div>
+        <div class="crm-user-meta">
+          <b id="crmUserName">${esc(user.nome||"Operatore CRM")}</b>
+          <span>${esc(user.ruolo||"Municipio IX Roma")}</span>
+        </div>
+      </div>
+      <button id="crmLogoutBtn" type="button" style="width:100%;margin-top:10px;border:1px solid rgba(255,255,255,.28);background:transparent;color:#fff;border-radius:10px;padding:9px;font-weight:900;cursor:pointer">Esci</button>
+    </div>`;
+  document.body.prepend(sidebar);
+  document.getElementById("crmLogoutBtn").onclick=()=>Auth.logout();
+
+  const mobile=document.createElement("button");
+  mobile.className="crm-mobile-toggle";
+  mobile.type="button";
+  mobile.textContent="☰";
+  mobile.title="Apri menu";
+  mobile.onclick=()=>sidebar.classList.toggle("open");
+  document.body.appendChild(mobile);
+
+  const tools=document.createElement("div");
+  tools.className="crm-top-tools";
+  tools.innerHTML=`
+    <button class="crm-tool-button" id="crmSearchBtn" type="button">
+      ⌕ <span class="crm-global-label">Ricerca globale</span>
+    </button>
+    <button class="crm-tool-button icon" id="crmNotifyBtn" type="button" title="Notifiche">
+      🔔<span class="crm-alert-dot"></span>
+    </button>`;
+  document.body.appendChild(tools);
+
+  const search=document.createElement("div");
+  search.className="crm-search-overlay";
+  search.innerHTML=`
+    <div class="crm-search-dialog">
+      <div class="crm-dialog-head">
+        <input id="crmSearchInput" placeholder="Cerca codice, titolo, cittadino, indirizzo, quartiere...">
+        <button class="crm-close" data-close="search" type="button">×</button>
+      </div>
+      <div class="crm-results" id="crmSearchResults">
+        <div class="crm-empty">Digita almeno 2 caratteri.</div>
+      </div>
+    </div>`;
+  document.body.appendChild(search);
+
+  const notify=document.createElement("div");
+  notify.className="crm-notify-overlay";
+  notify.innerHTML=`
+    <div class="crm-notify-dialog">
+      <div class="crm-dialog-head">
+        <strong style="flex:1;color:#082f6a">Centro notifiche</strong>
+        <button class="crm-close" data-close="notify" type="button">×</button>
+      </div>
+      <div class="crm-notify-list" id="crmNotifyList">
+        <div class="crm-empty">Caricamento...</div>
+      </div>
+    </div>`;
+  document.body.appendChild(notify);
+
+  let cache=[];
+
+  async function ensureData(){
+    if(cache.length) return cache;
+    cache=await getReports();
+    return cache;
+  }
+
+  async function loadBadge(){
+    try{
+      const reports=await ensureData();
+      const badge=document.getElementById("crmOpenBadge");
+      if(badge) badge.textContent=reports.filter(r=>isOpen(r.stato)).length;
+      updateNotifyBadge(reports);
+    }catch(_){}
+  }
+
+  const NOTIFY_READ_KEY=CONFIG.NOTIFICATION_READ_KEY;
+
+  function readSet(){
+    try{return new Set(JSON.parse(localStorage.getItem(NOTIFY_READ_KEY)||"[]"))}
+    catch(_){return new Set()}
+  }
+
+  function saveReadSet(set){
+    localStorage.setItem(NOTIFY_READ_KEY,JSON.stringify([...set].slice(-500)));
+  }
+
+  function notificationId(r){
+    return [
+      r.id||"",
+      r.stato||"",
+      r.ultimoAggiornamento||r.dataAggiornamento||r.timestamp||r.dataCreazione||""
+    ].join("|");
+  }
+
+  function notificationDate(r){
+    const raw=r.ultimoAggiornamento||r.dataAggiornamento||r.timestamp||r.dataCreazione||r.data||"";
+    const text=String(raw||"").trim();
+    const match=text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+    if(match){
+      return new Date(Number(match[3]),Number(match[2])-1,Number(match[1]),Number(match[4]||0),Number(match[5]||0));
+    }
+    const d=new Date(text);
+    return isNaN(d)?null:d;
+  }
+
+  function notificationItems(data){
+    return data.slice().sort((a,b)=>{
+      const da=notificationDate(a),db=notificationDate(b);
+      return (db?db.getTime():0)-(da?da.getTime():0);
+    });
+  }
+
+  function updateNotifyBadge(data){
+    const read=readSet();
+    const unread=notificationItems(data).filter(r=>!read.has(notificationId(r))).length;
+    const dot=document.querySelector(".crm-alert-dot");
+    if(dot){
+      dot.style.display=unread?"block":"none";
+      dot.title=unread+" notifiche non lette";
+    }
+    const sidebarLink=[...document.querySelectorAll(".crm-nav a")].find(a=>a.getAttribute("href")==="notifiche.html");
+    if(sidebarLink){
+      let badge=sidebarLink.querySelector(".crm-nav-badge");
+      if(unread&&!badge){
+        badge=document.createElement("span");
+        badge.className="crm-nav-badge";
+        sidebarLink.appendChild(badge);
+      }
+      if(badge){
+        badge.textContent=unread>99?"99+":String(unread);
+        badge.style.display=unread?"grid":"none";
+      }
+    }
+    return unread;
+  }
+
+  async function renderNotifications(){
+    const box=document.getElementById("crmNotifyList");
+    try{
+      const data=notificationItems(await ensureData()).slice(0,10);
+      const read=readSet();
+      updateNotifyBadge(cache);
+
+      box.innerHTML=data.length
+        ? data.map(r=>{
+            const nid=notificationId(r);
+            const unread=!read.has(nid);
+            return `
+              <a class="crm-notify-item" data-notification-id="${esc(nid)}"
+                 href="pratiche.html?open=${encodeURIComponent(r.id||"")}"
+                 style="display:block;text-decoration:none;background:${unread?"#f6f9ff":"#fff"}">
+                <b>${unread?"● ":""}${esc(r.id||"Nuova pratica")} · ${esc(r.stato||"Aggiornamento")}</b>
+                <p>${esc(r.titolo||r.categoria||"Segnalazione")} — ${esc(r.quartiere||r.indirizzo||"Municipio IX")}</p>
+              </a>`;
+          }).join("")+
+          '<div style="padding:12px;text-align:center"><a href="notifiche.html" style="font-weight:900;color:#082f6a;text-decoration:none">Apri Centro Notifiche →</a></div>'
+        : '<div class="crm-empty">Nessuna notifica disponibile.</div>';
+
+      box.querySelectorAll("[data-notification-id]").forEach(link=>{
+        link.addEventListener("click",()=>{
+          const set=readSet();
+          set.add(link.dataset.notificationId);
+          saveReadSet(set);
+        });
+      });
+    }catch(_){
+      box.innerHTML='<div class="crm-empty">Impossibile caricare le notifiche.</div>';
+    }
+  }
+
+  function renderSearch(query){
+    const box=document.getElementById("crmSearchResults");
+
+    if(query.length<2){
+      box.innerHTML='<div class="crm-empty">Digita almeno 2 caratteri.</div>';
+      return;
+    }
+
+    const q=query.toLowerCase();
+    const matches=cache.filter(r=>[
+      r.id,r.titolo,r.nome,r.cognome,r.email,r.indirizzo,
+      r.quartiere,r.categoria,r.referenteNome
+    ].join(" ").toLowerCase().includes(q)).slice(0,20);
+
+    box.innerHTML=matches.length
+      ? matches.map(r=>`
+        <a class="crm-result" href="pratiche.html?open=${encodeURIComponent(r.id)}">
+          <div>
+            <b>${esc(r.id)} · ${esc(r.titolo||r.categoria||"Pratica")}</b>
+            <span>${esc(r.indirizzo||r.quartiere||"—")} · ${esc(r.referenteNome||"Non assegnata")}</span>
+          </div>
+          <span class="crm-result-status">${esc(r.stato||"—")}</span>
+        </a>`).join("")
+      : '<div class="crm-empty">Nessun risultato.</div>';
+  }
+
+  document.getElementById("crmSearchBtn").onclick=async()=>{
+    search.classList.add("open");
+    document.getElementById("crmSearchInput").focus();
+    try{await ensureData()}catch(_){}
+  };
+
+  document.getElementById("crmNotifyBtn").onclick=()=>{
+    notify.classList.add("open");
+    renderNotifications();
+  };
+
+  document.querySelectorAll("[data-close]").forEach(button=>{
+    button.onclick=()=>button.closest(".crm-search-overlay,.crm-notify-overlay").classList.remove("open");
+  });
+
+  [search,notify].forEach(overlay=>{
+    overlay.addEventListener("click",event=>{
+      if(event.target===overlay) overlay.classList.remove("open");
+    });
+  });
+
+  document.getElementById("crmSearchInput").addEventListener("input",event=>{
+    renderSearch(event.target.value.trim());
+  });
+
+  document.addEventListener("keydown",event=>{
+    if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==="k"){
+      event.preventDefault();
+      document.getElementById("crmSearchBtn").click();
+    }
+    if(event.key==="Escape"){
+      search.classList.remove("open");
+      notify.classList.remove("open");
+      sidebar.classList.remove("open");
+    }
+  });
+
+  try{
+    const saved=Auth.getUser();
+    const name=saved&&(saved.nome||saved.name||saved.email);
+    if(name) document.getElementById("crmUserName").textContent=name;
+  }catch(_){}
+
+  loadBadge();
+
+  setInterval(async()=>{
+    try{
+      cache=await getReports();
+      loadBadge();
+    }catch(_){}
+  },60000);
+})();
