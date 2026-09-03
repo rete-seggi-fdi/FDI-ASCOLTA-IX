@@ -1,4 +1,4 @@
-/* FDI Ascolta IX — login build 3110 / backend rc7 */
+/* FDI Ascolta IX — login build 3112 FAST / backend rc9 */
 (() => {
   "use strict";
 
@@ -73,10 +73,15 @@
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  async function pollLoginResult(requestId) {
-    const deadline = Date.now() + 60000;
-    while (Date.now() < deadline) {
-      const url = CONFIG.API_URL + "?action=loginResult&requestId=" + encodeURIComponent(requestId) + "&_=" + Date.now();
+  async function readLoginResult(requestId) {
+    let lastError = null;
+    const delays = [0, 120, 180, 260, 380, 550, 800, 1200, 1800, 2500];
+
+    for (const delay of delays) {
+      if (delay) await sleep(delay);
+      const url = CONFIG.API_URL + "?action=loginResult&requestId=" +
+        encodeURIComponent(requestId) + "&_=" + Date.now();
+
       try {
         const response = await fetch(url, {
           method: "GET",
@@ -85,23 +90,26 @@
           credentials: "omit",
           redirect: "follow"
         });
-        if (response.ok) {
-          const data = await response.json();
-          if (data && data.pending === false) {
-            if (!data.ok) throw new Error(data.error || "Risposta di autenticazione non valida");
-            return data.result || { ok: false, error: "Risposta di autenticazione vuota" };
-          }
+
+        if (!response.ok) {
+          lastError = new Error("Errore API HTTP " + response.status);
+          continue;
+        }
+
+        const data = await response.json();
+        if (data && data.pending === false) {
+          if (!data.ok) throw new Error(data.error || "Risposta di autenticazione non valida");
+          return data.result || { ok: false, error: "Risposta di autenticazione vuota" };
         }
       } catch (err) {
-        // Il POST può essere ancora in lavorazione: riprova finché non scade il timeout.
-        if (Date.now() + 650 >= deadline) throw err;
+        lastError = err;
       }
-      await sleep(900);
     }
-    throw new Error("Il server non ha completato l’accesso entro 60 secondi. Riprova.");
+
+    throw lastError || new Error("Il server non ha completato l’accesso. Riprova.");
   }
 
-  function submitLoginViaHiddenFrame(payload) {
+  async function submitLoginViaHiddenFrame(payload) {
     const frameName = "fdiLoginTransport_" + Date.now() + "_" + Math.random().toString(36).slice(2);
     const iframe = document.createElement("iframe");
     iframe.name = frameName;
@@ -115,7 +123,17 @@
     iframe.style.pointerEvents = "none";
     iframe.style.border = "0";
     iframe.style.left = "-9999px";
+    iframe.src = "about:blank";
     document.body.appendChild(iframe);
+
+    await new Promise(resolve => {
+      if (iframe.contentDocument && iframe.contentDocument.readyState === "complete") {
+        resolve();
+        return;
+      }
+      iframe.addEventListener("load", resolve, { once: true });
+      setTimeout(resolve, 120);
+    });
 
     const transportForm = document.createElement("form");
     transportForm.method = "POST";
@@ -130,11 +148,13 @@
     payloadInput.name = "payload";
     payloadInput.value = JSON.stringify(payload);
     transportForm.appendChild(payloadInput);
-
     document.body.appendChild(transportForm);
+
     transportForm.submit();
     transportForm.remove();
 
+    // Non aspettiamo il redirect grafico di Apps Script: il backend salva
+    // autonomamente il risultato nella cache e il polling GET può leggerlo.
     return () => {
       try { iframe.remove(); } catch (_) {}
     };
@@ -149,19 +169,27 @@
       password: passwordValue
     };
 
-    // POST HTML tradizionale confinato in un iframe invisibile:
-    // niente fetch cross-origin, niente navigazione della pagina principale,
-    // password esclusivamente nel body POST.
-    const cleanup = submitLoginViaHiddenFrame(payload);
+    const cleanup = await submitLoginViaHiddenFrame(payload);
 
     try {
-      return await pollLoginResult(requestId);
+      await sleep(220);
+      return await readLoginResult(requestId);
     } finally {
-      // Lascia al browser un istante per completare eventuali redirect interni
-      // di Apps Script prima di rimuovere il frame.
-      setTimeout(cleanup, 1500);
+      setTimeout(cleanup, 1800);
     }
   }
+
+  // Pre-riscalda Apps Script mentre l'utente compila il form: riduce il cold start
+  // senza inviare credenziali o dati personali.
+  setTimeout(() => {
+    fetch(CONFIG.API_URL + "?action=health&_=" + Date.now(), {
+      method: "GET",
+      mode: "cors",
+      cache: "no-store",
+      credentials: "omit",
+      redirect: "follow"
+    }).catch(() => {});
+  }, 250);
 
   showPass.addEventListener("click", () => {
     password.type = password.type === "password" ? "text" : "password";
