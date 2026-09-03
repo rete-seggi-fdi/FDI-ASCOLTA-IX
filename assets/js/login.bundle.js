@@ -1,4 +1,4 @@
-/* FDI Ascolta IX — login build 3107 / backend rc6 */
+/* FDI Ascolta IX — login build 3108 / backend rc7 */
 (() => {
   "use strict";
 
@@ -16,12 +16,18 @@
 
   function showError(text) {
     message.hidden = false;
+    message.className = "message error";
     message.textContent = text || "Impossibile effettuare l’accesso";
   }
 
   function clearMessage() {
     message.hidden = true;
     message.textContent = "";
+  }
+
+  function setBusy(busy) {
+    button.disabled = busy;
+    button.textContent = busy ? "Accesso in corso..." : "Entra nel CRM";
   }
 
   function safeNext(value, fallback) {
@@ -41,7 +47,7 @@
   function destination(result) {
     const params = new URLSearchParams(location.search);
     const fallback = roleHome(result && result.user);
-    const requested = safeNext((result && result.next) || params.get("next"), fallback);
+    const requested = safeNext(params.get("next"), fallback);
     return result && result.user && result.user.mustChangePassword
       ? "cambia-password.html"
       : requested;
@@ -57,63 +63,75 @@
     }));
   }
 
-  function decodeAuthHash() {
-    const hash = String(location.hash || "");
-    if (!hash.startsWith("#auth=")) return null;
-
-    const encoded = decodeURIComponent(hash.slice(6));
-    const normalized = encoded.replace(/-/g, "+").replace(/_/g, "/");
-    const padded = normalized + "=".repeat((4 - normalized.length % 4) % 4);
-    const bytes = Uint8Array.from(atob(padded), c => c.charCodeAt(0));
-    return JSON.parse(new TextDecoder().decode(bytes));
+  function makeRequestId() {
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("");
   }
 
-  function finishAuth(result) {
-    if (!result || !result.ok) {
-      showError(result && result.error ? result.error : "Email o password non validi");
-      history.replaceState(null, "", location.pathname + location.search);
-      return;
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  async function pollLoginResult(requestId) {
+    const deadline = Date.now() + 20000;
+    while (Date.now() < deadline) {
+      const url = CONFIG.API_URL + "?action=loginResult&requestId=" + encodeURIComponent(requestId) + "&_=" + Date.now();
+      try {
+        const response = await fetch(url, {
+          method: "GET",
+          mode: "cors",
+          cache: "no-store",
+          credentials: "omit",
+          redirect: "follow"
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.pending === false) {
+            if (!data.ok) throw new Error(data.error || "Risposta di autenticazione non valida");
+            return data.result || { ok: false, error: "Risposta di autenticazione vuota" };
+          }
+        }
+      } catch (err) {
+        // Il POST può essere ancora in lavorazione: riprova finché non scade il timeout.
+        if (Date.now() + 650 >= deadline) throw err;
+      }
+      await sleep(650);
     }
-    saveSession(result);
-    history.replaceState(null, "", location.pathname + location.search);
-    location.replace(destination(result));
+    throw new Error("Il server non ha completato l’accesso in tempo. Riprova.");
   }
 
-  // Quando la finestra temporanea torna da Apps Script su login.html#auth=...,
-  // passa il risultato alla finestra principale (stessa origin GitHub) e si chiude.
-  let authResult = null;
-  try {
-    authResult = decodeAuthHash();
-  } catch (_) {
-    authResult = { ok: false, error: "Risposta di autenticazione non valida" };
-  }
+  async function loginInvisible(emailValue, passwordValue) {
+    const requestId = makeRequestId();
+    const payload = {
+      action: "loginAsync",
+      requestId,
+      email: emailValue,
+      password: passwordValue
+    };
 
-  if (authResult) {
-    if (window.opener && !window.opener.closed) {
-      window.opener.postMessage(
-        { type: "FDI_LOGIN_RESULT", result: authResult },
-        location.origin
-      );
-      document.body.innerHTML =
-        '<main style="font-family:Arial,sans-serif;padding:30px"><h2>Accesso completato</h2><p>Puoi chiudere questa finestra.</p></main>';
-      window.setTimeout(() => window.close(), 150);
-      return;
-    }
-    finishAuth(authResult);
-    return;
-  }
+    // Il POST viene inviato senza CORS e senza navigazione. La risposta POST è
+    // volutamente opaca; il risultato viene recuperato separatamente via GET.
+    fetch(CONFIG.API_URL, {
+      method: "POST",
+      mode: "no-cors",
+      cache: "no-store",
+      credentials: "omit",
+      redirect: "follow",
+      headers: { "Content-Type": "text/plain;charset=UTF-8" },
+      body: JSON.stringify(payload)
+    }).catch(() => {
+      // Il polling seguente stabilisce se il backend ha elaborato la richiesta.
+    });
 
-  window.addEventListener("message", event => {
-    if (event.origin !== location.origin) return;
-    if (!event.data || event.data.type !== "FDI_LOGIN_RESULT") return;
-    finishAuth(event.data.result);
-  });
+    return pollLoginResult(requestId);
+  }
 
   showPass.addEventListener("click", () => {
     password.type = password.type === "password" ? "text" : "password";
   });
 
-  form.addEventListener("submit", event => {
+  form.addEventListener("submit", async event => {
     event.preventDefault();
     clearMessage();
 
@@ -124,83 +142,25 @@
       return;
     }
 
-    // window.open deve avvenire direttamente nel gesto dell'utente per evitare
-    // che il browser consideri la finestra un popup indesiderato.
-    const popupName = "FDI_ASCOLTA_LOGIN";
-    const popup = window.open(
-      "about:blank",
-      popupName,
-      "popup=yes,width=560,height=680,resizable=yes,scrollbars=yes"
-    );
-
-    if (!popup) {
-      showError("Il browser ha bloccato la finestra di accesso. Consenti i popup per questo sito e riprova.");
-      return;
-    }
-
-    button.disabled = true;
-    button.textContent = "Accesso in corso...";
-
+    setBusy(true);
     try {
-      popup.document.write(
-        '<!doctype html><html><head><meta charset="utf-8"><title>Accesso</title></head>' +
-        '<body style="font-family:Arial,sans-serif;padding:30px"><p>Connessione sicura al backend…</p></body></html>'
-      );
-      popup.document.close();
-    } catch (_) {}
-
-    const postForm = document.createElement("form");
-    postForm.method = "POST";
-    postForm.action = CONFIG.API_URL;
-    postForm.target = popupName;
-    postForm.style.display = "none";
-
-    const payload = {
-      action: "login",
-      responseMode: "redirect",
-      email: emailValue,
-      password: passwordValue,
-      next: new URLSearchParams(location.search).get("next") || ""
-    };
-
-    const input = document.createElement("input");
-    input.type = "hidden";
-    input.name = "payload";
-    input.value = JSON.stringify(payload);
-    postForm.appendChild(input);
-    document.body.appendChild(postForm);
-
-    try {
-      postForm.submit();
-    } finally {
-      postForm.remove();
-      password.value = "";
-    }
-
-    const timer = window.setInterval(() => {
-      if (popup.closed) {
-        window.clearInterval(timer);
-        button.disabled = false;
-        button.textContent = "Entra nel CRM";
+      const result = await loginInvisible(emailValue, passwordValue);
+      if (!result || !result.ok) {
+        throw new Error(result && result.error ? result.error : "Email o password non validi");
       }
-    }, 400);
+      saveSession(result);
+      password.value = "";
+      location.replace(destination(result));
+    } catch (err) {
+      showError(err && err.message ? err.message : "Impossibile effettuare l’accesso");
+      setBusy(false);
+    }
   });
 
-  // GET health è volutamente separato dal login POST.
   fetch(CONFIG.API_URL + "?action=health&_=" + Date.now(), {
     method: "GET",
     mode: "cors",
     cache: "no-store",
     credentials: "omit"
-  })
-    .then(response => {
-      if (!response.ok) throw new Error("Backend non disponibile");
-      return response.json();
-    })
-    .then(result => {
-      if (!result || !result.ok) throw new Error("Backend non disponibile");
-    })
-    .catch(() => {
-      // Non blocca il login: la diagnostica completa è disponibile in diagnostica.html.
-    });
+  }).catch(() => {});
 })();
