@@ -1,8 +1,8 @@
-/* FDI Ascolta IX 3.1.0-rc5 - bundle pagina: segnala.html */
+/* FDI Ascolta IX 3.1.0-rc14 - bundle pagina: segnala.html build 3116 reCAPTCHA */
 
 /* ===== assets/js/config.js ===== */
 const CONFIG = Object.freeze({
-  VERSION: "3.1.0-rc5",
+  VERSION: "3.1.0-rc14",
   API_URL: "https://script.google.com/macros/s/AKfycbyZuNSOT2SCW6YNp6gZ-bTO6gfm9wGI3-YAjvSmo5oelcqrUmARNzmd49hbjSn4ISh4Yg/exec",
   SESSION_KEY: "fdi_ascolta_ix_session_v3",
   CLIENT_ID_KEY: "fdi_ascolta_ix_client_v1",
@@ -20,100 +20,6 @@ const CONFIG = Object.freeze({
 
 /* ===== assets/js/api.js ===== */
 const API = Object.freeze({
-  async call(action, params = {}, options = {}) {
-    const isPublic = Boolean(options.publicAction);
-    const payload = { action, ...params };
-    const timeoutMs = Math.max(5000, Number(options.timeoutMs || 45000));
-
-    if (!isPublic) {
-      if (typeof Auth === "undefined") throw new Error("Modulo autenticazione non caricato");
-      const token = Auth.getToken();
-      if (!token) {
-        Auth.requireAuth();
-        throw new Error("Sessione non disponibile");
-      }
-      payload.authToken = token;
-    }
-
-    const controller = typeof AbortController !== "undefined"
-      ? new AbortController()
-      : null;
-    let timeoutId = null;
-    let timeoutPromise = null;
-
-    if (controller) {
-      timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
-    } else {
-      timeoutPromise = new Promise((_, reject) => {
-        timeoutId = window.setTimeout(() => reject(new Error("Il server non ha risposto entro il tempo previsto")), timeoutMs);
-      });
-    }
-
-    try {
-      const fetchPromise = fetch(CONFIG.API_URL, {
-        method: "POST",
-        mode: "cors",
-        cache: "no-store",
-        redirect: "follow",
-        credentials: "omit",
-        headers: {
-          // text/plain è CORS-safelisted e non provoca il preflight OPTIONS
-          // che le Web App Apps Script non gestiscono in modo affidabile.
-          "Content-Type": "text/plain;charset=utf-8"
-        },
-        body: JSON.stringify(payload),
-        signal: controller ? controller.signal : undefined
-      });
-
-      const response = timeoutPromise
-        ? await Promise.race([fetchPromise, timeoutPromise])
-        : await fetchPromise;
-
-      if (!response.ok) throw new Error("Errore API HTTP " + response.status);
-
-      const rawResponse = await response.text();
-      let result;
-      try {
-        result = JSON.parse(rawResponse);
-      } catch (_) {
-        if (/<!doctype html|<html|accounts\.google\.com|ServiceLogin/i.test(rawResponse)) {
-          throw new Error("La Web App Apps Script non è pubblica, l’URL è errato oppure il deploy non è aggiornato");
-        }
-        throw new Error("Risposta API non valida dal backend");
-      }
-
-      if (result && result.authRequired && typeof Auth !== "undefined") {
-        Auth.clearSession();
-        Auth.requireAuth();
-        throw new Error(result.error || "Sessione scaduta");
-      }
-
-      if (result && result.passwordChangeRequired && typeof Auth !== "undefined") {
-        location.replace("cambia-password.html");
-        throw new Error(result.error || "Cambio password richiesto");
-      }
-
-      return result;
-    } catch (error) {
-      if (error && error.name === "AbortError") {
-        if (action === "createReport") {
-          throw new Error("L’invio sta richiedendo troppo tempo. Controlla se hai ricevuto l’email o se la pratica è comparsa prima di riprovare.");
-        }
-        throw new Error("Il server non ha risposto entro il tempo previsto");
-      }
-      if (error instanceof TypeError || /Failed to fetch|NetworkError|Load failed|CORS/i.test(String(error && error.message))) {
-        throw new Error("Il browser non riesce a raggiungere il backend Apps Script. Verifica che la Web App sia pubblicata per ‘Chiunque’ e che il deploy sia aggiornato.");
-      }
-      throw error;
-    } finally {
-      if (timeoutId !== null) window.clearTimeout(timeoutId);
-    }
-  },
-
-  health() { return this.call("health", {}, { publicAction: true }); },
-  getPublicConfig() { return this.call("getPublicConfig", {}, { publicAction: true }); },
-  login(email, password) { return this.call("login", { email, password }, { publicAction: true }); },
-  logout() { return this.call("logout"); },
   getClientId() {
     let id = localStorage.getItem(CONFIG.CLIENT_ID_KEY);
     if (!id) {
@@ -130,32 +36,151 @@ const API = Object.freeze({
     }
     return id;
   },
-  createReport(data) { return this.call("createReport", { ...data, clientId: this.getClientId() }, { publicAction: true, timeoutMs: 75000 }); },
-  geocodeAddress(indirizzo, quartiere = "") { return this.call("geocodeAddress", { indirizzo, quartiere, clientId: this.getClientId() }, { publicAction: true }); },
-  listQuartieri() { return this.call("listQuartieri", {}, { publicAction: true }); },
-  getPublicStats() { return this.call("getPublicStats", {}, { publicAction: true }); },
-  getPublicReport(code, email = "") { return this.call("getPublicReport", { code, email, clientId: this.getClientId() }, { publicAction: true }); },
-  listReports() { return this.call("listReports"); },
-  listReferenti() { return this.call("listReferenti"); },
-  listUffici() { return this.call("listUffici"); },
-  getTimeline(reportId) { return this.call("getTimeline", { reportId }); },
-  getCommunications(reportId) { return this.call("getCommunications", { reportId }); },
-  updateReportStatus(data) { return this.call("updateReportStatus", data); },
-  updateReportLocation(data) { return this.call("updateReportLocation", data); },
-  sendToReferente(data) { return this.call("sendToReferente", data); },
-  sendToUfficio(data) { return this.call("sendToUfficio", data); },
-  closeReport(data) { return this.call("closeReport", data); },
-  getConfigurationData() { return this.call("getConfigurationData"); },
-  saveConfigurationItem(itemType, item) { return this.call("saveConfigurationItem", { itemType, item }); },
-  deactivateConfigurationItem(itemType, id) { return this.call("deactivateConfigurationItem", { itemType, id }); },
-  listUsers() { return this.call("listUsers"); },
-  saveUser(user) { return this.call("saveUser", { user }); },
-  setUserActive(userId, active) { return this.call("setUserActive", { userId, active }); },
-  resetUserPassword(userId) { return this.call("resetUserPassword", { userId }); },
-  changeOwnPassword(currentPassword, newPassword) { return this.call("changeOwnPassword", { currentPassword, newPassword }); },
-  addReportNote(reportId, note, visibileCittadino = false) { return this.call("addReportNote", { reportId, note, visibileCittadino }); },
-  startReportWork(reportId, note) { return this.call("startReportWork", { reportId, note }); },
-  recordOfficeResponse(reportId, response) { return this.call("recordOfficeResponse", { reportId, response }); }
+
+  makeRequestId() {
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("");
+  },
+
+  async getPublic(action, params = {}, timeoutMs = 30000) {
+    const url = new URL(CONFIG.API_URL);
+    url.searchParams.set("action", action);
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        url.searchParams.set(key, String(value));
+      }
+    });
+    url.searchParams.set("_", String(Date.now()));
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(url.toString(), {
+        method: "GET",
+        mode: "cors",
+        cache: "no-store",
+        credentials: "omit",
+        redirect: "follow",
+        signal: controller.signal
+      });
+      if (!response.ok) throw new Error("Errore API HTTP " + response.status);
+      return await response.json();
+    } catch (error) {
+      if (error && error.name === "AbortError") {
+        throw new Error("Il server non ha risposto entro il tempo previsto");
+      }
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
+  },
+
+  submitHiddenPost(payload) {
+    const frameName = "fdiPublicTransport_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+    const iframe = document.createElement("iframe");
+    iframe.name = frameName;
+    iframe.title = "Trasporto dati";
+    iframe.setAttribute("aria-hidden", "true");
+    iframe.tabIndex = -1;
+    iframe.src = "about:blank";
+    iframe.style.position = "fixed";
+    iframe.style.width = "1px";
+    iframe.style.height = "1px";
+    iframe.style.opacity = "0";
+    iframe.style.pointerEvents = "none";
+    iframe.style.border = "0";
+    iframe.style.left = "-9999px";
+    document.body.appendChild(iframe);
+
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = CONFIG.API_URL;
+    form.target = frameName;
+    form.enctype = "application/x-www-form-urlencoded";
+    form.acceptCharset = "UTF-8";
+    form.style.display = "none";
+
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = "payload";
+    input.value = JSON.stringify(payload);
+    form.appendChild(input);
+    document.body.appendChild(form);
+
+    form.submit();
+    form.remove();
+
+    return () => {
+      try { iframe.remove(); } catch (_) {}
+    };
+  },
+
+  async readAsyncResult(requestId, timeoutMs) {
+    const deadline = Date.now() + timeoutMs;
+    let delay = 350;
+    let lastError = null;
+
+    while (Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, delay));
+      delay = Math.min(1400, Math.round(delay * 1.35));
+
+      try {
+        const result = await this.getPublic(
+          "publicAsyncResult",
+          { requestId },
+          Math.min(15000, Math.max(5000, deadline - Date.now()))
+        );
+
+        if (result && result.pending === false) {
+          if (!result.ok) throw new Error(result.error || "Risposta asincrona non valida");
+          return result.result || { ok: false, error: "Risposta vuota dal server" };
+        }
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw lastError || new Error("Il server non ha completato l’operazione in tempo.");
+  },
+
+  async callPublicPost(action, params = {}, timeoutMs = 90000) {
+    const requestId = this.makeRequestId();
+    const cleanup = this.submitHiddenPost({
+      action: "publicAsync",
+      requestId,
+      request: { action, ...params }
+    });
+
+    try {
+      return await this.readAsyncResult(requestId, timeoutMs);
+    } finally {
+      setTimeout(cleanup, 1500);
+    }
+  },
+
+  getPublicConfig() {
+    return this.getPublic("getPublicConfig");
+  },
+
+  listQuartieri() {
+    return this.getPublic("listQuartieri");
+  },
+
+  geocodeAddress(indirizzo, quartiere = "") {
+    return this.callPublicPost("geocodeAddress", {
+      indirizzo,
+      quartiere,
+      clientId: this.getClientId()
+    }, 45000);
+  },
+
+  createReport(data) {
+    return this.callPublicPost("createReport", {
+      ...data,
+      clientId: this.getClientId()
+    }, 120000);
+  }
 });
 
 
@@ -481,17 +506,16 @@ const API = Object.freeze({
   let publicConfigPromise = null;
   let recaptchaClient = null;
   let recaptchaProvider = "";
-  let recaptchaProviderIndex = 0;
+  let recaptchaMode = "";
 
   const RECAPTCHA_PROVIDERS = [
-    {
-      label: "recaptcha.net",
-      baseUrl: "https://www.recaptcha.net"
-    },
-    {
-      label: "google.com",
-      baseUrl: "https://www.google.com"
-    }
+    { label: "google.com", baseUrl: "https://www.google.com" },
+    { label: "recaptcha.net", baseUrl: "https://www.recaptcha.net" }
+  ];
+
+  const RECAPTCHA_MODES = [
+    { id: "enterprise", label: "Google Cloud", script: "enterprise.js" },
+    { id: "classic", label: "compatibilità", script: "api.js" }
   ];
 
   function setRecaptchaStatus(type, text, showRetry) {
@@ -509,18 +533,16 @@ const API = Object.freeze({
       retry.style.display = "block";
       retry.style.marginTop = "10px";
       retry.style.minHeight = "38px";
-      retry.style.padding = "0 14px";
+      retry.style.padding = "8px 14px";
       retry.style.borderRadius = "10px";
-      retry.style.border = "1px solid currentColor";
+      retry.style.border = "1px solid #c8d3e1";
       retry.style.background = "#fff";
       retry.style.fontWeight = "900";
       retry.style.cursor = "pointer";
-
       retry.addEventListener("click", function() {
         resetRecaptchaClient();
         initializeRecaptcha();
       });
-
       recaptchaStatus.appendChild(retry);
     }
 
@@ -529,7 +551,6 @@ const API = Object.freeze({
 
   function withTimeout(promise, timeoutMs, message) {
     let timeoutId;
-
     const timeout = new Promise(function(_, reject) {
       timeoutId = window.setTimeout(function() {
         reject(new Error(message || "Operazione scaduta"));
@@ -537,23 +558,20 @@ const API = Object.freeze({
     });
 
     return Promise.race([promise, timeout]).finally(function() {
-      window.clearTimeout(timeoutId);
+      if (timeoutId) window.clearTimeout(timeoutId);
     });
   }
 
-  async function loadPublicSecurityConfig() {
+  function loadPublicSecurityConfig() {
     if (publicConfigPromise) return publicConfigPromise;
 
     publicConfigPromise = withTimeout(
       API.getPublicConfig(),
-      20000,
-      "Il server non ha restituito la configurazione anti-spam."
+      15000,
+      "Configurazione anti-spam non disponibile"
     ).then(function(result) {
       if (!result || !result.ok) {
-        throw new Error(
-          (result && result.error) ||
-          "Configurazione anti-spam non disponibile"
-        );
+        throw new Error((result && result.error) || "Configurazione anti-spam non disponibile");
       }
 
       const recaptcha = result.recaptcha || {};
@@ -561,9 +579,7 @@ const API = Object.freeze({
       recaptchaSiteKey = String(recaptcha.siteKey || "").trim();
 
       if (recaptchaRequired && (!recaptcha.configured || !recaptchaSiteKey)) {
-        throw new Error(
-          "Protezione anti-spam non configurata dall’amministratore"
-        );
+        throw new Error("Protezione anti-spam non configurata dall’amministratore");
       }
 
       return recaptcha;
@@ -575,153 +591,135 @@ const API = Object.freeze({
     return publicConfigPromise;
   }
 
-  function clearRecaptchaGlobals() {
-    document
-      .querySelectorAll('script[data-fdi-recaptcha="true"]')
-      .forEach(function(script) {
-        script.remove();
-      });
+  function getRecaptchaAdapter(modeId) {
+    const root = window.grecaptcha;
+    const client = modeId === "enterprise"
+      ? root && root.enterprise
+      : root;
 
-    document
-      .querySelectorAll(
-        'iframe[src*="/recaptcha/"], iframe[src*="recaptcha.net"]'
-      )
-      .forEach(function(frame) {
-        frame.remove();
-      });
-
-    try {
-      window.grecaptcha = undefined;
-    } catch (_) {}
-
-    try {
-      window.___grecaptcha_cfg = undefined;
-    } catch (_) {}
+    if (!client || typeof client.ready !== "function" || typeof client.execute !== "function") {
+      return null;
+    }
+    return client;
   }
 
-  function resetRecaptchaClient() {
-    recaptchaPromise = null;
-    recaptchaClient = null;
-    recaptchaProvider = "";
-    securityReady = false;
-    clearRecaptchaGlobals();
-  }
-
-  function loadRecaptchaScript(provider) {
+  function loadRecaptchaScript(provider, mode) {
     return new Promise(function(resolve, reject) {
+      const existing = document.querySelector(
+        'script[data-fdi-recaptcha="' + provider.label + '-' + mode.id + '"]'
+      );
+      if (existing) {
+        resolve();
+        return;
+      }
+
       const script = document.createElement("script");
       const timeoutId = window.setTimeout(function() {
-        script.remove();
-        reject(
-          new Error(
-            "Caricamento da " + provider.label + " scaduto"
-          )
-        );
+        reject(new Error("Caricamento reCAPTCHA da " + provider.label + " scaduto"));
       }, 12000);
 
-      script.dataset.fdiRecaptcha = "true";
-      script.src =
-        provider.baseUrl +
-        "/recaptcha/api.js?render=" +
-        encodeURIComponent(recaptchaSiteKey);
+      script.dataset.fdiRecaptcha = provider.label + "-" + mode.id;
+      script.src = provider.baseUrl + "/recaptcha/" + mode.script +
+        "?render=" + encodeURIComponent(recaptchaSiteKey) + "&hl=it";
       script.async = true;
       script.defer = true;
+      script.referrerPolicy = "no-referrer";
 
       script.onload = function() {
         window.clearTimeout(timeoutId);
         resolve();
       };
-
       script.onerror = function() {
         window.clearTimeout(timeoutId);
         script.remove();
-        reject(
-          new Error(
-            "Impossibile caricare reCAPTCHA da " + provider.label
-          )
-        );
+        reject(new Error("Impossibile caricare reCAPTCHA da " + provider.label));
       };
 
       document.head.appendChild(script);
     });
   }
 
-  function waitForRecaptchaReady(client, providerLabel) {
-    if (
-      !client ||
-      typeof client.ready !== "function" ||
-      typeof client.execute !== "function"
-    ) {
-      return Promise.reject(
-        new Error(
-          "Libreria reCAPTCHA non valida da " + providerLabel
-        )
+  async function waitForAdapter(modeId, providerLabel) {
+    const deadline = Date.now() + 10000;
+    let client = getRecaptchaAdapter(modeId);
+
+    while (!client && Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 120));
+      client = getRecaptchaAdapter(modeId);
+    }
+
+    if (!client) {
+      throw new Error(
+        "API " + modeId + " non disponibile da " + providerLabel
       );
     }
 
-    return withTimeout(
-      new Promise(function(resolve) {
-        client.ready(resolve);
-      }),
+    await withTimeout(
+      new Promise(function(resolve) { client.ready(resolve); }),
       9000,
-      "reCAPTCHA caricato da " +
-        providerLabel +
-        " ma non inizializzato. Verifica che la chiave sia reCAPTCHA v3 standard."
+      "reCAPTCHA caricato ma non inizializzato"
     );
+
+    return client;
   }
 
-  async function loadRecaptcha(startIndex) {
+  function resetRecaptchaClient() {
+    recaptchaPromise = null;
+    recaptchaClient = null;
+    recaptchaProvider = "";
+    recaptchaMode = "";
+    securityReady = false;
+  }
+
+  async function loadRecaptcha() {
     if (!recaptchaSiteKey) {
       return recaptchaRequired
-        ? Promise.reject(
-            new Error("Site key reCAPTCHA non disponibile")
-          )
+        ? Promise.reject(new Error("Site key reCAPTCHA non disponibile"))
         : Promise.resolve(null);
     }
 
     if (recaptchaClient) return recaptchaClient;
     if (recaptchaPromise) return recaptchaPromise;
 
-    const initialIndex =
-      Number.isInteger(startIndex) ? startIndex : recaptchaProviderIndex;
-
     recaptchaPromise = (async function() {
       const errors = [];
 
-      for (let offset = 0; offset < RECAPTCHA_PROVIDERS.length; offset++) {
-        const index =
-          (initialIndex + offset) % RECAPTCHA_PROVIDERS.length;
-        const provider = RECAPTCHA_PROVIDERS[index];
+      // Nel 2026 le chiavi score-based gestite da Google Cloud usano
+      // enterprise.js/grecaptcha.enterprise. Manteniamo api.js come fallback
+      // per chiavi legacy/migrate.
+      for (const mode of RECAPTCHA_MODES) {
+        for (const provider of RECAPTCHA_PROVIDERS) {
+          try {
+            let client = getRecaptchaAdapter(mode.id);
+            if (!client) {
+              await loadRecaptchaScript(provider, mode);
+              client = await waitForAdapter(mode.id, provider.label);
+            } else {
+              await withTimeout(
+                new Promise(resolve => client.ready(resolve)),
+                9000,
+                "reCAPTCHA non pronto"
+              );
+            }
 
-        clearRecaptchaGlobals();
-
-        try {
-          await loadRecaptchaScript(provider);
-
-          const client = window.grecaptcha;
-          await waitForRecaptchaReady(client, provider.label);
-
-          recaptchaClient = client;
-          recaptchaProvider = provider.label;
-          recaptchaProviderIndex = index;
-
-          return client;
-        } catch (error) {
-          errors.push(error.message || String(error));
+            recaptchaClient = client;
+            recaptchaProvider = provider.label;
+            recaptchaMode = mode.id;
+            return client;
+          } catch (error) {
+            errors.push(mode.id + "@" + provider.label + ": " +
+              (error && error.message ? error.message : String(error)));
+          }
         }
       }
 
       throw new Error(
-        "reCAPTCHA non disponibile. " +
-        errors.join(" | ") +
-        ". Controlla che la chiave sia di tipo reCAPTCHA v3 standard e che il dominio " +
-        window.location.hostname +
-        " sia autorizzato."
+        "reCAPTCHA non disponibile. " + errors.join(" | ") +
+        ". Verifica la chiave score-based e il dominio " + window.location.hostname + "."
       );
     })().catch(function(error) {
       recaptchaPromise = null;
       recaptchaClient = null;
-      recaptchaProvider = "";
       throw error;
     });
 
@@ -734,20 +732,26 @@ const API = Object.freeze({
 
     try {
       if (window.location.protocol === "file:") {
-        throw new Error(
-          "Il modulo deve essere aperto dal sito pubblicato, non come file locale."
-        );
+        throw new Error("Il modulo deve essere aperto dal sito pubblicato, non come file locale.");
       }
 
       await loadPublicSecurityConfig();
-      await loadRecaptcha();
 
+      if (!recaptchaRequired) {
+        securityReady = true;
+        setRecaptchaStatus("success", "Protezione anti-spam server-side attiva.", false);
+        submitReport.disabled = false;
+        submitReport.textContent = "Invia segnalazione";
+        return;
+      }
+
+      await loadRecaptcha();
       securityReady = true;
       setRecaptchaStatus(
         "success",
-        "Protezione anti-spam attiva tramite " +
-          recaptchaProvider +
-          ".",
+        "Protezione anti-spam attiva (" +
+          (recaptchaMode === "enterprise" ? "Google Cloud reCAPTCHA" : "reCAPTCHA compatibilità") +
+          " tramite " + recaptchaProvider + ").",
         false
       );
       submitReport.disabled = false;
@@ -760,84 +764,50 @@ const API = Object.freeze({
         true
       );
       submitReport.disabled = true;
-      submitReport.textContent =
-        "Invio temporaneamente non disponibile";
+      submitReport.textContent = "Invio temporaneamente non disponibile";
       console.error("Configurazione reCAPTCHA:", error);
     }
   }
 
-  async function executeRecaptcha(client, providerLabel) {
-    await waitForRecaptchaReady(client, providerLabel);
+  async function executeRecaptcha(client) {
+    await withTimeout(
+      new Promise(resolve => client.ready(resolve)),
+      9000,
+      "reCAPTCHA non pronto"
+    );
 
     const token = await withTimeout(
-      client.execute(recaptchaSiteKey, {
-        action: "create_report"
-      }),
+      client.execute(recaptchaSiteKey, { action: "create_report" }),
       15000,
-      "La verifica tramite " +
-        providerLabel +
-        " non ha restituito un token."
+      "La verifica anti-spam non ha restituito un token."
     );
 
     if (!token || typeof token !== "string") {
-      throw new Error(
-        "Il servizio anti-spam non ha restituito un token valido."
-      );
+      throw new Error("Il servizio anti-spam non ha restituito un token valido.");
     }
-
     return token;
   }
 
   async function getRecaptchaToken() {
     if (!securityReady) {
-      throw new Error(
-        "Protezione anti-spam non pronta. Premi “Riprova controllo”."
-      );
+      throw new Error("Protezione anti-spam non pronta. Premi “Riprova controllo”.");
     }
 
-    if (!recaptchaSiteKey && !recaptchaRequired) return "";
-
-    let firstError = null;
+    if (!recaptchaRequired) return "";
 
     try {
       const client = await loadRecaptcha();
-      return await executeRecaptcha(client, recaptchaProvider);
+      return await executeRecaptcha(client);
     } catch (error) {
-      firstError = error;
-    }
-
-    // Secondo tentativo automatico usando l'altro dominio.
-    const nextIndex =
-      (recaptchaProviderIndex + 1) % RECAPTCHA_PROVIDERS.length;
-
-    resetRecaptchaClient();
-
-    try {
-      const client = await loadRecaptcha(nextIndex);
-      return await executeRecaptcha(client, recaptchaProvider);
-    } catch (secondError) {
+      resetRecaptchaClient();
       securityReady = false;
-
-      const message =
-        "Il controllo anti-spam non è riuscito. " +
-        "Primo tentativo: " +
-        (firstError && firstError.message
-          ? firstError.message
-          : "errore sconosciuto") +
-        " Secondo tentativo: " +
-        (secondError && secondError.message
-          ? secondError.message
-          : "errore sconosciuto");
-
-      setRecaptchaStatus("error", message, true);
-
-      throw new Error(
-        message +
-        ". Verifica che la chiave sia reCAPTCHA v3 standard, non v2 o Enterprise, " +
-        "e che " +
-        window.location.hostname +
-        " sia tra i domini autorizzati."
+      setRecaptchaStatus(
+        "error",
+        "Il controllo anti-spam non è riuscito: " +
+          (error && error.message ? error.message : "errore sconosciuto"),
+        true
       );
+      throw error;
     }
   }
 
