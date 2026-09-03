@@ -1,4 +1,4 @@
-/* FDI Ascolta IX — login build 3109 / backend rc7 */
+/* FDI Ascolta IX — login build 3110 / backend rc7 */
 (() => {
   "use strict";
 
@@ -74,7 +74,7 @@
   }
 
   async function pollLoginResult(requestId) {
-    const deadline = Date.now() + 20000;
+    const deadline = Date.now() + 60000;
     while (Date.now() < deadline) {
       const url = CONFIG.API_URL + "?action=loginResult&requestId=" + encodeURIComponent(requestId) + "&_=" + Date.now();
       try {
@@ -96,9 +96,48 @@
         // Il POST può essere ancora in lavorazione: riprova finché non scade il timeout.
         if (Date.now() + 650 >= deadline) throw err;
       }
-      await sleep(650);
+      await sleep(900);
     }
-    throw new Error("Il server non ha completato l’accesso in tempo. Riprova.");
+    throw new Error("Il server non ha completato l’accesso entro 60 secondi. Riprova.");
+  }
+
+  function submitLoginViaHiddenFrame(payload) {
+    const frameName = "fdiLoginTransport_" + Date.now() + "_" + Math.random().toString(36).slice(2);
+    const iframe = document.createElement("iframe");
+    iframe.name = frameName;
+    iframe.title = "Trasporto autenticazione";
+    iframe.setAttribute("aria-hidden", "true");
+    iframe.tabIndex = -1;
+    iframe.style.position = "fixed";
+    iframe.style.width = "1px";
+    iframe.style.height = "1px";
+    iframe.style.opacity = "0";
+    iframe.style.pointerEvents = "none";
+    iframe.style.border = "0";
+    iframe.style.left = "-9999px";
+    document.body.appendChild(iframe);
+
+    const transportForm = document.createElement("form");
+    transportForm.method = "POST";
+    transportForm.action = CONFIG.API_URL;
+    transportForm.target = frameName;
+    transportForm.enctype = "application/x-www-form-urlencoded";
+    transportForm.acceptCharset = "UTF-8";
+    transportForm.style.display = "none";
+
+    const payloadInput = document.createElement("input");
+    payloadInput.type = "hidden";
+    payloadInput.name = "payload";
+    payloadInput.value = JSON.stringify(payload);
+    transportForm.appendChild(payloadInput);
+
+    document.body.appendChild(transportForm);
+    transportForm.submit();
+    transportForm.remove();
+
+    return () => {
+      try { iframe.remove(); } catch (_) {}
+    };
   }
 
   async function loginInvisible(emailValue, passwordValue) {
@@ -110,21 +149,18 @@
       password: passwordValue
     };
 
-    // Il POST viene inviato senza CORS e senza navigazione. La risposta POST è
-    // volutamente opaca; il risultato viene recuperato separatamente via GET.
-    fetch(CONFIG.API_URL, {
-      method: "POST",
-      mode: "no-cors",
-      cache: "no-store",
-      credentials: "omit",
-      redirect: "follow",
-      headers: { "Content-Type": "text/plain;charset=UTF-8" },
-      body: JSON.stringify(payload)
-    }).catch(() => {
-      // Il polling seguente stabilisce se il backend ha elaborato la richiesta.
-    });
+    // POST HTML tradizionale confinato in un iframe invisibile:
+    // niente fetch cross-origin, niente navigazione della pagina principale,
+    // password esclusivamente nel body POST.
+    const cleanup = submitLoginViaHiddenFrame(payload);
 
-    return pollLoginResult(requestId);
+    try {
+      return await pollLoginResult(requestId);
+    } finally {
+      // Lascia al browser un istante per completare eventuali redirect interni
+      // di Apps Script prima di rimuovere il frame.
+      setTimeout(cleanup, 1500);
+    }
   }
 
   showPass.addEventListener("click", () => {
@@ -157,10 +193,4 @@
     }
   });
 
-  fetch(CONFIG.API_URL + "?action=health&_=" + Date.now(), {
-    method: "GET",
-    mode: "cors",
-    cache: "no-store",
-    credentials: "omit"
-  }).catch(() => {});
 })();
