@@ -1,8 +1,8 @@
-/* FDI Ascolta IX 3.1.0-rc10 - bundle pagina: uffici.html */
+/* FDI Ascolta IX 3.1.0-rc14 - bundle pagina: uffici.html */
 
 /* ===== assets/js/config.js ===== */
 const CONFIG = Object.freeze({
-  VERSION: "3.1.0-rc10",
+  VERSION: "3.1.0-rc14",
   API_URL: "https://script.google.com/macros/s/AKfycbyZuNSOT2SCW6YNp6gZ-bTO6gfm9wGI3-YAjvSmo5oelcqrUmARNzmd49hbjSn4ISh4Yg/exec",
   SESSION_KEY: "fdi_ascolta_ix_session_v3",
   CLIENT_ID_KEY: "fdi_ascolta_ix_client_v1",
@@ -158,15 +158,23 @@ const Auth = Object.freeze({
     return this.enforcePageAccess();
   },
 
-  async logout() {
-    try {
-      if (typeof API !== "undefined" && this.getToken()) await API.logout();
-    } catch (_) {
-      // La sessione locale viene comunque rimossa.
-    } finally {
-      this.clearSession();
-      location.replace("login.html");
+  logout() {
+    const session = this.getSession();
+    const token = String(session && session.token || "");
+
+    // Il logout locale deve essere immediato anche se Apps Script è lento.
+    this.clearSession();
+
+    // Revoca server best-effort senza aspettare redirect/CORS.
+    if (token && navigator.sendBeacon) {
+      try {
+        const body = JSON.stringify({ action: "logout", authToken: token });
+        const blob = new Blob([body], { type: "text/plain;charset=UTF-8" });
+        navigator.sendBeacon(CONFIG.API_URL, blob);
+      } catch (_) {}
     }
+
+    location.replace("login.html");
   }
 });
 
@@ -222,7 +230,7 @@ function crmSubmitHiddenPost(envelope) {
 
 async function crmReadAsyncResult(resultAction, requestId, timeoutMs) {
   const started = Date.now();
-  let delay = 180;
+  let delay = 240;
   let lastError = null;
 
   while (Date.now() - started < timeoutMs) {
@@ -329,12 +337,19 @@ const API = Object.freeze({
       }
 
       if (result && result.authRequired && !isPublic) {
-        if (!options._authRetry) {
-          // Una sessione appena creata può richiedere qualche centinaio di ms
-          // prima di risultare leggibile da una nuova esecuzione Apps Script.
-          await crmSleep(650);
-          return this.call(action, params, { ...options, _authRetry: true });
+        const retryIndex = Math.max(0, Number(options._authRetryCount || 0));
+        const retryDelays = [700, 1400, 2600, 4200];
+
+        // Non espellere l'utente per un singolo miss transitorio subito dopo
+        // il login o durante una rotazione ContentService.
+        if (retryIndex < retryDelays.length) {
+          await crmSleep(retryDelays[retryIndex]);
+          return this.call(action, params, {
+            ...options,
+            _authRetryCount: retryIndex + 1
+          });
         }
+
         Auth.clearSession();
         Auth.requireAuth();
         throw new Error(result.error || "Sessione scaduta");
