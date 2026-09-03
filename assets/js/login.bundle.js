@@ -1,10 +1,10 @@
-/* FDI Ascolta IX — login build 3108 / backend rc7 */
+/* FDI Ascolta IX — login build 3109 / backend rc7 */
 (() => {
   "use strict";
 
   const CONFIG = Object.freeze({
     API_URL: "https://script.google.com/macros/s/AKfycbyZuNSOT2SCW6YNp6gZ-bTO6gfm9wGI3-YAjvSmo5oelcqrUmARNzmd49hbjSn4ISh4Yg/exec",
-    SESSION_KEY: "fdi_ascolta_ix_session"
+    SESSION_KEY: "fdi_ascolta_ix_session_v3"
   });
 
   const form = document.getElementById("loginForm");
