@@ -1,4 +1,4 @@
-/* FDI Ascolta IX — login build 3112 FAST / backend rc9 */
+/* FDI Ascolta IX — login build 3113 STABLE / backend rc9 */
 (() => {
   "use strict";
 
@@ -74,11 +74,12 @@
   }
 
   async function readLoginResult(requestId) {
-    let lastError = null;
-    const delays = [0, 120, 180, 260, 380, 550, 800, 1200, 1800, 2500];
+    let lastMeaningfulError = null;
+    const delays = [0, 250, 650, 1200, 2200, 3500];
 
     for (const delay of delays) {
       if (delay) await sleep(delay);
+
       const url = CONFIG.API_URL + "?action=loginResult&requestId=" +
         encodeURIComponent(requestId) + "&_=" + Date.now();
 
@@ -91,22 +92,44 @@
           redirect: "follow"
         });
 
+        // Apps Script ContentService può restituire un 404 transitorio
+        // durante la rotazione del redirect googleusercontent. Non è un
+        // errore di credenziali: aspettiamo e riproviamo.
+        if (response.status === 404) {
+          continue;
+        }
+
         if (!response.ok) {
-          lastError = new Error("Errore API HTTP " + response.status);
+          lastMeaningfulError = new Error("Backend temporaneamente non disponibile (HTTP " + response.status + ")");
           continue;
         }
 
         const data = await response.json();
+
+        if (data && data.pending === true) {
+          continue;
+        }
+
         if (data && data.pending === false) {
-          if (!data.ok) throw new Error(data.error || "Risposta di autenticazione non valida");
-          return data.result || { ok: false, error: "Risposta di autenticazione vuota" };
+          if (!data.ok) {
+            throw new Error(data.error || "Risposta di autenticazione non valida");
+          }
+          return data.result || {
+            ok: false,
+            error: "Risposta di autenticazione vuota"
+          };
         }
       } catch (err) {
-        lastError = err;
+        // Gli errori applicativi reali (es. password errata) vanno mostrati.
+        if (err && /Email o password|Troppe richieste|accesso/i.test(String(err.message || ""))) {
+          throw err;
+        }
+        lastMeaningfulError = err;
       }
     }
 
-    throw lastError || new Error("Il server non ha completato l’accesso. Riprova.");
+    throw lastMeaningfulError ||
+      new Error("Il backend non ha ancora completato l’accesso. Attendi qualche secondo e riprova.");
   }
 
   async function submitLoginViaHiddenFrame(payload) {
@@ -126,13 +149,15 @@
     iframe.src = "about:blank";
     document.body.appendChild(iframe);
 
+    // Attende il caricamento iniziale about:blank per non confonderlo
+    // con il completamento del POST Apps Script.
     await new Promise(resolve => {
       if (iframe.contentDocument && iframe.contentDocument.readyState === "complete") {
         resolve();
         return;
       }
       iframe.addEventListener("load", resolve, { once: true });
-      setTimeout(resolve, 120);
+      setTimeout(resolve, 250);
     });
 
     const transportForm = document.createElement("form");
@@ -150,11 +175,23 @@
     transportForm.appendChild(payloadInput);
     document.body.appendChild(transportForm);
 
+    const completed = new Promise(resolve => {
+      let settled = false;
+      const done = () => {
+        if (settled) return;
+        settled = true;
+        resolve();
+      };
+      iframe.addEventListener("load", done, { once: true });
+      // Fallback: se il browser non espone l'evento cross-origin,
+      // non restiamo bloccati all'infinito.
+      setTimeout(done, 12000);
+    });
+
     transportForm.submit();
     transportForm.remove();
+    await completed;
 
-    // Non aspettiamo il redirect grafico di Apps Script: il backend salva
-    // autonomamente il risultato nella cache e il polling GET può leggerlo.
     return () => {
       try { iframe.remove(); } catch (_) {}
     };
@@ -169,27 +206,16 @@
       password: passwordValue
     };
 
+    // Prima aspettiamo che il POST Apps Script abbia terminato.
+    // Solo dopo leggiamo il risultato: niente polling concorrente.
     const cleanup = await submitLoginViaHiddenFrame(payload);
 
     try {
-      await sleep(220);
       return await readLoginResult(requestId);
     } finally {
-      setTimeout(cleanup, 1800);
+      cleanup();
     }
   }
-
-  // Pre-riscalda Apps Script mentre l'utente compila il form: riduce il cold start
-  // senza inviare credenziali o dati personali.
-  setTimeout(() => {
-    fetch(CONFIG.API_URL + "?action=health&_=" + Date.now(), {
-      method: "GET",
-      mode: "cors",
-      cache: "no-store",
-      credentials: "omit",
-      redirect: "follow"
-    }).catch(() => {});
-  }, 250);
 
   showPass.addEventListener("click", () => {
     password.type = password.type === "password" ? "text" : "password";
