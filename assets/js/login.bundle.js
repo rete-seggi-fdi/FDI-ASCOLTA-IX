@@ -1,4 +1,4 @@
-/* FDI Ascolta IX — login build 3113 STABLE / backend rc9 */
+/* FDI Ascolta IX — login build 3114 STABLE / backend rc10 */
 (() => {
   "use strict";
 
@@ -55,12 +55,18 @@
 
   function saveSession(result) {
     const expiresInSeconds = Math.max(60, Number(result.expiresInSeconds || 8 * 60 * 60));
-    sessionStorage.setItem(CONFIG.SESSION_KEY, JSON.stringify({
+    const session = {
       token: String(result.token || ""),
       user: result.user || null,
       mustChangePassword: Boolean(result.user && result.user.mustChangePassword),
+      createdAt: Date.now(),
       expiresAt: Date.now() + (expiresInSeconds * 1000)
-    }));
+    };
+    sessionStorage.setItem(CONFIG.SESSION_KEY, JSON.stringify(session));
+    // Handoff monouso: la prima pagina CRM lo consuma e lo elimina subito.
+    try {
+      localStorage.setItem("fdi_ascolta_ix_session_handoff_v1", JSON.stringify(session));
+    } catch (_) {}
   }
 
   function makeRequestId() {
