@@ -1,4 +1,4 @@
-/* FDI Ascolta IX 3.1.0-rc15 - bundle pagina: pratiche.html build 3117 SEC */
+/* FDI Ascolta IX 3.1.0-rc16 - bundle pagina: pratiche.html build 3117 SEC */
 
 /* ===== assets/js/config.js ===== */
 const CONFIG = Object.freeze({
@@ -393,6 +393,7 @@ const API = Object.freeze({
   listQuartieri() { return this.call("listQuartieri", {}, { publicAction: true }); },
   getPublicStats() { return this.call("getPublicStats", {}, { publicAction: true }); },
   getPublicReport(code, email = "") { return this.call("getPublicReport", { code, email, clientId: this.getClientId() }, { publicAction: true }); },
+  bootstrapPratiche() { return this.call("bootstrapPratiche"); },
   listReports() { return this.call("listReports"); },
   listReferenti() { return this.call("listReferenti"); },
   listUffici() { return this.call("listUffici"); },
@@ -890,21 +891,24 @@ async function boot(preserveSelection=false){
   refreshPractices.textContent='↻ Aggiornamento...';
 
   try{
-    const isAdminUser=Auth.isAdmin();
-    const [r,ref,u]=await Promise.all([
-      get('listReports'),
-      isAdminUser
-        ? get('listReferenti')
-        : Promise.resolve({ok:true,referenti:[]}),
-      get('listUffici').catch(()=>({ok:false,uffici:[]}))
-    ]);
+    // Una sola esecuzione privata per popolare l'intera pagina.
+    // La promessa viene condivisa anche con crm-shell, evitando il secondo
+    // listReports concorrente che rallentava molto Apps Script.
+    const bootstrapPromise=get('bootstrapPratiche');
+    window.__FDI_REPORTS_PROMISE=bootstrapPromise.then(result=>{
+      if(!result||!result.ok)throw new Error(result&&result.error?result.error:'Errore caricamento pratiche');
+      return Array.isArray(result.reports)?result.reports:[];
+    });
 
-    if(!r.ok)throw new Error(r.error||'Errore caricamento pratiche');
-    if(isAdminUser&&!ref.ok)throw new Error(ref.error||'Errore caricamento referenti');
+    const data=await bootstrapPromise;
+    if(!data.ok)throw new Error(data.error||'Errore caricamento pratiche');
 
-    reports=Array.isArray(r.reports)?r.reports:[];
-    referenti=Array.isArray(ref.referenti)?ref.referenti:[];
-    uffici=Array.isArray(u.uffici)?u.uffici:[];
+    reports=Array.isArray(data.reports)?data.reports:[];
+    referenti=Array.isArray(data.referenti)?data.referenti:[];
+    uffici=Array.isArray(data.uffici)?data.uffici:[];
+
+    window.__FDI_REPORTS_CACHE=reports;
+    window.__FDI_REPORTS_CACHE_AT=Date.now();
 
     fill('fQuartiere',uniq('quartiere'),'Quartiere');
     fill('fCategoria',uniq('categoria'),'Categoria');
@@ -1087,6 +1091,21 @@ apply=function(){originalApply();updateMiniKpis();};
 
   async function ensureData(){
     if(cache.length) return cache;
+
+    const shared=window.__FDI_REPORTS_CACHE;
+    const sharedAt=Number(window.__FDI_REPORTS_CACHE_AT||0);
+    if(Array.isArray(shared)&&Date.now()-sharedAt<30000){
+      cache=shared;
+      return cache;
+    }
+
+    if(window.__FDI_REPORTS_PROMISE&&typeof window.__FDI_REPORTS_PROMISE.then==="function"){
+      try{
+        cache=await window.__FDI_REPORTS_PROMISE;
+        if(Array.isArray(cache)) return cache;
+      }catch(_){}
+    }
+
     cache=await getReports();
     return cache;
   }
@@ -1267,10 +1286,13 @@ apply=function(){originalApply();updateMiniKpis();};
   loadBadge();
 
   setInterval(async()=>{
+    if(document.visibilityState!=="visible") return;
     try{
       cache=await getReports();
+      window.__FDI_REPORTS_CACHE=cache;
+      window.__FDI_REPORTS_CACHE_AT=Date.now();
       loadBadge();
     }catch(_){}
-  },60000);
+  },120000);
 })();
 
