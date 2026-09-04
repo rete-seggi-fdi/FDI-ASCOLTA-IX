@@ -1,4 +1,4 @@
-/* FDI Ascolta IX 3.1.0-rc14 - bundle pagina: pratiche.html */
+/* FDI Ascolta IX 3.1.0-rc15 - bundle pagina: pratiche.html build 3117 SEC */
 
 /* ===== assets/js/config.js ===== */
 const CONFIG = Object.freeze({
@@ -753,6 +753,8 @@ const closeModalX=document.getElementById('closeModalX');
 const closeCancel=document.getElementById('closeCancel');
 const closeConfirm=document.getElementById('closeConfirm');
 const closeNotes=document.getElementById('closeNotes');
+const closeCitizenMessage=document.getElementById('closeCitizenMessage');
+const closePublishCitizen=document.getElementById('closePublishCitizen');
 const closeMsg=document.getElementById('closeMsg');
 const closeSendEmail=document.getElementById('closeSendEmail');
 const closeArchive=document.getElementById('closeArchive');
@@ -760,6 +762,8 @@ const closeArchive=document.getElementById('closeArchive');
 function openCloseModal(){
   if(!selected)return alert('Seleziona pratica');
   closeNotes.value='';
+  if(closeCitizenMessage)closeCitizenMessage.value='';
+  if(closePublishCitizen)closePublishCitizen.checked=false;
   closeMsg.textContent='';
   closeSendEmail.checked=true;
   closeArchive.checked=Auth.isAdmin();
@@ -773,10 +777,13 @@ async function confirmClosePractice(){
   const outcomeEl=document.querySelector('input[name="closeOutcome"]:checked');
   const outcome=outcomeEl?outcomeEl.value:'Risolta';
   const notes=closeNotes.value.trim();
-  if(!notes){closeMsg.textContent='Inserisci le note finali prima di chiudere la pratica.';closeNotes.focus();return;}
+  const citizenMessage=closeCitizenMessage?closeCitizenMessage.value.trim():'';
+  const publishCitizen=Boolean(closePublishCitizen&&closePublishCitizen.checked);
+  if(!notes){closeMsg.textContent='Inserisci le note interne prima di chiudere la pratica.';closeNotes.focus();return;}
+  if(publishCitizen&&!citizenMessage){closeMsg.textContent='Inserisci il messaggio al cittadino oppure disattiva la pubblicazione nel tracking.';closeCitizenMessage.focus();return;}
   closeConfirm.disabled=true;closeConfirm.textContent='Chiusura...';closeMsg.textContent='Aggiornamento pratica in corso...';
   try{
-    const res=await post({action:'closeReport',reportId:selected.id,esito:outcome,noteFinali:notes,inviaEmail:closeSendEmail.checked,archivia:closeArchive.checked,operatore:'Modulo Pratiche'});
+    const res=await post({action:'closeReport',reportId:selected.id,esito:outcome,noteInterna:notes,messaggioCittadino:citizenMessage,pubblicaCittadino:publishCitizen,inviaEmail:closeSendEmail.checked,archivia:closeArchive.checked,operatore:'Modulo Pratiche'});
     if(!res.ok)throw new Error(res.error||'Errore chiusura pratica');
     const finalStatus=Auth.isAdmin()&&closeArchive.checked?'Archiviata':'Risolta';
     selected.stato=finalStatus;
