@@ -1,4 +1,4 @@
-/* FDI Ascolta IX 3.1.0-rc16 - bundle pagina: pratiche.html build 3117 SEC */
+/* FDI Ascolta IX 3.1.0-rc17 - bundle pagina: pratiche.html build 3117 SEC */
 
 /* ===== assets/js/config.js ===== */
 const CONFIG = Object.freeze({
@@ -190,7 +190,7 @@ function crmSleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function crmSubmitHiddenPost(envelope) {
+async function crmSubmitHiddenPost(envelope) {
   const frameName = "fdiApiTransport_" + Date.now() + "_" + Math.random().toString(36).slice(2);
   const iframe = document.createElement("iframe");
   iframe.name = frameName;
@@ -204,7 +204,21 @@ function crmSubmitHiddenPost(envelope) {
   iframe.style.pointerEvents = "none";
   iframe.style.border = "0";
   iframe.style.left = "-9999px";
+  iframe.src = "about:blank";
   document.body.appendChild(iframe);
+
+  // Come nel login stabile: distinguiamo il load iniziale about:blank
+  // dal load che segnala il completamento del POST Apps Script.
+  await new Promise(resolve => {
+    try {
+      if (iframe.contentDocument && iframe.contentDocument.readyState === "complete") {
+        resolve();
+        return;
+      }
+    } catch (_) {}
+    iframe.addEventListener("load", resolve, { once: true });
+    setTimeout(resolve, 250);
+  });
 
   const form = document.createElement("form");
   form.method = "POST";
@@ -220,8 +234,24 @@ function crmSubmitHiddenPost(envelope) {
   input.value = JSON.stringify(envelope);
   form.appendChild(input);
   document.body.appendChild(form);
+
+  const completed = new Promise(resolve => {
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    };
+    iframe.addEventListener("load", done, { once: true });
+    // Fallback soltanto se il browser non espone il load cross-origin.
+    setTimeout(done, 15000);
+  });
+
   form.submit();
   form.remove();
+
+  // Niente polling concorrente mentre Apps Script sta ancora lavorando.
+  await completed;
 
   return () => {
     try { iframe.remove(); } catch (_) {}
@@ -230,12 +260,12 @@ function crmSubmitHiddenPost(envelope) {
 
 async function crmReadAsyncResult(resultAction, requestId, timeoutMs) {
   const started = Date.now();
-  let delay = 240;
+  let delay = 80;
   let lastError = null;
 
   while (Date.now() - started < timeoutMs) {
     await crmSleep(delay);
-    delay = Math.min(1200, Math.round(delay * 1.45));
+    delay = Math.min(900, Math.round(delay * 1.55));
     const url = CONFIG.API_URL + "?action=" + encodeURIComponent(resultAction) +
       "&requestId=" + encodeURIComponent(requestId) + "&_=" + Date.now();
     try {
@@ -272,7 +302,8 @@ async function crmAsyncTransport(kind, request, timeoutMs) {
     requestId,
     request
   };
-  const cleanup = crmSubmitHiddenPost(envelope);
+  // Prima termina il POST; solo dopo iniziamo a leggere il risultato.
+  const cleanup = await crmSubmitHiddenPost(envelope);
   try {
     return await crmReadAsyncResult(
       isPrivate ? "privateAsyncResult" : "publicAsyncResult",
