@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self' https://script.google.com https://script.googleusercontent.com https://*.googleusercontent.com; script-src 'self' https://unpkg.com https://cdn.jsdelivr.net https://www.google.com https://www.recaptcha.net https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: blob: https://unpkg.com https://*.tile.openstreetmap.org; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://*.googleusercontent.com https://www.google.com https://www.recaptcha.net; frame-src https://script.google.com https://script.googleusercontent.com https://*.googleusercontent.com https://www.google.com https://www.recaptcha.net; worker-src 'self' blob:; upgrade-insecure-requests">
-<title>Pratiche PRO v3.1.0 RC2 — FDI Ascolta IX CRM</title>
+<title>Pratiche PRO v3.1.0 RC15 — FDI Ascolta IX CRM</title>
 
 <link rel="stylesheet" href="assets/css/style.css">
 <link rel="stylesheet" href="assets/css/theme-fdi.css?v=3105">
@@ -331,8 +331,19 @@ body.councillor-mode .role-banner{display:block}
           <label class="close-option"><input type="radio" name="closeOutcome" value="Parzialmente risolta"> Parzialmente risolta</label>
           <label class="close-option"><input type="radio" name="closeOutcome" value="Non risolvibile"> Non risolvibile</label>
         </div>
-        <h3>Note finali *</h3>
-        <textarea id="closeNotes" placeholder="Descrivi brevemente l'esito della pratica e le attività concluse."></textarea>
+        <h3>Note interne *</h3>
+        <textarea id="closeNotes" placeholder="Note operative interne. Questo testo NON sarà mostrato al cittadino."></textarea>
+
+        <h3>Messaggio al cittadino</h3>
+        <textarea id="closeCitizenMessage" placeholder="Facoltativo. Scrivi solo informazioni che possono essere mostrate nel tracking e/o inviate via email."></textarea>
+        <label class="close-check">
+          <input type="checkbox" id="closePublishCitizen">
+          <span>Rendi il messaggio al cittadino visibile nel tracking pubblico</span>
+        </label>
+        <p class="muted" style="margin:4px 0 10px">
+          Le note interne restano sempre private. Se non pubblichi un messaggio, il tracking mostrerà solo un aggiornamento generico di chiusura.
+        </p>
+
         <label class="close-check"><input type="checkbox" id="closeSendEmail" checked><span>Invia email finale al cittadino</span></label>
         <label class="close-check"><input type="checkbox" id="closeArchive" checked><span>Archivia automaticamente la pratica</span></label>
         <div id="closeMsg" class="muted" style="margin-top:10px"></div>
@@ -345,12 +356,12 @@ body.councillor-mode .role-banner{display:block}
   </div>
 </main>
 
-<footer class="footer">FDI Ascolta IX CRM — Pratiche PRO v3.1.0 RC2</footer>
+<footer class="footer">FDI Ascolta IX CRM — Pratiche PRO v3.1.0 RC15</footer>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
 
 
 
-<script src="assets/js/pratiche.bundle.js?v=3116-rc14"></script>
+<script src="assets/js/pratiche.bundle.js?v=3117-sec15"></script>
 </body>
 </html>
