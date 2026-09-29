@@ -151,14 +151,12 @@ async function loadData(){
   if(!authenticated)return;
   refreshBtn.disabled=true;
   try{
-    const [health,result,userResult]=await Promise.all([API.health(),API.getConfigurationData(),API.listUsers()]);
-    if(!health.ok)throw new Error(health.error||"Backend non disponibile");
-    if(!result.ok)throw new Error(result.error||"Configurazione non disponibile");
-    configuration=result;
-    if(!userResult.ok)throw new Error(userResult.error||"Utenti non disponibili");
-    users=userResult.users||[];
+    const workspace=await API.getConfigurationWorkspace();
+    if(!workspace.ok)throw new Error(workspace.error||"Configurazione non disponibile");
+    configuration=workspace.configuration||{quartieri:[],referenti:[],uffici:[],categories:[],priorities:[],workflow:[]};
+    users=workspace.users||[];
     render();
-    setStatus(true,`Backend ${health.version||"online"} · ${configuration.quartieri.length} quartieri · ${configuration.referenti.length} referenti · ${configuration.uffici.length} uffici`);
+    setStatus(true,`Backend ${workspace.version||"online"} · ${configuration.quartieri.length} quartieri · ${configuration.referenti.length} referenti · ${configuration.uffici.length} uffici · ${workspace.perfMs||0} ms server`);
   }catch(error){console.error(error);setStatus(false,error.message)}finally{refreshBtn.disabled=false}
 }
 

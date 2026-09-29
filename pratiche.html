@@ -803,21 +803,11 @@ async function boot(preserveSelection=false){
   refreshPractices.textContent='↻ Aggiornamento...';
 
   try{
-    const isAdminUser=Auth.isAdmin();
-    const [r,ref,u]=await Promise.all([
-      get('listReports'),
-      isAdminUser
-        ? get('listReferenti')
-        : Promise.resolve({ok:true,referenti:[]}),
-      get('listUffici').catch(()=>({ok:false,uffici:[]}))
-    ]);
-
-    if(!r.ok)throw new Error(r.error||'Errore caricamento pratiche');
-    if(isAdminUser&&!ref.ok)throw new Error(ref.error||'Errore caricamento referenti');
-
-    reports=Array.isArray(r.reports)?r.reports:[];
-    referenti=Array.isArray(ref.referenti)?ref.referenti:[];
-    uffici=Array.isArray(u.uffici)?u.uffici:[];
+    const workspace=await API.getPracticeWorkspace();
+    if(!workspace.ok)throw new Error(workspace.error||'Errore caricamento area pratiche');
+    reports=Array.isArray(workspace.reports)?workspace.reports:[];
+    referenti=Array.isArray(workspace.referenti)?workspace.referenti:[];
+    uffici=Array.isArray(workspace.uffici)?workspace.uffici:[];
 
     fill('fQuartiere',uniq('quartiere'),'Quartiere');
     fill('fCategoria',uniq('categoria'),'Categoria');

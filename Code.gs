@@ -12,7 +12,7 @@
 
 const APP = Object.freeze({
   NAME: 'FDI Ascolta IX',
-  SCHEMA_VERSION: '2026-09-enterprise-4.0.0',
+  SCHEMA_VERSION: '2026-09-fast-boot-4.2.0',
   SESSION_HOURS: 8,
   MAX_PHOTO_BYTES: 5 * 1024 * 1024,
   PHOTO_FOLDER_NAME: 'FDI Ascolta IX Foto',
@@ -240,7 +240,6 @@ function doGet(e) {
 
 function doPost(e) {
   try {
-    ensureSetup();
     const body = parseBody(e);
     const action = String(body.action || '').trim();
 
@@ -275,6 +274,9 @@ function doPost(e) {
     if (action === 'saveConfigurationItem') { requireAdmin(user); return json(saveConfigurationItem(body, user)); }
     if (action === 'deactivateConfigurationItem') { requireAdmin(user); return json(deactivateConfigurationItem(body, user)); }
     if (action === 'listReports') return json({ ok: true, reports: listReports(user) });
+    if (action === 'getPracticeWorkspace') return json(getPracticeWorkspace(user));
+    if (action === 'getConfigurationWorkspace') { requireAdmin(user); return json(getConfigurationWorkspace()); }
+    if (action === 'getDashboardFast') return json(getDashboardFast(user));
     if (action === 'listReferenti') { requireAdmin(user); return json({ ok: true, referenti: listReferenti() }); }
     if (action === 'listUffici') return json({ ok: true, uffici: listUffici() });
     if (action === 'updateReportStatus') return json(updateReportStatus(body, user));
@@ -361,11 +363,25 @@ function createSession(userRow) {
   return rawToken;
 }
 
+function authCacheKey(tokenHash) {
+  return 'auth:' + String(tokenHash || '').slice(0, 48);
+}
+
 function requireAuth(body) {
   const rawToken = String(body.authToken || '').trim();
   if (!rawToken || rawToken.length < 40) throw authError();
 
   const tokenHash = hashToken(rawToken);
+  const cache = CacheService.getScriptCache();
+  const key = authCacheKey(tokenHash);
+  const cached = cache.get(key);
+  if (cached) {
+    try {
+      const parsed = JSON.parse(cached);
+      if (parsed && parsed.id && parsed.email && parsed.expiresAt > Date.now()) return parsed.user;
+    } catch (_) {}
+  }
+
   const session = findRow(SHEETS.SESSIONS, row =>
     secureEquals(String(row['Token Hash'] || ''), tokenHash) && !isYes(row.Revocato)
   );
@@ -374,6 +390,7 @@ function requireAuth(body) {
   const expires = toDate(session.data.Scadenza);
   if (!expires || expires.getTime() <= Date.now()) {
     setRowFields(SHEETS.SESSIONS, session.rowNumber, { Revocato: 'Sì' });
+    cache.remove(key);
     throw authError();
   }
 
@@ -382,7 +399,14 @@ function requireAuth(body) {
   );
   if (!user) throw authError();
 
-  return publicUser(user.data);
+  const safeUser = publicUser(user.data);
+  cache.put(key, JSON.stringify({
+    id: safeUser.id,
+    email: safeUser.email,
+    expiresAt: Math.min(expires.getTime(), Date.now() + 300000),
+    user: safeUser
+  }), 300);
+  return safeUser;
 }
 
 function logoutUser(body) {
@@ -391,6 +415,7 @@ function logoutUser(body) {
     secureEquals(String(row['Token Hash'] || ''), tokenHash)
   );
   if (session) setRowFields(SHEETS.SESSIONS, session.rowNumber, { Revocato: 'Sì' });
+  CacheService.getScriptCache().remove(authCacheKey(tokenHash));
   return { ok: true };
 }
 
@@ -803,17 +828,10 @@ function pruneExpiredSessions() {
  * ========================= */
 
 function getPublicConfig() {
-  const props = PropertiesService.getScriptProperties();
-  const siteKey = String(props.getProperty('RECAPTCHA_SITE_KEY') || '').trim();
-  const secret = String(props.getProperty('RECAPTCHA_SECRET') || '').trim();
-  const required = String(props.getProperty('RECAPTCHA_REQUIRED') || 'true').toLowerCase() !== 'false';
   return {
     ok: true,
-    recaptcha: {
-      required: required,
-      configured: Boolean(siteKey && secret),
-      siteKey: siteKey
-    },
+    recaptcha: { required: false, configured: false, siteKey: '' },
+    antiSpam: { mode: 'server-rate-limit-honeypot' },
     maxPhotoBytes: APP.MAX_PHOTO_BYTES
   };
 }
@@ -868,7 +886,6 @@ function geocodeAddress(body) {
 
 function createReport(body) {
   enforceRateLimit('create:global', 60, 600);
-  verifyRecaptcha(body.recaptchaToken);
 
   const email = normalizeEmail(body.email);
   const clientId = cleanText(body.clientId || 'anonimo', 120, false);
@@ -1162,7 +1179,30 @@ function deactivateConfigurationItem(body, user) {
  * API private
  * ========================= */
 
+function getPracticeWorkspace(user) {
+  const started = Date.now();
+  return { ok:true, reports:listReports(user), uffici:listUffici(),
+    referenti:isAdminUser(user)?listReferenti():[], perfMs:Date.now()-started };
+}
+function getConfigurationWorkspace() {
+  const started=Date.now();
+  return { ok:true, configuration:getConfigurationData(), users:listUsers(),
+    version:APP.SCHEMA_VERSION, perfMs:Date.now()-started };
+}
+function getDashboardFast(user) {
+  const started=Date.now(), reports=listReports(user);
+  const open=reports.filter(function(r){const s=String(r.stato||'').toLowerCase();
+    return s.indexOf('risolt')<0&&s.indexOf('archiv')<0;}).length;
+  return {ok:true,reports:reports,counters:{total:reports.length,open:open,resolved:reports.length-open},
+    version:APP.SCHEMA_VERSION,perfMs:Date.now()-started};
+}
+
 function listReports(user) {
+  const cache = CacheService.getScriptCache();
+  const cacheKey = 'reports:' + String(user.id || user.email || 'unknown');
+  const cached = cache.get(cacheKey);
+  if (cached) { try { return JSON.parse(cached); } catch (_) {} }
+  const result = (function(){
   return readRows(SHEETS.REPORTS)
     .map(item => item.data)
     .filter(row => row.ID && canAccessReportRow(row, user))
@@ -1193,9 +1233,17 @@ function listReports(user) {
       ultimoAggiornamento: formatDate(row['Ultimo aggiornamento'])
     }))
     .reverse();
+
+  })();
+  try { cache.put(cacheKey, JSON.stringify(result), 20); } catch (_) {}
+  return result;
 }
 
 function listReferenti() {
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get('referenti:v1');
+  if (cached) { try { return JSON.parse(cached); } catch (_) {} }
+  const result = (function(){
   return readRows(SHEETS.REFERENTI)
     .map(item => item.data)
     .filter(row => row.ID && !isNo(row.Attivo))
@@ -1210,9 +1258,17 @@ function listReferenti() {
       zona: cleanOutput(row.Zona),
       attivo: cleanOutput(row.Attivo)
     }));
+
+  })();
+  try { cache.put('referenti:v1', JSON.stringify(result), 300); } catch (_) {}
+  return result;
 }
 
 function listUffici() {
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get('uffici:v1');
+  if (cached) { try { return JSON.parse(cached); } catch (_) {} }
+  const result = (function(){
   return readRows(SHEETS.OFFICES)
     .map(item => item.data)
     .filter(row => row.ID && !isNo(row.Attivo))
@@ -1226,6 +1282,10 @@ function listUffici() {
       note: cleanOutput(row.Note),
       attivo: cleanOutput(row.Attivo)
     }));
+
+  })();
+  try { cache.put('uffici:v1', JSON.stringify(result), 300); } catch (_) {}
+  return result;
 }
 
 function updateReportLocation(body, user) {
@@ -1733,13 +1793,17 @@ function generateTrackingToken() {
  * della Web App usano poi SpreadsheetApp.openById(), evitando di dipendere
  * da un foglio "attivo" nel browser.
  */
+var __FDI_SPREADSHEET = null;
+
 function getSpreadsheet() {
+  if (__FDI_SPREADSHEET) return __FDI_SPREADSHEET;
   const props = PropertiesService.getScriptProperties();
   const configuredId = String(props.getProperty('SPREADSHEET_ID') || '').trim();
 
   if (configuredId) {
     try {
-      return SpreadsheetApp.openById(configuredId);
+      __FDI_SPREADSHEET = SpreadsheetApp.openById(configuredId);
+      return __FDI_SPREADSHEET;
     } catch (err) {
       throw new Error('SPREADSHEET_ID non valido o foglio non accessibile');
     }
@@ -1748,7 +1812,8 @@ function getSpreadsheet() {
   const active = SpreadsheetApp.getActiveSpreadsheet();
   if (active) {
     props.setProperty('SPREADSHEET_ID', active.getId());
-    return active;
+    __FDI_SPREADSHEET = active;
+    return __FDI_SPREADSHEET;
   }
 
   throw new Error(
@@ -1796,10 +1861,9 @@ function collegaEFaiDiagnostica() {
 }
 
 function ensureSetup() {
-  const cache = CacheService.getScriptCache();
-  if (cache.get('schema:' + APP.SCHEMA_VERSION)) return;
+  const props = PropertiesService.getScriptProperties();
+  if (props.getProperty('SCHEMA_READY_VERSION') === APP.SCHEMA_VERSION) return;
   setupSheet();
-  cache.put('schema:' + APP.SCHEMA_VERSION, '1', 21600);
 }
 
 function setupSheet() {
@@ -1813,6 +1877,7 @@ function setupSheet() {
     seedReferenti();
     seedQuartieri();
     migratePlainPasswords();
+    PropertiesService.getScriptProperties().setProperty('SCHEMA_READY_VERSION', APP.SCHEMA_VERSION);
   } finally {
     lock.releaseLock();
   }

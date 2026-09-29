@@ -1038,7 +1038,7 @@
     setInterval(updateClock, 30000);
 
     try {
-      const result = await API.listReports();
+      const result = await API.getDashboardFast();
 
       if (!result.ok) {
         throw new Error(result.error || "Errore caricamento pratiche");
