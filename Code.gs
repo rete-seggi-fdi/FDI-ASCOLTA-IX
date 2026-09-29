@@ -12,7 +12,7 @@
 
 const APP = Object.freeze({
   NAME: 'FDI Ascolta IX',
-  SCHEMA_VERSION: '2026-09-enterprise-4.0.0',
+  SCHEMA_VERSION: '2026-09-crm-lite-5.0.0',
   SESSION_HOURS: 8,
   MAX_PHOTO_BYTES: 5 * 1024 * 1024,
   PHOTO_FOLDER_NAME: 'FDI Ascolta IX Foto',
@@ -210,7 +210,6 @@ function extractDriveFileId(url) {
 
 function doGet(e) {
   try {
-    ensureSetup();
     const action = e && e.parameter ? String(e.parameter.action || '').trim() : '';
 
     if (action === 'health') {
@@ -240,7 +239,6 @@ function doGet(e) {
 
 function doPost(e) {
   try {
-    ensureSetup();
     const body = parseBody(e);
     const action = String(body.action || '').trim();
 
@@ -260,6 +258,7 @@ function doPost(e) {
     if (action === 'getPublicStats') return json({ ok: true, stats: getPublicStats() });
     if (action === 'getPublicReport') return json(getPublicReport(body));
     if (action === 'getPublicConfig') return json(getPublicConfig());
+    if (action === 'getPublicBootstrap') return json(getPublicBootstrapLite());
     if (action === 'geocodeAddress') return json(geocodeAddress(body));
 
     // Tutto il resto è privato.
@@ -274,7 +273,14 @@ function doPost(e) {
     if (action === 'getConfigurationData') { requireAdmin(user); return json(getConfigurationData()); }
     if (action === 'saveConfigurationItem') { requireAdmin(user); return json(saveConfigurationItem(body, user)); }
     if (action === 'deactivateConfigurationItem') { requireAdmin(user); return json(deactivateConfigurationItem(body, user)); }
+    if (action === 'liteDashboard') return json(liteDashboard(user));
+    if (action === 'liteReports') return json(liteReports(body, user));
+    if (action === 'liteReportDetail') return json(liteReportDetail(body, user));
+    if (action === 'liteMeta') return json(liteMeta(user));
     if (action === 'listReports') return json({ ok: true, reports: listReports(user) });
+    if (action === 'getPracticeWorkspace') return json(getPracticeWorkspace(user));
+    if (action === 'getConfigurationWorkspace') { requireAdmin(user); return json(getConfigurationWorkspace()); }
+    if (action === 'getDashboardFast') return json(getDashboardFast(user));
     if (action === 'listReferenti') { requireAdmin(user); return json({ ok: true, referenti: listReferenti() }); }
     if (action === 'listUffici') return json({ ok: true, uffici: listUffici() });
     if (action === 'updateReportStatus') return json(updateReportStatus(body, user));
@@ -361,11 +367,25 @@ function createSession(userRow) {
   return rawToken;
 }
 
+function authCacheKey(tokenHash) {
+  return 'auth:' + String(tokenHash || '').slice(0, 48);
+}
+
 function requireAuth(body) {
   const rawToken = String(body.authToken || '').trim();
   if (!rawToken || rawToken.length < 40) throw authError();
 
   const tokenHash = hashToken(rawToken);
+  const cache = CacheService.getScriptCache();
+  const key = authCacheKey(tokenHash);
+  const cached = cache.get(key);
+  if (cached) {
+    try {
+      const parsed = JSON.parse(cached);
+      if (parsed && parsed.id && parsed.email && parsed.expiresAt > Date.now()) return parsed.user;
+    } catch (_) {}
+  }
+
   const session = findRow(SHEETS.SESSIONS, row =>
     secureEquals(String(row['Token Hash'] || ''), tokenHash) && !isYes(row.Revocato)
   );
@@ -374,6 +394,7 @@ function requireAuth(body) {
   const expires = toDate(session.data.Scadenza);
   if (!expires || expires.getTime() <= Date.now()) {
     setRowFields(SHEETS.SESSIONS, session.rowNumber, { Revocato: 'Sì' });
+    cache.remove(key);
     throw authError();
   }
 
@@ -382,7 +403,14 @@ function requireAuth(body) {
   );
   if (!user) throw authError();
 
-  return publicUser(user.data);
+  const safeUser = publicUser(user.data);
+  cache.put(key, JSON.stringify({
+    id: safeUser.id,
+    email: safeUser.email,
+    expiresAt: Math.min(expires.getTime(), Date.now() + 300000),
+    user: safeUser
+  }), 300);
+  return safeUser;
 }
 
 function logoutUser(body) {
@@ -391,6 +419,7 @@ function logoutUser(body) {
     secureEquals(String(row['Token Hash'] || ''), tokenHash)
   );
   if (session) setRowFields(SHEETS.SESSIONS, session.rowNumber, { Revocato: 'Sì' });
+  CacheService.getScriptCache().remove(authCacheKey(tokenHash));
   return { ok: true };
 }
 
@@ -440,24 +469,9 @@ function normalizeIdentityName(value) {
 
 function canAccessReportRow(row, user) {
   if (isAdminUser(user)) return true;
-
-  if (isConsigliereUser(user)) {
-    const assignedEmail = normalizeEmail(row['Email referente']);
-    const userEmail = normalizeEmail(user.email);
-    const assignedName = normalizeIdentityName(row['Referente assegnato']);
-    if (!assignedEmail || !userEmail || assignedEmail !== userEmail || !assignedName) return false;
-
-    // Il nominativo canonico viene letto dal foglio Referenti tramite email.
-    // In questo modo il nome visualizzato nell'account può essere più esteso,
-    // ma una riga incoerente (nome Sordini + email De Juliis) resta bloccata.
-    const ref = findRow(SHEETS.REFERENTI, refRow =>
-      normalizeEmail(refRow.Email) === userEmail && !isNo(refRow.Attivo)
-    );
-    if (!ref) return false;
-    return assignedName === normalizeIdentityName(ref.data.Nome);
-  }
-
-  return false;
+  if (!isConsigliereUser(user)) return false;
+  const canonicalName = liteCanonicalReferentName(user);
+  return liteCanAccessRow(row, user, canonicalName);
 }
 
 function requireReportAccess(reportId, user) {
@@ -803,17 +817,10 @@ function pruneExpiredSessions() {
  * ========================= */
 
 function getPublicConfig() {
-  const props = PropertiesService.getScriptProperties();
-  const siteKey = String(props.getProperty('RECAPTCHA_SITE_KEY') || '').trim();
-  const secret = String(props.getProperty('RECAPTCHA_SECRET') || '').trim();
-  const required = String(props.getProperty('RECAPTCHA_REQUIRED') || 'true').toLowerCase() !== 'false';
   return {
     ok: true,
-    recaptcha: {
-      required: required,
-      configured: Boolean(siteKey && secret),
-      siteKey: siteKey
-    },
+    recaptcha: { required: false, configured: false, siteKey: '' },
+    antiSpam: { mode: 'server-rate-limit-honeypot' },
     maxPhotoBytes: APP.MAX_PHOTO_BYTES
   };
 }
@@ -868,7 +875,6 @@ function geocodeAddress(body) {
 
 function createReport(body) {
   enforceRateLimit('create:global', 60, 600);
-  verifyRecaptcha(body.recaptchaToken);
 
   const email = normalizeEmail(body.email);
   const clientId = cleanText(body.clientId || 'anonimo', 120, false);
@@ -1162,7 +1168,200 @@ function deactivateConfigurationItem(body, user) {
  * API private
  * ========================= */
 
+function getPracticeWorkspace(user) {
+  const started = Date.now();
+  return { ok:true, reports:listReports(user), uffici:listUffici(),
+    referenti:isAdminUser(user)?listReferenti():[], perfMs:Date.now()-started };
+}
+function getConfigurationWorkspace() {
+  const started=Date.now();
+  return { ok:true, configuration:getConfigurationData(), users:listUsers(),
+    version:APP.SCHEMA_VERSION, perfMs:Date.now()-started };
+}
+function getDashboardFast(user) {
+  const started=Date.now(), reports=listReports(user);
+  const open=reports.filter(function(r){const s=String(r.stato||'').toLowerCase();
+    return s.indexOf('risolt')<0&&s.indexOf('archiv')<0;}).length;
+  return {ok:true,reports:reports,counters:{total:reports.length,open:open,resolved:reports.length-open},
+    version:APP.SCHEMA_VERSION,perfMs:Date.now()-started};
+}
+
+
+function getPublicBootstrapLite() {
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get('public-bootstrap:v5');
+  if (cached) { try { return JSON.parse(cached); } catch (_) {} }
+  const result = {
+    ok: true,
+    quartieri: listQuartieri(),
+    categories: ['Buche / strade','Rifiuti','Illuminazione','Verde pubblico','Segnaletica','Decoro urbano','Altro'],
+    priorities: ['Bassa','Media','Alta','Urgente'],
+    maxPhotoBytes: APP.MAX_PHOTO_BYTES
+  };
+  try { cache.put('public-bootstrap:v5', JSON.stringify(result), 600); } catch (_) {}
+  return result;
+}
+
+function liteCanonicalReferentName(user) {
+  if (!isConsigliereUser(user)) return '';
+  const email = normalizeEmail(user.email);
+  const cache = CacheService.getScriptCache();
+  const key = 'refname:' + shortHash(email);
+  const hit = cache.get(key);
+  if (hit) return hit;
+  const match = findRow(SHEETS.REFERENTI, function(row) {
+    return normalizeEmail(row.Email) === email && !isNo(row.Attivo);
+  });
+  const name = match ? normalizeIdentityName(match.data.Nome) : '';
+  if (name) cache.put(key, name, 600);
+  return name;
+}
+
+function liteCanAccessRow(row, user, canonicalName) {
+  if (isAdminUser(user)) return true;
+  if (!isConsigliereUser(user)) return false;
+  return Boolean(
+    canonicalName &&
+    normalizeEmail(row['Email referente']) === normalizeEmail(user.email) &&
+    normalizeIdentityName(row['Referente assegnato']) === canonicalName
+  );
+}
+
+function liteSummary(row) {
+  return {
+    id: cleanOutput(row.ID),
+    data: formatDate(row.Data),
+    quartiere: cleanOutput(row.Quartiere),
+    categoria: cleanOutput(row.Categoria),
+    titolo: cleanOutput(row.Titolo),
+    stato: cleanOutput(row.Stato),
+    priorita: cleanOutput(row['Priorità']),
+    referenteNome: cleanOutput(row['Referente assegnato']),
+    ufficioNome: cleanOutput(row.Ufficio),
+    ultimoAggiornamento: formatDate(row['Ultimo aggiornamento'])
+  };
+}
+
+function liteDashboard(user) {
+  const started = Date.now();
+  const canonical = liteCanonicalReferentName(user);
+  const rows = readRows(SHEETS.REPORTS)
+    .map(function(item){ return item.data; })
+    .filter(function(row){ return row.ID && liteCanAccessRow(row, user, canonical); });
+
+  const counts = { total: rows.length, aperte: 0, attesa: 0, risolte: 0 };
+  rows.forEach(function(row) {
+    const s = String(row.Stato || '').toLowerCase();
+    if (s.indexOf('risolt') >= 0 || s.indexOf('archiv') >= 0) counts.risolte++;
+    else {
+      counts.aperte++;
+      if (s.indexOf('attesa') >= 0) counts.attesa++;
+    }
+  });
+
+  const latest = rows.slice(-8).reverse().map(liteSummary);
+  return {
+    ok: true,
+    user: user,
+    counts: counts,
+    latest: latest,
+    version: APP.SCHEMA_VERSION,
+    perfMs: Date.now() - started
+  };
+}
+
+function liteReports(body, user) {
+  const started = Date.now();
+  const page = Math.max(1, Number(body.page || 1));
+  const pageSize = Math.max(10, Math.min(50, Number(body.pageSize || 25)));
+  const query = String(body.query || '').trim().toLowerCase();
+  const status = String(body.status || '').trim().toLowerCase();
+  const district = String(body.quartiere || '').trim().toLowerCase();
+  const canonical = liteCanonicalReferentName(user);
+
+  let rows = readRows(SHEETS.REPORTS)
+    .map(function(item){ return item.data; })
+    .filter(function(row){ return row.ID && liteCanAccessRow(row, user, canonical); });
+
+  if (query) rows = rows.filter(function(row) {
+    return [
+      row.ID,row.Titolo,row.Descrizione,row.Quartiere,row.Categoria,
+      row['Referente assegnato'],row.Ufficio,row['Nome cittadino']
+    ].join(' ').toLowerCase().indexOf(query) >= 0;
+  });
+  if (status) rows = rows.filter(function(row){ return String(row.Stato || '').toLowerCase() === status; });
+  if (district) rows = rows.filter(function(row){ return String(row.Quartiere || '').toLowerCase() === district; });
+
+  rows.reverse();
+  const total = rows.length;
+  const start = (page - 1) * pageSize;
+  return {
+    ok: true,
+    items: rows.slice(start, start + pageSize).map(liteSummary),
+    total: total,
+    page: page,
+    pageSize: pageSize,
+    pages: Math.max(1, Math.ceil(total / pageSize)),
+    perfMs: Date.now() - started
+  };
+}
+
+function liteReportDetail(body, user) {
+  const started = Date.now();
+  const access = requireReportAccess(body.reportId, user);
+  const row = access.data;
+  return {
+    ok: true,
+    report: {
+      id: cleanOutput(row.ID),
+      data: formatDate(row.Data),
+      quartiere: cleanOutput(row.Quartiere),
+      categoria: cleanOutput(row.Categoria),
+      titolo: cleanOutput(row.Titolo),
+      descrizione: cleanOutput(row.Descrizione),
+      indirizzo: cleanOutput(row.Indirizzo),
+      stato: cleanOutput(row.Stato),
+      priorita: cleanOutput(row['Priorità']),
+      referenteNome: cleanOutput(row['Referente assegnato']),
+      referenteEmail: normalizeEmail(row['Email referente']),
+      nome: cleanOutput(row['Nome cittadino']),
+      email: normalizeEmail(row['Email cittadino']),
+      telefono: cleanOutput(row['Telefono cittadino']),
+      noteFdI: cleanOutput(row['Note FDI']),
+      ufficioId: cleanOutput(row['Ufficio ID']),
+      ufficioNome: cleanOutput(row.Ufficio),
+      rispostaRicevuta: cleanOutput(row['Risposta ricevuta']),
+      esitoFinale: cleanOutput(row['Esito finale']),
+      dataChiusura: formatDate(row['Data chiusura'])
+    },
+    timeline: getTimeline(row.ID, false),
+    perfMs: Date.now() - started
+  };
+}
+
+function liteMeta(user) {
+  const result = {
+    ok: true,
+    uffici: listUffici(),
+    quartieri: listQuartieri(),
+    workflow: WORKFLOW.slice()
+  };
+  if (isAdminUser(user)) {
+    result.referenti = listReferenti();
+    result.users = listUsers();
+  } else {
+    result.referenti = [];
+    result.users = [];
+  }
+  return result;
+}
+
 function listReports(user) {
+  const cache = CacheService.getScriptCache();
+  const cacheKey = 'reports:' + String(user.id || user.email || 'unknown');
+  const cached = cache.get(cacheKey);
+  if (cached) { try { return JSON.parse(cached); } catch (_) {} }
+  const result = (function(){
   return readRows(SHEETS.REPORTS)
     .map(item => item.data)
     .filter(row => row.ID && canAccessReportRow(row, user))
@@ -1193,9 +1392,17 @@ function listReports(user) {
       ultimoAggiornamento: formatDate(row['Ultimo aggiornamento'])
     }))
     .reverse();
+
+  })();
+  try { cache.put(cacheKey, JSON.stringify(result), 20); } catch (_) {}
+  return result;
 }
 
 function listReferenti() {
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get('referenti:v1');
+  if (cached) { try { return JSON.parse(cached); } catch (_) {} }
+  const result = (function(){
   return readRows(SHEETS.REFERENTI)
     .map(item => item.data)
     .filter(row => row.ID && !isNo(row.Attivo))
@@ -1210,9 +1417,17 @@ function listReferenti() {
       zona: cleanOutput(row.Zona),
       attivo: cleanOutput(row.Attivo)
     }));
+
+  })();
+  try { cache.put('referenti:v1', JSON.stringify(result), 300); } catch (_) {}
+  return result;
 }
 
 function listUffici() {
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get('uffici:v1');
+  if (cached) { try { return JSON.parse(cached); } catch (_) {} }
+  const result = (function(){
   return readRows(SHEETS.OFFICES)
     .map(item => item.data)
     .filter(row => row.ID && !isNo(row.Attivo))
@@ -1226,6 +1441,10 @@ function listUffici() {
       note: cleanOutput(row.Note),
       attivo: cleanOutput(row.Attivo)
     }));
+
+  })();
+  try { cache.put('uffici:v1', JSON.stringify(result), 300); } catch (_) {}
+  return result;
 }
 
 function updateReportLocation(body, user) {
@@ -1733,13 +1952,17 @@ function generateTrackingToken() {
  * della Web App usano poi SpreadsheetApp.openById(), evitando di dipendere
  * da un foglio "attivo" nel browser.
  */
+var __FDI_SPREADSHEET = null;
+
 function getSpreadsheet() {
+  if (__FDI_SPREADSHEET) return __FDI_SPREADSHEET;
   const props = PropertiesService.getScriptProperties();
   const configuredId = String(props.getProperty('SPREADSHEET_ID') || '').trim();
 
   if (configuredId) {
     try {
-      return SpreadsheetApp.openById(configuredId);
+      __FDI_SPREADSHEET = SpreadsheetApp.openById(configuredId);
+      return __FDI_SPREADSHEET;
     } catch (err) {
       throw new Error('SPREADSHEET_ID non valido o foglio non accessibile');
     }
@@ -1748,7 +1971,8 @@ function getSpreadsheet() {
   const active = SpreadsheetApp.getActiveSpreadsheet();
   if (active) {
     props.setProperty('SPREADSHEET_ID', active.getId());
-    return active;
+    __FDI_SPREADSHEET = active;
+    return __FDI_SPREADSHEET;
   }
 
   throw new Error(
@@ -1796,10 +2020,9 @@ function collegaEFaiDiagnostica() {
 }
 
 function ensureSetup() {
-  const cache = CacheService.getScriptCache();
-  if (cache.get('schema:' + APP.SCHEMA_VERSION)) return;
+  const props = PropertiesService.getScriptProperties();
+  if (props.getProperty('SCHEMA_READY_VERSION') === APP.SCHEMA_VERSION) return;
   setupSheet();
-  cache.put('schema:' + APP.SCHEMA_VERSION, '1', 21600);
 }
 
 function setupSheet() {
@@ -1813,6 +2036,7 @@ function setupSheet() {
     seedReferenti();
     seedQuartieri();
     migratePlainPasswords();
+    PropertiesService.getScriptProperties().setProperty('SCHEMA_READY_VERSION', APP.SCHEMA_VERSION);
   } finally {
     lock.releaseLock();
   }
