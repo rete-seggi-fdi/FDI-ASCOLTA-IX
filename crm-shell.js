@@ -292,12 +292,8 @@
     if(name) document.getElementById("crmUserName").textContent=name;
   }catch(_){}
 
-  loadBadge();
-
-  setInterval(async()=>{
-    try{
-      cache=await getReports();
-      loadBadge();
-    }catch(_){}
-  },60000);
+  // FAST BOOT: niente lettura dell'intero archivio in background su ogni pagina.
+  if(["dashboard.html","pratiche.html","notifiche.html"].includes(page)){
+    window.setTimeout(loadBadge,300);
+  }
 })();

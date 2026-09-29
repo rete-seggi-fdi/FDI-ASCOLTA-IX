@@ -74,7 +74,7 @@ const API = Object.freeze({
       }
 
       if (["updateReportStatus","updateReportLocation","sendToReferente","sendToUfficio","closeReport","addReportNote","startReportWork","recordOfficeResponse","createReport"].includes(action)) {
-        clearApiMemo("private:listReports");
+        clearApiMemo("private:");
       }
 
       if (result && result.authRequired && typeof Auth !== "undefined") {
@@ -148,6 +148,9 @@ const API = Object.freeze({
     return this.call("getPublicReport", { code, email }, { publicAction: true });
   },
   listReports() { return memoApi("private:listReports", () => this.call("listReports"), 20000); },
+  getDashboardFast() { return memoApi("private:dashboardFast", () => this.call("getDashboardFast"), 15000); },
+  getPracticeWorkspace() { return memoApi("private:practiceWorkspace", () => this.call("getPracticeWorkspace"), 15000); },
+  getConfigurationWorkspace() { return memoApi("private:configurationWorkspace", () => this.call("getConfigurationWorkspace"), 30000); },
   listReferenti() { return memoApi("private:listReferenti", () => this.call("listReferenti"), 300000); },
   listUffici() { return memoApi("private:listUffici", () => this.call("listUffici"), 300000); },
   getTimeline(reportId) { return this.call("getTimeline", { reportId }); },
