@@ -1,9 +1,9 @@
 <!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CRM FDI Ascolta IX</title><link rel="stylesheet" href="assets/css/lite.css?v=500"></head><body>
-<div class="app"><aside class="sidebar"><div class="brand">FDI ASCOLTA IX<small>CRM 5.0 LITE</small></div>
+<title>CRM FDI Ascolta IX</title></head><body>
+<div class="app"><aside class="sidebar"><div class="brand">FDI ASCOLTA IX<small>CRM 5.1 MONOLITHIC</small></div>
 <nav class="nav"><button data-view="home">Dashboard</button><button data-view="pratiche">Pratiche</button><button data-admin data-view="uffici">Uffici</button><button data-admin data-view="utenti">Utenti</button></nav>
 <div class="sidebar-foot"><div id="who"></div><button class="btn secondary" id="logout" style="margin-top:10px;width:100%">Esci</button></div></aside>
-<main class="main"><div class="top"><div><h1 id="pageTitle">Dashboard</h1><p id="pageSub">Caricamento essenziale, niente richieste duplicate.</p></div><button class="btn secondary" id="refresh">Aggiorna</button></div>
+<main class="main"><div class="top"><div><h1 id="pageTitle">Dashboard</h1><p id="pageSub">Console rapida · caricamento dati solo quando serve.</p></div><button class="btn secondary" id="refresh">Aggiorna</button></div>
 <div id="msg"></div>
 <section class="view" id="view-home"><div class="grid4"><div class="kpi"><span>TOTALI</span><strong id="kTotal">—</strong></div><div class="kpi"><span>APERTE</span><strong id="kOpen">—</strong></div><div class="kpi"><span>IN ATTESA</span><strong id="kWait">—</strong></div><div class="kpi"><span>RISOLTE</span><strong id="kDone">—</strong></div></div><div class="card"><h2>Ultime pratiche</h2><div id="latest"></div></div></section>
 <section class="view" id="view-pratiche"><div class="card"><div class="toolbar"><input id="search" placeholder="Cerca ID, titolo, quartiere, cittadino..."><select id="status"><option value="">Tutti gli stati</option></select><select id="district"><option value="">Tutti i quartieri</option></select><button class="btn" id="filter">Cerca</button></div><div id="reportTable"></div><div class="pager"><button class="btn secondary" id="prev">← Precedente</button><span id="pageInfo"></span><button class="btn secondary" id="next">Successiva →</button></div></div></section>
@@ -11,10 +11,219 @@
 <section class="view" id="view-utenti"><div class="card"><div style="display:flex;justify-content:space-between;gap:12px"><h2>Utenti</h2><button class="btn" id="newUser">+ Nuovo utente</button></div><div id="userTable"></div></div></section>
 </main></div>
 <div class="drawer" id="drawer"><div class="drawer-panel"><div class="drawer-head"><h2 id="detailTitle">Pratica</h2><button class="close" id="closeDrawer">×</button></div><div id="detail"></div></div></div>
-<script src="assets/js/config.js?v=500"></script><script src="assets/js/auth.js?v=500"></script><script src="assets/js/api.js?v=500"></script>
+<style>
+:root{--nav:#082f6a;--nav2:#0b4c99;--bg:#f4f7fb;--card:#fff;--text:#102342;--muted:#6b778c;--line:#dfe6ef;--accent:#d3a400;--danger:#b42318;--ok:#147a42}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
+button,input,select,textarea{font:inherit}.app{min-height:100vh;display:grid;grid-template-columns:230px 1fr}
+.sidebar{background:var(--nav);color:#fff;padding:22px 14px;position:sticky;top:0;height:100vh}.brand{font-weight:950;font-size:19px;padding:4px 10px 22px}.brand small{display:block;font-size:11px;color:#cbd9ee;margin-top:4px}
+.nav{display:grid;gap:6px}.nav button{border:0;background:transparent;color:#dbe7f8;text-align:left;padding:11px 12px;border-radius:10px;font-weight:800;cursor:pointer}.nav button:hover,.nav button.active{background:rgba(255,255,255,.13);color:#fff}
+.sidebar-foot{position:absolute;bottom:18px;left:14px;right:14px;font-size:12px;color:#cbd9ee}.main{padding:26px;min-width:0}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:22px}.top h1{margin:0;font-size:28px}.top p{margin:4px 0 0;color:var(--muted)}
+.btn{border:0;border-radius:10px;padding:10px 14px;background:var(--nav);color:#fff;font-weight:850;cursor:pointer}.btn.secondary{background:#e8eef7;color:var(--nav)}.btn.danger{background:#fff0ef;color:var(--danger)}.btn:disabled{opacity:.55}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.kpi,.card{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 8px 24px rgba(16,35,66,.05)}.kpi{padding:18px}.kpi span{font-size:12px;color:var(--muted);font-weight:800}.kpi strong{display:block;font-size:30px;margin-top:7px}
+.card{padding:18px;margin-top:16px}.card h2,.card h3{margin:0 0 14px}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}.toolbar input,.toolbar select,.field input,.field select,.field textarea{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff}.toolbar input{min-width:260px;flex:1}
+.tablewrap{overflow:auto}.table{width:100%;border-collapse:collapse;min-width:760px}.table th,.table td{padding:11px 9px;border-bottom:1px solid #edf1f6;text-align:left;font-size:13px}.table th{color:var(--muted);font-size:11px;text-transform:uppercase}.table tr[data-id]{cursor:pointer}.table tr[data-id]:hover{background:#f7f9fc}
+.badge{display:inline-block;padding:5px 8px;border-radius:999px;background:#eef4fb;font-size:11px;font-weight:850}.muted{color:var(--muted)}.empty{padding:30px;text-align:center;color:var(--muted)}
+.pager{display:flex;justify-content:space-between;align-items:center;margin-top:14px}.view{display:none}.view.active{display:block}.loading{opacity:.55;pointer-events:none}
+.drawer{position:fixed;inset:0;background:rgba(4,17,38,.38);display:none;z-index:20}.drawer.open{display:block}.drawer-panel{margin-left:auto;width:min(620px,100%);height:100%;overflow:auto;background:#fff;padding:24px}.drawer-head{display:flex;justify-content:space-between;gap:10px}.drawer-head h2{margin:0}.close{border:0;background:#edf1f6;border-radius:9px;width:38px;height:38px;cursor:pointer}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.detail-box{padding:12px;background:#f7f9fc;border-radius:11px}.detail-box b{display:block;font-size:11px;color:var(--muted);margin-bottom:4px}.actions{display:grid;gap:10px;margin-top:18px}.actionbox{border-top:1px solid var(--line);padding-top:16px}.field{display:grid;gap:6px;margin:10px 0}.field label{font-size:12px;font-weight:850}.field textarea{min-height:90px;resize:vertical}
+.notice{padding:12px;border-radius:10px;background:#eef5ff;margin-bottom:14px}.error{background:#fff0ef;color:var(--danger)}.success{background:#ecf8f0;color:var(--ok)}
+.public{max-width:960px;margin:auto;padding:24px}.public-head{background:var(--nav);color:#fff;padding:22px;border-radius:18px;margin-bottom:18px}.public-head h1{margin:0}.public-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.span2{grid-column:1/-1}
+@media(max-width:900px){.app{grid-template-columns:1fr}.sidebar{height:auto;position:static}.nav{grid-template-columns:repeat(2,1fr)}.sidebar-foot{display:none}.grid4{grid-template-columns:1fr 1fr}.main{padding:16px}.detail-grid,.formgrid{grid-template-columns:1fr}.span2{grid-column:auto}}
+
+</style>
+<script>
+const CONFIG = Object.freeze({
+  VERSION: "5.1.0",
+  API_URL: "https://script.google.com/macros/s/AKfycbyZuNSOT2SCW6YNp6gZ-bTO6gfm9wGI3-YAjvSmo5oelcqrUmARNzmd49hbjSn4ISh4Yg/exec",
+  SESSION_KEY: "fdi_ascolta_ix_session_v5",
+  CLIENT_ID_KEY: "fdi_ascolta_ix_client_v1",
+  MAX_PHOTO_BYTES: 5 * 1024 * 1024
+});
+</script>
+<script>
+const Auth = Object.freeze({
+  getSession() {
+    try {
+      return JSON.parse(sessionStorage.getItem(CONFIG.SESSION_KEY) || "null");
+    } catch (_) {
+      return null;
+    }
+  },
+
+  saveSession(result) {
+    if (!result || !result.token || !result.user) {
+      throw new Error("Sessione non valida");
+    }
+    const expiresAt = Date.now() + Number(result.expiresInSeconds || 0) * 1000;
+    sessionStorage.setItem(CONFIG.SESSION_KEY, JSON.stringify({
+      token: result.token,
+      user: result.user,
+      mustChangePassword: Boolean(result.user.mustChangePassword),
+      expiresAt
+    }));
+    this.clearLegacyKeys();
+  },
+
+  getToken() {
+    const session = this.getSession();
+    if (!session || !session.token) return "";
+    if (session.expiresAt && session.expiresAt <= Date.now()) {
+      this.clearSession();
+      return "";
+    }
+    return session.token;
+  },
+
+  getUser() {
+    const session = this.getSession();
+    return session && session.user ? session.user : null;
+  },
+
+  mustChangePassword() {
+    const session = this.getSession();
+    return Boolean(session && (session.mustChangePassword ||
+      (session.user && session.user.mustChangePassword)));
+  },
+
+
+  getRole() {
+    const user = this.getUser();
+    return String(user && user.ruolo || "").trim().toLowerCase();
+  },
+
+  isAdmin() {
+    return /amministratore|admin/.test(this.getRole());
+  },
+
+  isConsigliere() {
+    return /consigliere/.test(this.getRole());
+  },
+
+  homeForRole() {
+    return "dashboard.html";
+  },
+
+  canOpenPage(pageName) {
+    const page = String(pageName || "").split("?")[0].toLowerCase();
+    if (page === "cambia-password.html") return true;
+    if (this.isAdmin()) return true;
+    if (this.isConsigliere()) {
+      return ["dashboard.html","pratiche.html","notifiche.html","cambia-password.html"].includes(page);
+    }
+    return ["dashboard.html","pratiche.html","notifiche.html","cambia-password.html"].includes(page);
+  },
+
+  enforcePageAccess() {
+    const page = (location.pathname.split("/").pop() || "dashboard.html").toLowerCase();
+    if (this.mustChangePassword() && page !== "cambia-password.html") {
+      location.replace("cambia-password.html");
+      return false;
+    }
+    if (!this.mustChangePassword() && page === "cambia-password.html") {
+      location.replace(this.homeForRole());
+      return false;
+    }
+    if (!this.canOpenPage(page)) {
+      location.replace(this.homeForRole());
+      return false;
+    }
+    return true;
+  },
+
+  clearLegacyKeys() {
+    ["fdi_user", "fdi_ascolta_user", "fdi_ascolta_ix_user", "fdiUser", "user", "undefined"]
+      .forEach(key => localStorage.removeItem(key));
+  },
+
+  clearSession() {
+    sessionStorage.removeItem(CONFIG.SESSION_KEY);
+    this.clearLegacyKeys();
+  },
+
+  safeNext(value, fallback = "dashboard.html") {
+    const candidate = String(value || "");
+    return /^(dashboard|pratiche|mappa|analytics|notifiche|uffici|configurazione|cambia-password)\.html(?:\?[^#]*)?$/.test(candidate)
+      ? candidate
+      : fallback;
+  },
+
+  requireAuth() {
+    if (!this.getToken()) {
+      const next = encodeURIComponent(location.pathname.split("/").pop() + location.search);
+      location.replace("login.html?next=" + next);
+      return false;
+    }
+    return this.enforcePageAccess();
+  },
+
+  async logout() {
+    try {
+      if (typeof API !== "undefined" && this.getToken()) await API.logout();
+    } catch (_) {
+      // La sessione locale viene comunque rimossa.
+    } finally {
+      this.clearSession();
+      location.replace("login.html");
+    }
+  }
+});
+
+</script>
+<script>
+const API = Object.freeze({
+  async call(action, params = {}, publicAction = false, timeoutMs = 30000) {
+    const payload = { action, ...params };
+    if (!publicAction) {
+      const token = Auth.getToken();
+      if (!token) { Auth.requireAuth(); throw new Error("Sessione non disponibile"); }
+      payload.authToken = token;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(CONFIG.API_URL, {
+        method: "POST", cache: "no-store", redirect: "follow",
+        body: JSON.stringify(payload), signal: controller.signal
+      });
+      if (!response.ok) throw new Error("Errore HTTP " + response.status);
+      const text = await response.text();
+      let result;
+      try { result = JSON.parse(text); }
+      catch (_) { throw new Error("Risposta backend non valida"); }
+      if (result && result.authRequired) {
+        Auth.clearSession(); location.replace("login.html"); throw new Error("Sessione scaduta");
+      }
+      if (result && result.ok === false) throw new Error(result.error || "Operazione non riuscita");
+      return result;
+    } catch (e) {
+      if (e.name === "AbortError") throw new Error("Il server sta impiegando troppo tempo");
+      throw e;
+    } finally { clearTimeout(timer); }
+  },
+  login(email,password){ return this.call("login",{email,password},true); },
+  logout(){ return this.call("logout"); },
+  publicBootstrap(){ return this.call("getPublicBootstrap",{},true,15000); },
+  createReport(data){ return this.call("createReport",data,true,60000); },
+  publicReport(code,email=""){ return this.call("getPublicReport",{code,email},true,20000); },
+  dashboard(){ return this.call("liteDashboard"); },
+  reports(params={}){ return this.call("liteReports",params); },
+  detail(reportId){ return this.call("liteReportDetail",{reportId}); },
+  meta(){ return this.call("liteMeta"); },
+  startWork(reportId,note){ return this.call("startReportWork",{reportId,note}); },
+  sendOffice(reportId,ufficioId,messaggio){ return this.call("sendToUfficio",{reportId,ufficioId,messaggio}); },
+  officeResponse(reportId,response){ return this.call("recordOfficeResponse",{reportId,response}); },
+  closeReport(reportId,esito,noteFinali,inviaEmail=false){ return this.call("closeReport",{reportId,esito,noteFinali,inviaEmail}); },
+  assign(reportId,referenteId,messaggio=""){ return this.call("sendToReferente",{reportId,referenteId,messaggio}); },
+  users(){ return this.call("listUsers"); },
+  saveUser(user){ return this.call("saveUser",{user}); },
+  setUserActive(userId,active){ return this.call("setUserActive",{userId,active}); },
+  resetPassword(userId){ return this.call("resetUserPassword",{userId}); },
+  changePassword(currentPassword,newPassword){ return this.call("changeOwnPassword",{currentPassword,newPassword}); }
+});
+</script>
 <script>
 if(!Auth.requireAuth()) throw new Error("auth");
 const user=Auth.getUser(), isAdmin=Auth.isAdmin();
+document.documentElement.dataset.crmVersion="5.1.0";
 document.getElementById("who").textContent=(user.nome||user.email)+" · "+user.ruolo;
 document.querySelectorAll("[data-admin]").forEach(x=>x.hidden=!isAdmin);
 const $=id=>document.getElementById(id); let page=1,pages=1,meta=null,current=null;
