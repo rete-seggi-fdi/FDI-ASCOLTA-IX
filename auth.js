@@ -57,7 +57,7 @@ const Auth = Object.freeze({
   },
 
   homeForRole() {
-    return this.isConsigliere() ? "pratiche.html" : "dashboard.html";
+    return "dashboard.html";
   },
 
   canOpenPage(pageName) {

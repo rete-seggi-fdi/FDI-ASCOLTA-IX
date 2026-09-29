@@ -1,188 +1,50 @@
-const __apiMemo = new Map();
-function memoApi(key, factory, ttlMs = 15000) {
-  const now = Date.now();
-  const hit = __apiMemo.get(key);
-  if (hit && hit.expires > now) return hit.promise;
-  const promise = Promise.resolve().then(factory).catch(error => { __apiMemo.delete(key); throw error; });
-  __apiMemo.set(key, { promise, expires: now + ttlMs });
-  return promise;
-}
-function clearApiMemo(prefix = "") {
-  [...__apiMemo.keys()].forEach(key => { if (!prefix || key.startsWith(prefix)) __apiMemo.delete(key); });
-}
-
 const API = Object.freeze({
-  async call(action, params = {}, options = {}) {
-    const isPublic = Boolean(options.publicAction);
+  async call(action, params = {}, publicAction = false, timeoutMs = 30000) {
     const payload = { action, ...params };
-    const timeoutMs = Math.max(5000, Number(options.timeoutMs || 45000));
-
-    if (!isPublic) {
-      if (typeof Auth === "undefined") throw new Error("Modulo autenticazione non caricato");
+    if (!publicAction) {
       const token = Auth.getToken();
-      if (!token) {
-        Auth.requireAuth();
-        throw new Error("Sessione non disponibile");
-      }
+      if (!token) { Auth.requireAuth(); throw new Error("Sessione non disponibile"); }
       payload.authToken = token;
     }
-
-    const controller = typeof AbortController !== "undefined"
-      ? new AbortController()
-      : null;
-
-    let timeoutId = null;
-    let timeoutPromise = null;
-
-    if (controller) {
-      timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
-    } else {
-      timeoutPromise = new Promise((_, reject) => {
-        timeoutId = window.setTimeout(() => {
-          reject(new Error("Il server non ha risposto entro il tempo previsto"));
-        }, timeoutMs);
-      });
-    }
-
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const fetchPromise = fetch(CONFIG.API_URL, {
-        method: "POST",
-        cache: "no-store",
-        redirect: "follow",
-        body: JSON.stringify(payload),
-        signal: controller ? controller.signal : undefined
+      const response = await fetch(CONFIG.API_URL, {
+        method: "POST", cache: "no-store", redirect: "follow",
+        body: JSON.stringify(payload), signal: controller.signal
       });
-
-      const response = timeoutPromise
-        ? await Promise.race([fetchPromise, timeoutPromise])
-        : await fetchPromise;
-
-      if (!response.ok) throw new Error("Errore API HTTP " + response.status);
-
-      const rawResponse = await response.text();
-      let result;
-      try {
-        result = JSON.parse(rawResponse);
-      } catch (_) {
-        const looksLikeHtml = /<!doctype html|<html|accounts\.google\.com/i.test(rawResponse);
-        if (looksLikeHtml) {
-          throw new Error(
-            "La Web App Apps Script non è pubblica, l’URL è errato oppure il deploy non è aggiornato"
-          );
-        }
-        throw new Error("Risposta API non valida dal backend");
-      }
-
-      if (["updateReportStatus","updateReportLocation","sendToReferente","sendToUfficio","closeReport","addReportNote","startReportWork","recordOfficeResponse","createReport"].includes(action)) {
-        clearApiMemo("private:");
-      }
-
-      if (result && result.authRequired && typeof Auth !== "undefined") {
-        Auth.clearSession();
-        Auth.requireAuth();
-        throw new Error(result.error || "Sessione scaduta");
-      }
-
-      return result;
-    } catch (error) {
-      if (error && error.name === "AbortError") {
-        if (action === "createReport") {
-          throw new Error(
-            "L’invio sta richiedendo troppo tempo. Controlla se hai ricevuto l’email o se la pratica è comparsa prima di riprovare."
-          );
-        }
-        throw new Error("Il server non ha risposto entro il tempo previsto");
-      }
-      throw error;
-    } finally {
-      if (timeoutId !== null) window.clearTimeout(timeoutId);
-    }
-  },
-
-
-  async publicGet(action, timeoutMs = 15000) {
-    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-    const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
-    try {
-      const sep = CONFIG.API_URL.includes("?") ? "&" : "?";
-      const response = await fetch(CONFIG.API_URL + sep + "action=" + encodeURIComponent(action) + "&_=" + Date.now(), {
-        method: "GET", cache: "no-store", redirect: "follow", signal: controller ? controller.signal : undefined
-      });
-      if (!response.ok) throw new Error("Errore API HTTP " + response.status);
+      if (!response.ok) throw new Error("Errore HTTP " + response.status);
       const text = await response.text();
-      return JSON.parse(text);
-    } catch (error) {
-      if (error && error.name === "AbortError") throw new Error("Il server non ha risposto entro il tempo previsto");
-      throw error;
-    } finally { if (timer) clearTimeout(timer); }
+      let result;
+      try { result = JSON.parse(text); }
+      catch (_) { throw new Error("Risposta backend non valida"); }
+      if (result && result.authRequired) {
+        Auth.clearSession(); location.replace("login.html"); throw new Error("Sessione scaduta");
+      }
+      if (result && result.ok === false) throw new Error(result.error || "Operazione non riuscita");
+      return result;
+    } catch (e) {
+      if (e.name === "AbortError") throw new Error("Il server sta impiegando troppo tempo");
+      throw e;
+    } finally { clearTimeout(timer); }
   },
-  health() { return this.call("health", {}, { publicAction: true }); },
-  getPublicConfig() { return this.call("getPublicConfig", {}, { publicAction: true }); },
-  login(email, password) {
-    return this.call("login", { email, password }, { publicAction: true });
-  },
-  logout() { return this.call("logout"); },
-  getClientId() {
-    let id = localStorage.getItem(CONFIG.CLIENT_ID_KEY);
-    if (!id) {
-      id = (globalThis.crypto && crypto.randomUUID)
-        ? crypto.randomUUID()
-        : "client-" + Date.now() + "-" + Math.random().toString(16).slice(2);
-      localStorage.setItem(CONFIG.CLIENT_ID_KEY, id);
-    }
-    return id;
-  },
-  createReport(data) {
-    return this.call("createReport", { ...data, clientId: this.getClientId() }, { publicAction: true, timeoutMs: 75000 });
-  },
-  geocodeAddress(indirizzo, quartiere = "") {
-    return this.call(
-      "geocodeAddress",
-      { indirizzo, quartiere, clientId: this.getClientId() },
-      { publicAction: true }
-    );
-  },
-  listQuartieri() { return memoApi("public:listQuartieri", () => this.publicGet("listQuartieri", 15000), 300000); },
-  getPublicStats() { return this.call("getPublicStats", {}, { publicAction: true }); },
-  getPublicReport(code, email = "") {
-    return this.call("getPublicReport", { code, email }, { publicAction: true });
-  },
-  listReports() { return memoApi("private:listReports", () => this.call("listReports"), 20000); },
-  getDashboardFast() { return memoApi("private:dashboardFast", () => this.call("getDashboardFast"), 15000); },
-  getPracticeWorkspace() { return memoApi("private:practiceWorkspace", () => this.call("getPracticeWorkspace"), 15000); },
-  getConfigurationWorkspace() { return memoApi("private:configurationWorkspace", () => this.call("getConfigurationWorkspace"), 30000); },
-  listReferenti() { return memoApi("private:listReferenti", () => this.call("listReferenti"), 300000); },
-  listUffici() { return memoApi("private:listUffici", () => this.call("listUffici"), 300000); },
-  getTimeline(reportId) { return this.call("getTimeline", { reportId }); },
-  getCommunications(reportId) { return this.call("getCommunications", { reportId }); },
-  updateReportStatus(data) { return this.call("updateReportStatus", data); },
-  updateReportLocation(data) { return this.call("updateReportLocation", data); },
-  sendToReferente(data) { return this.call("sendToReferente", data); },
-  sendToUfficio(data) { return this.call("sendToUfficio", data); },
-  closeReport(data) { return this.call("closeReport", data); },
-  getConfigurationData() { return this.call("getConfigurationData"); },
-  saveConfigurationItem(itemType, item) {
-    return this.call("saveConfigurationItem", { itemType, item });
-  },
-  deactivateConfigurationItem(itemType, id) {
-    return this.call("deactivateConfigurationItem", { itemType, id });
-  },
-  listUsers() { return this.call("listUsers"); },
-  saveUser(user) { return this.call("saveUser", { user }); },
-  setUserActive(userId, active) { return this.call("setUserActive", { userId, active }); },
-  resetUserPassword(userId) {
-    return this.call("resetUserPassword", { userId });
-  },
-  changeOwnPassword(currentPassword, newPassword) {
-    return this.call("changeOwnPassword", { currentPassword, newPassword });
-  },
-  addReportNote(reportId, note, visibileCittadino = false) {
-    return this.call("addReportNote", { reportId, note, visibileCittadino });
-  },
-  startReportWork(reportId, note) {
-    return this.call("startReportWork", { reportId, note });
-  },
-  recordOfficeResponse(reportId, response) {
-    return this.call("recordOfficeResponse", { reportId, response });
-  }
+  login(email,password){ return this.call("login",{email,password},true); },
+  logout(){ return this.call("logout"); },
+  publicBootstrap(){ return this.call("getPublicBootstrap",{},true,15000); },
+  createReport(data){ return this.call("createReport",data,true,60000); },
+  publicReport(code,email=""){ return this.call("getPublicReport",{code,email},true,20000); },
+  dashboard(){ return this.call("liteDashboard"); },
+  reports(params={}){ return this.call("liteReports",params); },
+  detail(reportId){ return this.call("liteReportDetail",{reportId}); },
+  meta(){ return this.call("liteMeta"); },
+  startWork(reportId,note){ return this.call("startReportWork",{reportId,note}); },
+  sendOffice(reportId,ufficioId,messaggio){ return this.call("sendToUfficio",{reportId,ufficioId,messaggio}); },
+  officeResponse(reportId,response){ return this.call("recordOfficeResponse",{reportId,response}); },
+  closeReport(reportId,esito,noteFinali,inviaEmail=false){ return this.call("closeReport",{reportId,esito,noteFinali,inviaEmail}); },
+  assign(reportId,referenteId,messaggio=""){ return this.call("sendToReferente",{reportId,referenteId,messaggio}); },
+  users(){ return this.call("listUsers"); },
+  saveUser(user){ return this.call("saveUser",{user}); },
+  setUserActive(userId,active){ return this.call("setUserActive",{userId,active}); },
+  resetPassword(userId){ return this.call("resetUserPassword",{userId}); },
+  changePassword(currentPassword,newPassword){ return this.call("changeOwnPassword",{currentPassword,newPassword}); }
 });
