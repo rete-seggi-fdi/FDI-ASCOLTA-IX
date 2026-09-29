@@ -82,6 +82,23 @@ const API = Object.freeze({
     }
   },
 
+
+  async publicGet(action, timeoutMs = 15000) {
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+    try {
+      const sep = CONFIG.API_URL.includes("?") ? "&" : "?";
+      const response = await fetch(CONFIG.API_URL + sep + "action=" + encodeURIComponent(action) + "&_=" + Date.now(), {
+        method: "GET", cache: "no-store", redirect: "follow", signal: controller ? controller.signal : undefined
+      });
+      if (!response.ok) throw new Error("Errore API HTTP " + response.status);
+      const text = await response.text();
+      return JSON.parse(text);
+    } catch (error) {
+      if (error && error.name === "AbortError") throw new Error("Il server non ha risposto entro il tempo previsto");
+      throw error;
+    } finally { if (timer) clearTimeout(timer); }
+  },
   health() { return this.call("health", {}, { publicAction: true }); },
   getPublicConfig() { return this.call("getPublicConfig", {}, { publicAction: true }); },
   login(email, password) {
@@ -108,7 +125,7 @@ const API = Object.freeze({
       { publicAction: true }
     );
   },
-  listQuartieri() { return this.call("listQuartieri", {}, { publicAction: true }); },
+  listQuartieri() { return this.publicGet("listQuartieri", 15000); },
   getPublicStats() { return this.call("getPublicStats", {}, { publicAction: true }); },
   getPublicReport(code, email = "") {
     return this.call("getPublicReport", { code, email }, { publicAction: true });

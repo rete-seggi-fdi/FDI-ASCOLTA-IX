@@ -412,6 +412,7 @@
       if (!data.ok) {
         throw new Error(data.error || "Errore caricamento quartieri");
       }
+      try { localStorage.setItem('fdi_public_quartieri_v1', JSON.stringify(data.quartieri || [])); } catch (_) {}
 
       quartiereSelect.innerHTML = '<option value="">Seleziona quartiere</option>';
 
@@ -443,12 +444,21 @@
       }
 
     } catch (error) {
-      quartiereSelect.innerHTML = "";
-      const option = document.createElement("option");
-      option.value = "";
-      option.textContent = "Errore caricamento quartieri";
-      quartiereSelect.appendChild(option);
-      quartiereSelect.title = error && error.message ? error.message : "Errore API";
+      let cached = [];
+      try { cached = JSON.parse(localStorage.getItem('fdi_public_quartieri_v1') || '[]'); } catch (_) {}
+      if (Array.isArray(cached) && cached.length) {
+        quartiereSelect.innerHTML = '<option value="">Seleziona quartiere</option>';
+        cached.forEach(function(q) {
+          const name = String(q && q.nome || '').trim();
+          if (!name) return;
+          const option = document.createElement('option'); option.value = name; option.textContent = name;
+          quartiereSelect.appendChild(option);
+        });
+        quartiereSelect.title = 'Elenco locale disponibile';
+      } else {
+        quartiereSelect.innerHTML = '<option value="">Servizio momentaneamente non disponibile</option>';
+        quartiereSelect.title = error && error.message ? error.message : 'Errore API';
+      }
       console.error("Caricamento quartieri:", error);
     }
   }
@@ -869,41 +879,12 @@
   }
 
   async function initializeRecaptcha() {
-    submitReport.disabled = true;
-    submitReport.textContent = "Verifica anti-spam in corso...";
-
-    try {
-      if (window.location.protocol === "file:") {
-        throw new Error(
-          "Il modulo deve essere aperto dal sito pubblicato, non come file locale."
-        );
-      }
-
-      await loadPublicSecurityConfig();
-      await loadRecaptcha();
-
-      securityReady = true;
-      setRecaptchaStatus(
-        "success",
-        "Protezione anti-spam attiva tramite " +
-          recaptchaProvider +
-          ".",
-        false
-      );
-      submitReport.disabled = false;
-      submitReport.textContent = "Invia segnalazione";
-    } catch (error) {
-      securityReady = false;
-      setRecaptchaStatus(
-        "error",
-        error.message || "Protezione anti-spam non disponibile",
-        true
-      );
-      submitReport.disabled = true;
-      submitReport.textContent =
-        "Invio temporaneamente non disponibile";
-      console.error("Configurazione reCAPTCHA:", error);
-    }
+    recaptchaRequired = false;
+    recaptchaSiteKey = "";
+    securityReady = true;
+    recaptchaStatus.classList.add("hidden");
+    submitReport.disabled = false;
+    submitReport.textContent = "Invia segnalazione";
   }
 
   async function executeRecaptcha(client, providerLabel) {
@@ -928,58 +909,7 @@
     return token;
   }
 
-  async function getRecaptchaToken() {
-    if (!securityReady) {
-      throw new Error(
-        "Protezione anti-spam non pronta. Premi “Riprova controllo”."
-      );
-    }
-
-    if (!recaptchaSiteKey && !recaptchaRequired) return "";
-
-    let firstError = null;
-
-    try {
-      const client = await loadRecaptcha();
-      return await executeRecaptcha(client, recaptchaProvider);
-    } catch (error) {
-      firstError = error;
-    }
-
-    // Secondo tentativo automatico usando l'altro dominio.
-    const nextIndex =
-      (recaptchaProviderIndex + 1) % RECAPTCHA_PROVIDERS.length;
-
-    resetRecaptchaClient();
-
-    try {
-      const client = await loadRecaptcha(nextIndex);
-      return await executeRecaptcha(client, recaptchaProvider);
-    } catch (secondError) {
-      securityReady = false;
-
-      const message =
-        "Il controllo anti-spam non è riuscito. " +
-        "Primo tentativo: " +
-        (firstError && firstError.message
-          ? firstError.message
-          : "errore sconosciuto") +
-        " Secondo tentativo: " +
-        (secondError && secondError.message
-          ? secondError.message
-          : "errore sconosciuto");
-
-      setRecaptchaStatus("error", message, true);
-
-      throw new Error(
-        message +
-        ". Verifica che la chiave sia reCAPTCHA v3 standard, non v2 o Enterprise, " +
-        "e che " +
-        window.location.hostname +
-        " sia tra i domini autorizzati."
-      );
-    }
-  }
+  async function getRecaptchaToken() { return ""; }
 
   function validateClientPhoto(file) {
     if (!file) return;
