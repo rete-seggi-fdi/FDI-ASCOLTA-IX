@@ -12,7 +12,7 @@
 
 const APP = Object.freeze({
   NAME: 'FDI Ascolta IX',
-  SCHEMA_VERSION: '2026-09-stability-4.0.1',
+  SCHEMA_VERSION: '2026-09-enterprise-4.0.0',
   SESSION_HOURS: 8,
   MAX_PHOTO_BYTES: 5 * 1024 * 1024,
   PHOTO_FOLDER_NAME: 'FDI Ascolta IX Foto',
@@ -803,10 +803,17 @@ function pruneExpiredSessions() {
  * ========================= */
 
 function getPublicConfig() {
+  const props = PropertiesService.getScriptProperties();
+  const siteKey = String(props.getProperty('RECAPTCHA_SITE_KEY') || '').trim();
+  const secret = String(props.getProperty('RECAPTCHA_SECRET') || '').trim();
+  const required = String(props.getProperty('RECAPTCHA_REQUIRED') || 'true').toLowerCase() !== 'false';
   return {
     ok: true,
-    recaptcha: { required: false, configured: false, siteKey: '' },
-    antiSpam: { mode: 'server-rate-limit-honeypot' },
+    recaptcha: {
+      required: required,
+      configured: Boolean(siteKey && secret),
+      siteKey: siteKey
+    },
     maxPhotoBytes: APP.MAX_PHOTO_BYTES
   };
 }
@@ -861,6 +868,7 @@ function geocodeAddress(body) {
 
 function createReport(body) {
   enforceRateLimit('create:global', 60, 600);
+  verifyRecaptcha(body.recaptchaToken);
 
   const email = normalizeEmail(body.email);
   const clientId = cleanText(body.clientId || 'anonimo', 120, false);
@@ -1725,17 +1733,13 @@ function generateTrackingToken() {
  * della Web App usano poi SpreadsheetApp.openById(), evitando di dipendere
  * da un foglio "attivo" nel browser.
  */
-var __FDI_SPREADSHEET = null;
-
 function getSpreadsheet() {
-  if (__FDI_SPREADSHEET) return __FDI_SPREADSHEET;
   const props = PropertiesService.getScriptProperties();
   const configuredId = String(props.getProperty('SPREADSHEET_ID') || '').trim();
 
   if (configuredId) {
     try {
-      __FDI_SPREADSHEET = SpreadsheetApp.openById(configuredId);
-      return __FDI_SPREADSHEET;
+      return SpreadsheetApp.openById(configuredId);
     } catch (err) {
       throw new Error('SPREADSHEET_ID non valido o foglio non accessibile');
     }
@@ -1744,8 +1748,7 @@ function getSpreadsheet() {
   const active = SpreadsheetApp.getActiveSpreadsheet();
   if (active) {
     props.setProperty('SPREADSHEET_ID', active.getId());
-    __FDI_SPREADSHEET = active;
-    return __FDI_SPREADSHEET;
+    return active;
   }
 
   throw new Error(
@@ -1793,9 +1796,10 @@ function collegaEFaiDiagnostica() {
 }
 
 function ensureSetup() {
-  const props = PropertiesService.getScriptProperties();
-  if (props.getProperty('SCHEMA_READY_VERSION') === APP.SCHEMA_VERSION) return;
+  const cache = CacheService.getScriptCache();
+  if (cache.get('schema:' + APP.SCHEMA_VERSION)) return;
   setupSheet();
+  cache.put('schema:' + APP.SCHEMA_VERSION, '1', 21600);
 }
 
 function setupSheet() {
@@ -1809,7 +1813,6 @@ function setupSheet() {
     seedReferenti();
     seedQuartieri();
     migratePlainPasswords();
-    PropertiesService.getScriptProperties().setProperty('SCHEMA_READY_VERSION', APP.SCHEMA_VERSION);
   } finally {
     lock.releaseLock();
   }
