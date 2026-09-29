@@ -17,6 +17,7 @@ const API = Object.freeze({
     const controller = typeof AbortController !== "undefined"
       ? new AbortController()
       : null;
+
     let timeoutId = null;
     let timeoutPromise = null;
 
@@ -24,22 +25,17 @@ const API = Object.freeze({
       timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
     } else {
       timeoutPromise = new Promise((_, reject) => {
-        timeoutId = window.setTimeout(() => reject(new Error("Il server non ha risposto entro il tempo previsto")), timeoutMs);
+        timeoutId = window.setTimeout(() => {
+          reject(new Error("Il server non ha risposto entro il tempo previsto"));
+        }, timeoutMs);
       });
     }
 
     try {
       const fetchPromise = fetch(CONFIG.API_URL, {
         method: "POST",
-        mode: "cors",
         cache: "no-store",
         redirect: "follow",
-        credentials: "omit",
-        headers: {
-          // text/plain è CORS-safelisted e non provoca il preflight OPTIONS
-          // che le Web App Apps Script non gestiscono in modo affidabile.
-          "Content-Type": "text/plain;charset=utf-8"
-        },
         body: JSON.stringify(payload),
         signal: controller ? controller.signal : undefined
       });
@@ -55,8 +51,11 @@ const API = Object.freeze({
       try {
         result = JSON.parse(rawResponse);
       } catch (_) {
-        if (/<!doctype html|<html|accounts\.google\.com|ServiceLogin/i.test(rawResponse)) {
-          throw new Error("La Web App Apps Script non è pubblica, l’URL è errato oppure il deploy non è aggiornato");
+        const looksLikeHtml = /<!doctype html|<html|accounts\.google\.com/i.test(rawResponse);
+        if (looksLikeHtml) {
+          throw new Error(
+            "La Web App Apps Script non è pubblica, l’URL è errato oppure il deploy non è aggiornato"
+          );
         }
         throw new Error("Risposta API non valida dal backend");
       }
@@ -67,21 +66,15 @@ const API = Object.freeze({
         throw new Error(result.error || "Sessione scaduta");
       }
 
-      if (result && result.passwordChangeRequired && typeof Auth !== "undefined") {
-        location.replace("cambia-password.html");
-        throw new Error(result.error || "Cambio password richiesto");
-      }
-
       return result;
     } catch (error) {
       if (error && error.name === "AbortError") {
         if (action === "createReport") {
-          throw new Error("L’invio sta richiedendo troppo tempo. Controlla se hai ricevuto l’email o se la pratica è comparsa prima di riprovare.");
+          throw new Error(
+            "L’invio sta richiedendo troppo tempo. Controlla se hai ricevuto l’email o se la pratica è comparsa prima di riprovare."
+          );
         }
         throw new Error("Il server non ha risposto entro il tempo previsto");
-      }
-      if (error instanceof TypeError || /Failed to fetch|NetworkError|Load failed|CORS/i.test(String(error && error.message))) {
-        throw new Error("Il browser non riesce a raggiungere il backend Apps Script. Verifica che la Web App sia pubblicata per ‘Chiunque’ e che il deploy sia aggiornato.");
       }
       throw error;
     } finally {
@@ -91,29 +84,35 @@ const API = Object.freeze({
 
   health() { return this.call("health", {}, { publicAction: true }); },
   getPublicConfig() { return this.call("getPublicConfig", {}, { publicAction: true }); },
-  login(email, password) { return this.call("login", { email, password }, { publicAction: true }); },
+  login(email, password) {
+    return this.call("login", { email, password }, { publicAction: true });
+  },
   logout() { return this.call("logout"); },
   getClientId() {
     let id = localStorage.getItem(CONFIG.CLIENT_ID_KEY);
     if (!id) {
-      if (globalThis.crypto && crypto.randomUUID) {
-        id = crypto.randomUUID();
-      } else if (globalThis.crypto && crypto.getRandomValues) {
-        const bytes = new Uint8Array(16);
-        crypto.getRandomValues(bytes);
-        id = "client-" + Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("");
-      } else {
-        id = "client-" + Date.now();
-      }
+      id = (globalThis.crypto && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : "client-" + Date.now() + "-" + Math.random().toString(16).slice(2);
       localStorage.setItem(CONFIG.CLIENT_ID_KEY, id);
     }
     return id;
   },
-  createReport(data) { return this.call("createReport", { ...data, clientId: this.getClientId() }, { publicAction: true, timeoutMs: 75000 }); },
-  geocodeAddress(indirizzo, quartiere = "") { return this.call("geocodeAddress", { indirizzo, quartiere, clientId: this.getClientId() }, { publicAction: true }); },
+  createReport(data) {
+    return this.call("createReport", { ...data, clientId: this.getClientId() }, { publicAction: true, timeoutMs: 75000 });
+  },
+  geocodeAddress(indirizzo, quartiere = "") {
+    return this.call(
+      "geocodeAddress",
+      { indirizzo, quartiere, clientId: this.getClientId() },
+      { publicAction: true }
+    );
+  },
   listQuartieri() { return this.call("listQuartieri", {}, { publicAction: true }); },
   getPublicStats() { return this.call("getPublicStats", {}, { publicAction: true }); },
-  getPublicReport(code, email = "") { return this.call("getPublicReport", { code, email, clientId: this.getClientId() }, { publicAction: true }); },
+  getPublicReport(code, email = "") {
+    return this.call("getPublicReport", { code, email }, { publicAction: true });
+  },
   listReports() { return this.call("listReports"); },
   listReferenti() { return this.call("listReferenti"); },
   listUffici() { return this.call("listUffici"); },
@@ -125,14 +124,28 @@ const API = Object.freeze({
   sendToUfficio(data) { return this.call("sendToUfficio", data); },
   closeReport(data) { return this.call("closeReport", data); },
   getConfigurationData() { return this.call("getConfigurationData"); },
-  saveConfigurationItem(itemType, item) { return this.call("saveConfigurationItem", { itemType, item }); },
-  deactivateConfigurationItem(itemType, id) { return this.call("deactivateConfigurationItem", { itemType, id }); },
+  saveConfigurationItem(itemType, item) {
+    return this.call("saveConfigurationItem", { itemType, item });
+  },
+  deactivateConfigurationItem(itemType, id) {
+    return this.call("deactivateConfigurationItem", { itemType, id });
+  },
   listUsers() { return this.call("listUsers"); },
   saveUser(user) { return this.call("saveUser", { user }); },
   setUserActive(userId, active) { return this.call("setUserActive", { userId, active }); },
-  resetUserPassword(userId) { return this.call("resetUserPassword", { userId }); },
-  changeOwnPassword(currentPassword, newPassword) { return this.call("changeOwnPassword", { currentPassword, newPassword }); },
-  addReportNote(reportId, note, visibileCittadino = false) { return this.call("addReportNote", { reportId, note, visibileCittadino }); },
-  startReportWork(reportId, note) { return this.call("startReportWork", { reportId, note }); },
-  recordOfficeResponse(reportId, response) { return this.call("recordOfficeResponse", { reportId, response }); }
+  resetUserPassword(userId) {
+    return this.call("resetUserPassword", { userId });
+  },
+  changeOwnPassword(currentPassword, newPassword) {
+    return this.call("changeOwnPassword", { currentPassword, newPassword });
+  },
+  addReportNote(reportId, note, visibileCittadino = false) {
+    return this.call("addReportNote", { reportId, note, visibileCittadino });
+  },
+  startReportWork(reportId, note) {
+    return this.call("startReportWork", { reportId, note });
+  },
+  recordOfficeResponse(reportId, response) {
+    return this.call("recordOfficeResponse", { reportId, response });
+  }
 });

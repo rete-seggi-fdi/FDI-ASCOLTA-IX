@@ -57,9 +57,7 @@ const Auth = Object.freeze({
   },
 
   homeForRole() {
-    if (this.isAdmin()) return "dashboard.html";
-    if (this.isConsigliere()) return "pratiche.html";
-    return "login.html";
+    return this.isConsigliere() ? "pratiche.html" : "dashboard.html";
   },
 
   canOpenPage(pageName) {
@@ -69,7 +67,7 @@ const Auth = Object.freeze({
     if (this.isConsigliere()) {
       return ["dashboard.html","pratiche.html","notifiche.html","cambia-password.html"].includes(page);
     }
-    return false;
+    return ["dashboard.html","pratiche.html","notifiche.html","cambia-password.html"].includes(page);
   },
 
   enforcePageAccess() {
@@ -83,9 +81,7 @@ const Auth = Object.freeze({
       return false;
     }
     if (!this.canOpenPage(page)) {
-      const target = this.homeForRole();
-      if (target === "login.html") this.clearSession();
-      location.replace(target);
+      location.replace(this.homeForRole());
       return false;
     }
     return true;

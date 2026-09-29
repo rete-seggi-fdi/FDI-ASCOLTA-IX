@@ -1,4 +1,4 @@
-# Security review — versione 3.1.0 RC1
+# Security review — versione 2.1.0
 
 ## Controlli implementati
 
@@ -10,7 +10,7 @@
 - foto private, limite 5 MB e controllo della firma JPEG/PNG/GIF/WebP;
 - input sanitizzati contro formula injection nel Google Sheet;
 - rate limit per login, invio pratica, tracking, geocoding e invii email;
-- honeypot, rate limiting multilivello e verifica server-side reCAPTCHA v3;
+- honeypot, rilevamento duplicati e supporto reCAPTCHA v3;
 - `setupSheet` eseguibile solo manualmente;
 - API URL e chiave di sessione centralizzati;
 - coordinate coerenti tra frontend e backend;

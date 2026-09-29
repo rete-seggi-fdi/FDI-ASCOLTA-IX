@@ -1,112 +1,33 @@
-# Installazione release 3.1.0 RC1
+# Installazione e migrazione 2.1.0
 
-## 1. Backup
+## Prima del deploy
 
-Prima dell’aggiornamento:
+- Conservare una copia del foglio e del vecchio backend.
+- Eliminare dal progetto Apps Script i moduli legacy (`auth.gs`, `report.gs`, `referenti.gs`, `email.gs`, `util.gs`, `comunicazioni.gs`, `uffici.gs`, `quartieri.gs`) quando contengono funzioni duplicate.
+- Incollare `Code.gs` come sostituzione completa, non in coda al codice precedente.
 
-1. duplicare il Google Sheet;
-2. creare una copia del progetto Apps Script;
-3. scaricare il repository GitHub corrente.
+## Ordine delle funzioni manuali
 
-## 2. Backend Apps Script
+1. `setupSheet`
+2. `setupInitialUser`
+3. `collegaEFaiDiagnostica`
+4. `privatizeExistingPhotos` una sola volta
 
-1. Aprire il Google Sheet del CRM.
-2. Aprire **Estensioni → Apps Script**.
-3. Sostituire integralmente `Code.gs` con quello della release.
-4. Salvare.
-5. Eseguire manualmente `collegaEFaiDiagnostica`.
-6. Accettare le autorizzazioni richieste.
-7. Eseguire manualmente `auditReportAssignments`.
-8. Correggere dalla console amministratore le assegnazioni elencate.
-9. Aprire **Distribuisci → Gestisci distribuzioni**.
-10. Modificare la Web App e selezionare **Nuova versione**.
-11. Impostare:
-    - esegui come: proprietario dello script;
-    - accesso: chiunque.
-12. Distribuire e copiare l’URL `/exec`.
+## Dati da completare
 
-Non creare una seconda Web App se non è necessario: aggiornare la distribuzione
-esistente mantiene normalmente lo stesso URL.
+- Foglio `Referenti`: inserire nominativi e email reali; poi impostare `Attivo` a `Sì`.
+- Foglio `Uffici`: i modelli iniziali sono inattivi; inserire contatti verificati e attivarli.
+- Foglio `Quartieri`: viene popolato automaticamente, ma può essere gestito dalla pagina Configurazione.
 
-## 3. Configurazione frontend
+## Nuova versione Web App
 
-Aprire `assets/js/config.js` e verificare:
+Dopo ogni modifica a `Code.gs`, aggiornare la distribuzione con **Nuova versione**. Se viene creata una distribuzione diversa, aggiornare `CONFIG.API_URL`.
 
-```javascript
-API_URL: "URL_DELLA_WEB_APP_APPS_SCRIPT"
-```
+## Diagnostica
 
-Se l’URL della distribuzione non è cambiato, non modificare il file.
+Aprire l'endpoint `health`. Se la versione non è `2026-07-complete-1`, il deploy sta ancora eseguendo codice precedente.
 
-## 4. GitHub Pages
 
-Caricare il contenuto della cartella della release nella root del repository,
-non la cartella contenitore. La struttura deve includere:
+## Passaggio obbligatorio: reCAPTCHA
 
-```text
-index.html
-dashboard.html
-pratiche.html
-tracking.html
-Code.gs
-assets/
-```
-
-In **Settings → Pages** usare:
-
-```text
-Branch: main
-Folder: / (root)
-```
-
-Attendere il workflow più recente con stato verde.
-
-## 5. Migrazione automatica del foglio
-
-Alla prima esecuzione il backend aggiunge senza eliminare i dati esistenti:
-
-- `Cambio password richiesto`;
-- `Versione autenticazione`;
-- `Ultimo accesso`;
-- `Risposta ricevuta`;
-- versione autenticazione nelle sessioni.
-
-Le password in chiaro eventualmente presenti vengono convertite in hash.
-
-## 6. Primo amministratore
-
-Se esiste già un amministratore, usare le credenziali correnti.
-
-Solo per un’installazione nuova, configurare nelle Proprietà script:
-
-```text
-INITIAL_USER_EMAIL
-INITIAL_USER_NAME
-INITIAL_USER_PASSWORD
-INITIAL_USER_ROLE = Amministratore
-```
-
-Eseguire `setupInitialUser`, poi rimuovere le proprietà non più necessarie.
-
-## 7. Creazione consiglieri
-
-Da **Configurazione → Utenti → Nuovo utente**:
-
-1. inserire nome ed email;
-2. scegliere `Consigliere`;
-3. lasciare attivo;
-4. salvare.
-
-Il sistema invia una password temporanea e impone il cambio al primo accesso.
-Nome ed email devono coincidere con il referente usato per l’assegnazione.
-
-## 8. Collaudo minimo
-
-1. Login amministratore: deve vedere tutte le pratiche.
-2. Creare due consiglieri distinti.
-3. Assegnare una pratica a ciascuno.
-4. Login consigliere A: deve vedere solo la pratica A.
-5. Tentare di aprire l’ID B tramite URL: deve risultare non accessibile.
-6. Consigliere A: nota, lavorazione, invio ufficio, risposta, risolta.
-7. Tracking cittadino: verificare timeline ed esito pubblico.
-8. Disattivare A: la sessione attiva deve essere revocata.
+Prima del deploy definitivo configurare `RECAPTCHA_SITE_KEY`, `RECAPTCHA_SECRET`, `RECAPTCHA_REQUIRED=true`, quindi eseguire `setupRecaptcha`. Vedere `CONFIGURA-RECAPTCHA.md`.

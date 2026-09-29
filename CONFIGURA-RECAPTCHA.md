@@ -1,4 +1,4 @@
-# Attivazione reCAPTCHA v3 — versione 3.1.0 RC1
+# Attivazione reCAPTCHA v3 — versione 2.1.0
 
 La protezione è ora **obbligatoria e fail-closed**: il modulo pubblico resta disabilitato finché entrambe le chiavi non risultano configurate.
 
@@ -50,14 +50,14 @@ Il risultato atteso è:
   "configured": true,
   "siteKeyPresent": true,
   "secretPresent": true,
-  "minScore": 0.5,
+  "minimumScore": 0.5,
   "allowedHostnames": ["rete-seggi-fdi.github.io"]
 }
 ```
 
 ## 4. Deploy
 
-Creare una **Nuova versione** della Web App Apps Script e ripubblicare tutti i file frontend 3.1.0 RC1.
+Creare una **Nuova versione** della Web App Apps Script e ripubblicare tutti i file frontend 2.1.0.
 
 La site key non è più inserita in `config.js`: il frontend la riceve dal backend tramite `getPublicConfig`. La secret non viene mai restituita al browser.
 
