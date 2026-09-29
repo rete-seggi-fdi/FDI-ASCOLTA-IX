@@ -1,3 +1,16 @@
+const __apiMemo = new Map();
+function memoApi(key, factory, ttlMs = 15000) {
+  const now = Date.now();
+  const hit = __apiMemo.get(key);
+  if (hit && hit.expires > now) return hit.promise;
+  const promise = Promise.resolve().then(factory).catch(error => { __apiMemo.delete(key); throw error; });
+  __apiMemo.set(key, { promise, expires: now + ttlMs });
+  return promise;
+}
+function clearApiMemo(prefix = "") {
+  [...__apiMemo.keys()].forEach(key => { if (!prefix || key.startsWith(prefix)) __apiMemo.delete(key); });
+}
+
 const API = Object.freeze({
   async call(action, params = {}, options = {}) {
     const isPublic = Boolean(options.publicAction);
@@ -60,6 +73,10 @@ const API = Object.freeze({
         throw new Error("Risposta API non valida dal backend");
       }
 
+      if (["updateReportStatus","updateReportLocation","sendToReferente","sendToUfficio","closeReport","addReportNote","startReportWork","recordOfficeResponse","createReport"].includes(action)) {
+        clearApiMemo("private:");
+      }
+
       if (result && result.authRequired && typeof Auth !== "undefined") {
         Auth.clearSession();
         Auth.requireAuth();
@@ -82,6 +99,23 @@ const API = Object.freeze({
     }
   },
 
+
+  async publicGet(action, timeoutMs = 15000) {
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+    try {
+      const sep = CONFIG.API_URL.includes("?") ? "&" : "?";
+      const response = await fetch(CONFIG.API_URL + sep + "action=" + encodeURIComponent(action) + "&_=" + Date.now(), {
+        method: "GET", cache: "no-store", redirect: "follow", signal: controller ? controller.signal : undefined
+      });
+      if (!response.ok) throw new Error("Errore API HTTP " + response.status);
+      const text = await response.text();
+      return JSON.parse(text);
+    } catch (error) {
+      if (error && error.name === "AbortError") throw new Error("Il server non ha risposto entro il tempo previsto");
+      throw error;
+    } finally { if (timer) clearTimeout(timer); }
+  },
   health() { return this.call("health", {}, { publicAction: true }); },
   getPublicConfig() { return this.call("getPublicConfig", {}, { publicAction: true }); },
   login(email, password) {
@@ -108,14 +142,17 @@ const API = Object.freeze({
       { publicAction: true }
     );
   },
-  listQuartieri() { return this.call("listQuartieri", {}, { publicAction: true }); },
+  listQuartieri() { return memoApi("public:listQuartieri", () => this.publicGet("listQuartieri", 15000), 300000); },
   getPublicStats() { return this.call("getPublicStats", {}, { publicAction: true }); },
   getPublicReport(code, email = "") {
     return this.call("getPublicReport", { code, email }, { publicAction: true });
   },
-  listReports() { return this.call("listReports"); },
-  listReferenti() { return this.call("listReferenti"); },
-  listUffici() { return this.call("listUffici"); },
+  listReports() { return memoApi("private:listReports", () => this.call("listReports"), 20000); },
+  getDashboardFast() { return memoApi("private:dashboardFast", () => this.call("getDashboardFast"), 15000); },
+  getPracticeWorkspace() { return memoApi("private:practiceWorkspace", () => this.call("getPracticeWorkspace"), 15000); },
+  getConfigurationWorkspace() { return memoApi("private:configurationWorkspace", () => this.call("getConfigurationWorkspace"), 30000); },
+  listReferenti() { return memoApi("private:listReferenti", () => this.call("listReferenti"), 300000); },
+  listUffici() { return memoApi("private:listUffici", () => this.call("listUffici"), 300000); },
   getTimeline(reportId) { return this.call("getTimeline", { reportId }); },
   getCommunications(reportId) { return this.call("getCommunications", { reportId }); },
   updateReportStatus(data) { return this.call("updateReportStatus", data); },
