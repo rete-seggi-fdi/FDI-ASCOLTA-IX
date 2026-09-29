@@ -1,3 +1,16 @@
+const __apiMemo = new Map();
+function memoApi(key, factory, ttlMs = 15000) {
+  const now = Date.now();
+  const hit = __apiMemo.get(key);
+  if (hit && hit.expires > now) return hit.promise;
+  const promise = Promise.resolve().then(factory).catch(error => { __apiMemo.delete(key); throw error; });
+  __apiMemo.set(key, { promise, expires: now + ttlMs });
+  return promise;
+}
+function clearApiMemo(prefix = "") {
+  [...__apiMemo.keys()].forEach(key => { if (!prefix || key.startsWith(prefix)) __apiMemo.delete(key); });
+}
+
 const API = Object.freeze({
   async call(action, params = {}, options = {}) {
     const isPublic = Boolean(options.publicAction);
@@ -58,6 +71,10 @@ const API = Object.freeze({
           );
         }
         throw new Error("Risposta API non valida dal backend");
+      }
+
+      if (["updateReportStatus","updateReportLocation","sendToReferente","sendToUfficio","closeReport","addReportNote","startReportWork","recordOfficeResponse","createReport"].includes(action)) {
+        clearApiMemo("private:listReports");
       }
 
       if (result && result.authRequired && typeof Auth !== "undefined") {
@@ -125,14 +142,14 @@ const API = Object.freeze({
       { publicAction: true }
     );
   },
-  listQuartieri() { return this.publicGet("listQuartieri", 15000); },
+  listQuartieri() { return memoApi("public:listQuartieri", () => this.publicGet("listQuartieri", 15000), 300000); },
   getPublicStats() { return this.call("getPublicStats", {}, { publicAction: true }); },
   getPublicReport(code, email = "") {
     return this.call("getPublicReport", { code, email }, { publicAction: true });
   },
-  listReports() { return this.call("listReports"); },
-  listReferenti() { return this.call("listReferenti"); },
-  listUffici() { return this.call("listUffici"); },
+  listReports() { return memoApi("private:listReports", () => this.call("listReports"), 20000); },
+  listReferenti() { return memoApi("private:listReferenti", () => this.call("listReferenti"), 300000); },
+  listUffici() { return memoApi("private:listUffici", () => this.call("listUffici"), 300000); },
   getTimeline(reportId) { return this.call("getTimeline", { reportId }); },
   getCommunications(reportId) { return this.call("getCommunications", { reportId }); },
   updateReportStatus(data) { return this.call("updateReportStatus", data); },
